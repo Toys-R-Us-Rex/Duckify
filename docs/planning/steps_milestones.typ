@@ -12,7 +12,7 @@
 
 #show regex("[tT]est(s|ed)?"): highlight.with(fill: red)
 
-#let mapping = tag(fill: green.lighten(60%))[Mapping]
+#let mapping = tag(fill: green.lighten(60%))[Tracing]
 #let printing = tag(fill: orange.lighten(30%))[3D Modeling]
 #let admin = tag(fill: gray.lighten(40%))[Admin]
 #let general = tag(fill: black.lighten(20%), text(fill: white)[General])
@@ -50,19 +50,33 @@
   [W2], [
     - #mapping
       - Pipeline done : wrapped texture to 3D drawing segments
-      - Texture projection process implemented (and working)
-      - Define optimization scope and goal, with feedback / validation criteria
+      - Define performance evaluation criteria
     - #printing
-      - Duck supports are printed, ready to be tested
-      - Sketch a 3D design that can be use to have a fixed configuration of object and tools (eventually the supports) (needed to be verified by expert)
+      - Duck supports are printed
+      - Print base duck model
+      - Evaluate adequacy of duck+support
+      - Sketch a 3D design that can be used to have a fixed configuration of object and tools (eventually the supports) (needed to be verified by expert)
     - #robot
-      - Draw on a 2D surface (tools already set and grabbed by the robot)
-      - Add supports and tools into the virtual simulation
-      - Use of the camera to id and calibrate the robot relative position of the tools and object
-      - Can grab and change tools and manipulate them (not drawing only hold into a initial position)
-      - Draw on a 3D surface (tools already set and grabbed by the robot)
+      - Assess pen gripping constraints
+      - Draw on a 2D surface following instructions (tools already set and grabbed by the robot)
+        - If successful, draw more complex shapes/filling (e.g. infinity shape + multiple pass)
+      - Add mock shapes into the virtual simulation
+      - _Use of the camera to id and calibrate the robot relative position of the tools and object_
+      - _Can grab and change tools and manipulate them (not drawing only hold into a initial position)_
+      - _Draw on a 3D surface (tools already set and grabbed by the robot)_
     - #llm
-      - Assess generative model limits: prompt fidelity, instructions following (output format/shape)
+      - Evaluate generative model limits: prompt fidelity, instructions following (output format/shape)
+    - #general
+      - Choose and get pen
+      - Choose duck model
+      - Get client feedback/commitment to a solution
+      - Create basic fully integrated pipeline
+    
+    *End goals*
+    - Paint a simple pattern (line) on cubic duck (through the whole pipeline)
+    - Bottlenecks:
+      - 3D printed duck
+      - Pen
   ],
   [W3], [
     - #mapping
