@@ -1,4 +1,3 @@
-#import "@preview/suiji:0.5.1": *
 #import "template.typ": meeting, attendees, team
 
 #show: meeting.with(
@@ -7,9 +6,7 @@
 
 #attendees()
 
-*Time*: 9h00
-
-*Scribt :* Jeremy
+*Location*: 23N216 | *Time*: 9h00 | *Scribe*: Jeremy
 
 = Work done/todo
 

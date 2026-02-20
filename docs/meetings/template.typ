@@ -19,7 +19,7 @@
   )
 
   show list.item: it => {
-    show regex(`[a-zA-Z-]*?\s*:`.text): strong
+    show regex(`[a-zA-Z-/\s]*?\s*:`.text): strong
     it
   }
   
