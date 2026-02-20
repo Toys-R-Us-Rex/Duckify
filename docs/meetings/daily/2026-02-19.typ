@@ -1,4 +1,3 @@
-#import "@preview/suiji:0.5.1": *
 #import "./template.typ": meeting, attendees, team
 
 #show: meeting.with(

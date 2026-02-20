@@ -1,4 +1,4 @@
-#import "template.typ": meeting, attendees, team
+#import "./template.typ": meeting, attendees, team
 
 #show: meeting.with(
   date: datetime(year: 2026, month: 2, day: 20)
