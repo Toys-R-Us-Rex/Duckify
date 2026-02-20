@@ -1,9 +1,5 @@
-<<<<<<< HEAD:docs/meetings/daily/2026-02-19.typ
 #import "@preview/suiji:0.5.1": *
 #import "./template.typ": meeting, attendees, team
-=======
-#import "template.typ": meeting, attendees, team
->>>>>>> a02814a138bd582ac4d0aaf6440cfeeae5d9e081:docs/meetings/2026-02-19.typ
 
 #show: meeting.with(
   date: datetime(year: 2026, month: 2, day: 19)
