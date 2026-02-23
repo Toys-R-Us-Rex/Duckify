@@ -1,3 +1,5 @@
+from logging import Logger
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -16,6 +18,8 @@ class Tracer:
     def __init__(
         self, texture_path: Path, model_path: Path, palette: tuple[Color, ...]
     ):
+        self.logger: Logger = logging.getLogger("Tracer")
+
         self.texture_path: Path = texture_path
         self.model_path: Path = model_path
         self.palette: tuple[Color, ...] = palette
@@ -53,26 +57,45 @@ class Tracer:
         return self.traces
 
     def load_texture(self, path: Path) -> Image:
+        self.logger.info(f"Loading image {path}")
         return Image()
 
     def load_model(self, path: Path) -> "Mesh":
+        self.logger.info(f"Loading model {path}")
         return None
 
-    def discretize_texture_colors(self, img: Image, palette: tuple[Color, ...]) -> Image:
+    def discretize_texture_colors(
+        self, img: Image, palette: tuple[Color, ...]
+    ) -> Image:
+        self.logger.info("Discretizing texture colors")
         return img
 
     def split_colors(self, img: Image) -> list[Image]:
+        self.logger.info("Splitting colors")
         return [img, img, img]
 
     def detect_islands(self, img: Image, color: int) -> list[Island]:
+        self.logger.info(f"Detecing islands for color {color}")
         return [
-            Island(color, np.array([
-                [0, 0],
-                [1, 0],
-                [1, 1],
-                [0, 1],
-            ]))
+            Island(
+                0,
+                color,
+                np.array(
+                    [
+                        [0, 0],
+                        [1, 0],
+                        [1, 1],
+                        [0, 1],
+                    ]
+                ),
+            )
         ]
+
+    def compute_fill_slices(self, island: Island) -> list[Segment]:
+        self.logger.info(f"Computing fill slices for island {island.idx}")
+        return [Segment(np.array([0, 0]), np.array([1, 1]), island.color)]
+
+    # Utility
 
     def resample_border(self, island: Island) -> list[Segment]:
         return [
@@ -82,25 +105,17 @@ class Tracer:
             Segment(np.array([0, 1]), np.array([0, 0]), island.color),
         ]
 
-    def compute_fill_slices(self, island: Island) -> list[Segment]:
-        return [
-            Segment(np.array([0, 0]), np.array([1, 1]), island.color)
-        ]
-
     def resample_fill_segment(self, segment: Segment) -> list[Segment]:
-        return [
-            segment
-        ]
+        return [segment]
 
     def project_segment_to_3d(self, segment: Segment) -> Trace:
         return Trace(
             p1=self.interpolate_position(segment.p1),
             p2=self.interpolate_position(segment.p2),
-            color=segment.color
+            color=segment.color,
         )
 
     def interpolate_position(self, uv_pos: np.ndarray) -> Point3D:
         return Point3D(
-            pos=np.array([uv_pos[0], uv_pos[1], 0]),
-            normal=np.array([0, 0, 1])
+            pos=np.array([uv_pos[0], uv_pos[1], 0]), normal=np.array([0, 0, 1])
         )

@@ -7,6 +7,8 @@ import numpy as np
 class Island:
     """Bounded color island on the texture"""
 
+    idx: int
+
     # Color index
     color: int
 
