@@ -8,6 +8,7 @@ services:
       - ${PWD}/TOKEN:/workspace/TOKEN
       - ${PWD}/shapes:/workspace/shapes
       - ${PWD}/configs:/workspace/configs
+      - ${PWD}/textures:/workspace/textures
       - ${PWD}/experiments:/workspace/experiments
     deploy:
       resources:
