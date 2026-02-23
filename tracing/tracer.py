@@ -75,7 +75,7 @@ class Tracer:
         return [img, img, img]
 
     def detect_islands(self, img: Image.Image, color: int) -> list[Island]:
-        self.logger.info(f"Detecing islands for color {color}")
+        self.logger.info(f"Detecting islands for color {color}")
         return [
             Island(
                 0,
