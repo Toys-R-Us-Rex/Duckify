@@ -2,14 +2,14 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
-from PIL.Image import Image
 import tqdm
+from PIL.Image import Image
 
-from tracing.color import Color
-from tracing.island import Island
-from tracing.point_3d import Point3D
-from tracing.segment import Segment
-from tracing.trace import Trace
+from color import Color
+from island import Island
+from point_3d import Point3D
+from segment import Segment
+from trace import Trace
 
 
 class Tracer:
@@ -55,7 +55,7 @@ class Tracer:
     def load_texture(self, path: Path) -> Image:
         pass
 
-    def load_model(self, path: Path) -> Mesh:
+    def load_model(self, path: Path) -> "Mesh":
         pass
 
     def discretize_texture_colors(self, img: Image) -> Image:

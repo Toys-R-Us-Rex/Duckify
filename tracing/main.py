@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from tracing.color import Color
-from tracing.trace import Trace
-from tracing.tracer import Tracer
+from color import Color
+from trace import Trace
+from tracer import Tracer
 
 PROJECT_DIR = Path(__file__).parent.parent
 ASSETS_DIR = PROJECT_DIR / "assets"
