@@ -1,1 +1,1 @@
-Color = tuple[float, float, float]
+Color = tuple[int | float, int | float, int | float]
