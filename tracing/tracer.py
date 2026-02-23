@@ -29,7 +29,7 @@ class Tracer:
 
     def compute_traces(self) -> list[Trace]:
         self.texture = self.load_texture(self.texture_path)
-        self.texture = self.discretize_texture_colors(self.texture)
+        self.texture = self.discretize_texture_colors(self.texture, self.palette)
         self.layers = self.split_colors(self.texture)
 
         for c, layer in tqdm.tqdm(
@@ -53,31 +53,54 @@ class Tracer:
         return self.traces
 
     def load_texture(self, path: Path) -> Image:
-        pass
+        return Image()
 
     def load_model(self, path: Path) -> "Mesh":
-        pass
+        return None
 
-    def discretize_texture_colors(self, img: Image) -> Image:
-        pass
+    def discretize_texture_colors(self, img: Image, palette: tuple[Color, ...]) -> Image:
+        return img
 
     def split_colors(self, img: Image) -> list[Image]:
-        return []
+        return [img, img, img]
 
     def detect_islands(self, img: Image, color: int) -> list[Island]:
-        return []
+        return [
+            Island(color, np.array([
+                [0, 0],
+                [1, 0],
+                [1, 1],
+                [0, 1],
+            ]))
+        ]
 
     def resample_border(self, island: Island) -> list[Segment]:
-        return []
+        return [
+            Segment(np.array([0, 0]), np.array([1, 0]), island.color),
+            Segment(np.array([1, 0]), np.array([1, 1]), island.color),
+            Segment(np.array([1, 1]), np.array([0, 1]), island.color),
+            Segment(np.array([0, 1]), np.array([0, 0]), island.color),
+        ]
 
     def compute_fill_slices(self, island: Island) -> list[Segment]:
-        return []
+        return [
+            Segment(np.array([0, 0]), np.array([1, 1]), island.color)
+        ]
 
     def resample_fill_segment(self, segment: Segment) -> list[Segment]:
-        return []
+        return [
+            segment
+        ]
 
     def project_segment_to_3d(self, segment: Segment) -> Trace:
-        pass
+        return Trace(
+            p1=self.interpolate_position(segment.p1),
+            p2=self.interpolate_position(segment.p2),
+            color=segment.color
+        )
 
     def interpolate_position(self, uv_pos: np.ndarray) -> Point3D:
-        pass
+        return Point3D(
+            pos=np.array([uv_pos[0], uv_pos[1], 0]),
+            normal=np.array([0, 0, 1])
+        )
