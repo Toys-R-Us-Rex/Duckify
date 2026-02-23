@@ -1,0 +1,10 @@
+[project]
+name = "tracing"
+version = "0.1.0"
+description = "Wrapped texture and UV mapping to 3D segment coordinates pipeline"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.4.2",
+    "pillow>=12.1.1",
+]
