@@ -5,7 +5,7 @@ from typing import Optional
 
 import numpy as np
 import tqdm
-from PIL.Image import Image
+from PIL import Image
 
 from color import Color
 from island import Island
@@ -24,8 +24,8 @@ class Tracer:
         self.model_path: Path = model_path
         self.palette: tuple[Color, ...] = palette
 
-        self.texture: Optional[Image] = None
-        self.layers: list[Image] = []
+        self.texture: Optional[Image.Image] = None
+        self.layers: list[Image.Image] = []
 
         self.islands: list[Island] = []
         self.segments: list[Segment] = []
@@ -56,25 +56,25 @@ class Tracer:
 
         return self.traces
 
-    def load_texture(self, path: Path) -> Image:
+    def load_texture(self, path: Path) -> Image.Image:
         self.logger.info(f"Loading image {path}")
-        return Image()
+        return Image.new("RGB", (16, 16))
 
     def load_model(self, path: Path) -> "Mesh":
         self.logger.info(f"Loading model {path}")
         return None
 
     def discretize_texture_colors(
-        self, img: Image, palette: tuple[Color, ...]
-    ) -> Image:
+        self, img: Image.Image, palette: tuple[Color, ...]
+    ) -> Image.Image:
         self.logger.info("Discretizing texture colors")
-        return img
+        return Image.new("P", img.size)
 
-    def split_colors(self, img: Image) -> list[Image]:
+    def split_colors(self, img: Image.Image) -> list[Image.Image]:
         self.logger.info("Splitting colors")
         return [img, img, img]
 
-    def detect_islands(self, img: Image, color: int) -> list[Island]:
+    def detect_islands(self, img: Image.Image, color: int) -> list[Island]:
         self.logger.info(f"Detecing islands for color {color}")
         return [
             Island(
