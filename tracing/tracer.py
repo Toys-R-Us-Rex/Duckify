@@ -1,11 +1,13 @@
 from logging import Logger
 import logging
+from os import error
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import tqdm
 import trimesh
+import os
 from PIL import Image
 
 from tracing.color import Color
@@ -68,8 +70,11 @@ class Tracer:
         """
         self.logger.info(f"Loading image {path}")
 
+        if not os.path.exists(path):
+            self.logger.error(f"The file {path} does not exist")
+            raise FileNotFoundError("The file {path} does not exist")
+        
         im = Image.open(path)
-
         return im
 
     def load_model(self, path: Path) -> trimesh.base.Trimesh :
@@ -82,6 +87,11 @@ class Tracer:
             trimesh.base.Trimesh: trimesh object
         """
         self.logger.info(f"Loading model {path}")
+        
+        if not os.path.exists(path):
+            self.logger.error(f"The file {path} does not exist")
+            raise FileNotFoundError("The file {path} does not exist")
+        
         mesh = trimesh.load_mesh(path)
         return mesh
 
