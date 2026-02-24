@@ -1,12 +1,11 @@
 #import "./template.typ": meeting, attendees, team
 
 #show: meeting.with(
-  date: datetime(year: 2026, month: 2, day: 19)
+  date: datetime(year: 2026, month: 2, day: 19),
+  location: [23N216],
+  time: [9h00],
+  scribe: "J"
 )
-
-#attendees()
-
-*Location*: 23N216 | *Time*: 9h00 | *Scribe*: Jeremy
 
 = Work done/todo
 

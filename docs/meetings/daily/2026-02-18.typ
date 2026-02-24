@@ -2,11 +2,9 @@
 #import "./template.typ": meeting, attendees, team
 
 #show: meeting.with(
-  date: datetime(year: 2026, month: 2, day: 18)
-)
-
-#attendees(
-  absent: ("K", "N")
+  date: datetime(year: 2026, month: 2, day: 18),
+  absent: ("K", "N"),
+  scribe: "L"
 )
 
 #let rng = gen-rng(15)
