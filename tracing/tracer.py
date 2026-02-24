@@ -1,6 +1,5 @@
 from logging import Logger
 import logging
-from os import error
 from pathlib import Path
 from typing import Optional
 
@@ -87,10 +86,10 @@ class Tracer:
             trimesh.base.Trimesh: trimesh object
         """
         self.logger.info(f"Loading model {path}")
-        
+
         if not os.path.exists(path):
             self.logger.error(f"The file {path} does not exist")
-            raise FileNotFoundError("The file {path} does not exist")
+            raise FileNotFoundError(f"The file {path} does not exist")
         
         mesh = trimesh.load_mesh(path)
         return mesh
