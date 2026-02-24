@@ -157,8 +157,19 @@ class Tracer:
             segments.append(Segment(p1, p2, island.color))
         return segments
 
-    def resample_fill_segment(self, segment: Segment) -> list[Segment]:
-        return [segment]
+    def resample_fill_segment(self, segment: Segment, n: int) -> list[Segment]:
+        pts: np.ndarray = self.resample_polygon(np.array([
+            segment.p1,
+            segment.p2
+        ]), n)
+        segments: list[Segment] = []
+
+        for i in range(pts.shape[0]):
+            p1: np.ndarray = pts[i]
+            p2: np.ndarray = pts[(i + 1) % pts.shape[0]]
+            segments.append(Segment(p1, p2, segment.color))
+
+        return segments
 
     def project_segment_to_3d(self, segment: Segment) -> Trace:
         return Trace(
