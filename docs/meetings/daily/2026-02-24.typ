@@ -1,16 +1,13 @@
 #import "./template.typ": meeting, attendees, team, blocker
 
 #show: meeting.with(
-  date: datetime(year: 2026, month: 2, day: 24)
-)
-
-#attendees(
+  date: datetime(year: 2026, month: 2, day: 24),
   absent: ("K",),
-  extra: ([L. Lettry],)
+  extra: ([L. Lettry],),
+  location: [23N316],
+  time: [9h00],
+  scribe: "PY"
 )
-
-*Location*: 23N316 | *Time*: 9h00 | *Scribe* : Pierre-Yves
-
 
 *Louis*:
 

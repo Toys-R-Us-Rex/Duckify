@@ -47,6 +47,10 @@
     elmts.push[*Location*: #team.at(scribe)]
   }
 
+  if elmts.len() == 0 {
+    return none
+  }
+
   block(elmts.join[ | ])
 }
 

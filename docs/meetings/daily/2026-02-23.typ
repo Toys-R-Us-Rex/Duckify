@@ -1,12 +1,11 @@
 #import "./template.typ": meeting, attendees, team
 
 #show: meeting.with(
-  date: datetime(year: 2026, month: 2, day: 23)
+  date: datetime(year: 2026, month: 2, day: 23),
+  location: [23N316],
+  time: [9h00],
+  scribe: "N"
 )
-
-#attendees()
-
-*Location*: 23N316 | *Time*: 9h00 | *Scribe* : Nathan
 
 - KV: 
   - Continuer milestone trouver AI adapter

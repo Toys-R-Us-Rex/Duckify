@@ -1,12 +1,11 @@
 #import "./template.typ": meeting, attendees, team
 
 #show: meeting.with(
-  date: datetime(year: 2026, month: 2, day: 20)
+  date: datetime(year: 2026, month: 2, day: 20),
+  location: [23N406],
+  time: [9h00],
+  scribe: "L"
 )
-
-#attendees()
-
-*Location*: 23N406 | *Time*: 9h00 | *Scribe* : Louis
 
 - M:
   - Hier: création texture canard, recherche $->$ trouvé un repo GitHub + démo huggingface, testé mais pas parfait
