@@ -10,7 +10,7 @@
 
 This document is a retranscription of a discussion between Pr. Darbellay and Alexandre Venturi, it may be not well structured but will contain every information needed to correctly use the program *Prusa Slicer*, the application that take an 3d-model file such as .obj, .step, .stt for exemple and return the path of the printer through the piece.
 
-= Settings Wizarrd
+= Settings Wizard
 
 Configuration source : only Prusa *FFF*
 
