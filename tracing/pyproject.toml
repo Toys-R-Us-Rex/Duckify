@@ -9,6 +9,7 @@ dependencies = [
     "opencv-python>=4.13.0.92",
     "pillow>=12.1.1",
     "tqdm>=4.67.3",
+    "trimesh>=4.11.2",
 ]
 
 [tool.setuptools]
