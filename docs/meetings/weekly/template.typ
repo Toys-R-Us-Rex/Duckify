@@ -9,6 +9,11 @@
   "L": [Louis],
 )
 
+#let direction-team = (
+  "CTO": [Louis Lettru],
+  "PO": [Cédric Travelletti],
+)
+
 #let meeting(
   date: datetime.today(),
   body
@@ -24,13 +29,13 @@
   }
   
   text(size: 1.6em, weight: "bold")[
-    Daily Meeting (#date.display("[day].[month].[year]"))
+    Weekly Meeting (#date.display("[day].[month].[year]"))
   ]
   
   body
 }
 
-#let attendees(
+#let worker-attendees(
   present: auto,
   absent: ()
 ) = {
@@ -45,5 +50,14 @@
 
   let people = present.map(p => team.at(p)).join(", ")
 
-  [*Attendees*: #people]
+  [*Workers attendees*: #people]
+}
+
+
+#let direction-attendees(
+  people: ()
+) = {
+  let people = people.map(p => direction-team.at(p)).join(", ")
+
+  [*Direction attendees*: #people]
 }

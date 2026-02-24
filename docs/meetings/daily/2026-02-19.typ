@@ -1,5 +1,4 @@
-#import "@preview/suiji:0.5.1": *
-#import "template.typ": meeting, attendees, team
+#import "./template.typ": meeting, attendees, team
 
 #show: meeting.with(
   date: datetime(year: 2026, month: 2, day: 19)
@@ -7,9 +6,7 @@
 
 #attendees()
 
-*Time*: 9h00
-
-*Scribt :* Jeremy
+*Location*: 23N216 | *Time*: 9h00 | *Scribe*: Jeremy
 
 = Work done/todo
 

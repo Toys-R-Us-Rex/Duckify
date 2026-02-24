@@ -1,0 +1,19 @@
+services:
+  TEXTure:
+    image: ghcr.io/toys-r-us-rex/texturepaper:0.1.0
+    container_name: TEXTure
+    command: python -m scripts.run_texture --config_path=configs/sample.yaml
+    restart: no
+    volumes:
+      - ${PWD}/TOKEN:/workspace/TOKEN
+      - ${PWD}/shapes:/workspace/shapes
+      - ${PWD}/configs:/workspace/configs
+      - ${PWD}/textures:/workspace/textures
+      - ${PWD}/experiments:/workspace/experiments
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
