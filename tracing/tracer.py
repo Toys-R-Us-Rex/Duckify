@@ -149,12 +149,13 @@ class Tracer:
     # Utility
 
     def resample_border(self, island: Island) -> list[Segment]:
-        return [
-            Segment(np.array([0, 0]), np.array([1, 0]), island.color),
-            Segment(np.array([1, 0]), np.array([1, 1]), island.color),
-            Segment(np.array([1, 1]), np.array([0, 1]), island.color),
-            Segment(np.array([0, 1]), np.array([0, 0]), island.color),
-        ]
+        border: np.ndarray = self.resample_polygon(island.border)
+        segments: list[Segment] = []
+        for i in range(border.shape[0]):
+            p1: np.ndarray = border[i]
+            p2: np.ndarray = border[(i + 1) % border.shape[0]]
+            segments.append(Segment(p1, p2, island.color))
+        return segments
 
     def resample_fill_segment(self, segment: Segment) -> list[Segment]:
         return [segment]
@@ -181,3 +182,20 @@ class Tracer:
             np.ndarray: a polygon (Nx2)
         """
         return contour[:, 0, :]
+
+    # https://stackoverflow.com/a/70664846/11109181
+    def resample_polygon(self, xy: np.ndarray, n_points: int = 100) -> np.ndarray:
+        # Cumulative Euclidean distance between successive polygon points.
+        # This will be the "x" for interpolation
+        d = np.cumsum(np.r_[0, np.sqrt((np.diff(xy, axis=0) ** 2).sum(axis=1))])
+
+        # get linearly spaced points along the cumulative Euclidean distance
+        d_sampled = np.linspace(0, d.max(), n_points)
+
+        # interpolate x and y coordinates
+        xy_interp = np.c_[
+            np.interp(d_sampled, d, xy[:, 0]),
+            np.interp(d_sampled, d, xy[:, 1]),
+        ]
+
+        return xy_interp
