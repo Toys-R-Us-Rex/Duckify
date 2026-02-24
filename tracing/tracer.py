@@ -71,7 +71,7 @@ class Tracer:
 
         if not os.path.exists(path):
             self.logger.error(f"The file {path} does not exist")
-            raise FileNotFoundError("The file {path} does not exist")
+            raise FileNotFoundError(f"The file {path} does not exist")
         
         im = Image.open(path)
         return im
