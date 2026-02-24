@@ -5,6 +5,8 @@ from typing import Optional
 
 import numpy as np
 import tqdm
+import trimesh
+import os
 from PIL import Image
 
 from color import Color
@@ -57,12 +59,40 @@ class Tracer:
         return self.traces
 
     def load_texture(self, path: Path) -> Image.Image:
-        self.logger.info(f"Loading image {path}")
-        return Image.new("RGB", (16, 16))
+        """Load texture from file path
 
-    def load_model(self, path: Path) -> "Mesh":
+        Args:
+            path (Path): path of the texture file to load
+
+        Returns:
+            Image.Image: texture loaded
+        """
+        self.logger.info(f"Loading image {path}")
+
+        if not os.path.exists(path):
+            self.logger.error(f"The file {path} does not exist")
+            raise FileNotFoundError(f"The file {path} does not exist")
+        
+        im = Image.open(path)
+        return im
+
+    def load_model(self, path: Path) -> trimesh.base.Trimesh :
+        """Load 3d model from it's object file into a trimesh instance
+
+        Args:
+            path (Path): path of the 3d model file
+
+        Returns:
+            trimesh.base.Trimesh: trimesh object
+        """
         self.logger.info(f"Loading model {path}")
-        return None
+
+        if not os.path.exists(path):
+            self.logger.error(f"The file {path} does not exist")
+            raise FileNotFoundError(f"The file {path} does not exist")
+        
+        mesh = trimesh.load_mesh(path)
+        return mesh
 
     def discretize_texture_colors(
         self, img: Image.Image, palette: tuple[Color, ...]
