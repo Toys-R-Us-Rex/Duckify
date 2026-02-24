@@ -32,7 +32,8 @@
 
 #let attendees(
   present: auto,
-  absent: ()
+  absent: (),
+  extra: ()
 ) = {
   if type(absent) == str {
     absent = (absent,)
@@ -43,7 +44,9 @@
     present = (present,)
   }
 
-  let people = present.map(p => team.at(p)).join(", ")
+  let people = present.map(p => team.at(p)) + extra
 
-  [*Attendees*: #people]
+  [*Attendees*: #people.join(", ")]
 }
+
+#let blocker = highlight(fill: red)[BLOCKER]
