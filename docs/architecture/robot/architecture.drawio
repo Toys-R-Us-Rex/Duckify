@@ -1,0 +1,97 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0" version="29.5.2">
+  <diagram id="iscoin-sim-architecture" name="iscoin_sim Architecture">
+    <mxGraphModel dx="1598" dy="896" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;fontStyle=1;fontColor=#333333;" value="iscoin_sim — Architecture Overview" vertex="1">
+          <mxGeometry height="40" width="380" x="30" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="user" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;spacingTop=4;spacingBottom=4;" value="&lt;b&gt;User Code / Notebook&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;from iscoin_sim import ISCoinSim&lt;br&gt;iscoin = ISCoinSim()&lt;br&gt;iscoin.robot_control.movej(...)&lt;br&gt;iscoin.gripper.close()&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="280" x="460" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="facade" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;verticalAlign=middle;spacingTop=4;spacingBottom=4;" value="&lt;b&gt;iscoin_sim.py&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;ISCoinSim (Facade)&lt;br&gt;Creates SimRobotControl + SimGripper&lt;br&gt;.robot_control  .gripper  .camera&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="280" x="460" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="e_user_facade" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#6c8ebf;" target="facade">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="robotctrl" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;spacingTop=4;spacingBottom=4;" value="&lt;b&gt;robot_control.py&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;SimRobotControl&lt;br&gt;movej() movel()&lt;br&gt;movej_waypoints()&lt;br&gt;movel_waypoints()&lt;br&gt;get_inverse_kin()&lt;br&gt;get_actual_tcp_pose()&lt;br&gt;get_actual_joint_positions()&lt;br&gt;set_tcp() stopj()&lt;/font&gt;" vertex="1">
+          <mxGeometry height="150" width="220" x="220" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="gripper" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;spacingTop=4;spacingBottom=4;" value="&lt;b&gt;gripper.py&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;SimGripper&lt;br&gt;Robotiq HandE simulation&lt;br&gt;open() close() move()&lt;/font&gt;" vertex="1">
+          <mxGeometry height="100" width="220" x="815" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="e_facade_rc" edge="1" parent="1" source="facade" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;fontStyle=2;fontSize=10;" target="robotctrl" value=".robot_control">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_facade_gr" edge="1" parent="1" source="facade" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;fontStyle=2;fontSize=10;" target="gripper" value=".gripper">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="kinematics" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;verticalAlign=middle;spacingTop=4;spacingBottom=4;" value="&lt;b&gt;kinematics.py&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Pure math (no I/O)&lt;br&gt;analytical_ik()&lt;br&gt;forward_kinematics()&lt;br&gt;pose_to_matrix()&lt;br&gt;select_closest_ik()&lt;br&gt;UR3e DH parameters&lt;/font&gt;" vertex="1">
+          <mxGeometry height="120" width="200" x="230" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="rosbridge" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;spacingTop=4;spacingBottom=4;" value="&lt;b&gt;ros_bridge.py&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;All Docker / ROS2 I/O&lt;br&gt;docker exec + topic parsing&lt;br&gt;read_joint_states()&lt;br&gt;publish_trajectory()&lt;br&gt;send_gripper_command()&lt;/font&gt;" vertex="1">
+          <mxGeometry height="120" width="220" x="560" y="395" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rc_kin" edge="1" parent="1" source="robotctrl" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#9673a6;fontStyle=2;fontSize=10;" target="kinematics" value="IK / FK">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rc_ros" edge="1" parent="1" source="robotctrl" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#b85450;fontStyle=2;fontSize=10;" target="rosbridge" value="joint states &amp; trajectories">
+          <mxGeometry relative="1" x="-0.2" y="46" as="geometry">
+            <mxPoint x="-36" y="-45" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_gr_ros" edge="1" parent="1" source="gripper" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#b85450;fontStyle=2;fontSize=10;" target="rosbridge" value="gripper commands">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="docker" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;verticalAlign=middle;spacingTop=4;spacingBottom=4;dashed=1;dashPattern=8 4;strokeWidth=2;" value="&lt;b&gt;Docker Container&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Gazebo + ROS2&lt;br&gt;UR3e URDF model&lt;br&gt;joint_trajectory_controller&lt;br&gt;/joint_states topic&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="280" x="530" y="602" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ros_docker" edge="1" parent="1" source="rosbridge" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#666666;fontStyle=2;fontSize=10;" target="docker" value="docker exec ros2 topic ...">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#999999;dashed=1;fontSize=11;" value="" vertex="1">
+          <mxGeometry height="160" width="200" x="825" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;" value="&lt;b&gt;Legend&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="60" x="890" y="435" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="" vertex="1">
+          <mxGeometry height="14" width="20" x="840" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1t" parent="1" style="text;html=1;align=left;fontSize=11;strokeColor=none;fillColor=none;" value="User code" vertex="1">
+          <mxGeometry height="24" width="80" x="867" y="465" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="" vertex="1">
+          <mxGeometry height="14" width="20" x="840" y="494" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2t" parent="1" style="text;html=1;align=left;fontSize=11;strokeColor=none;fillColor=none;" value="Facade" vertex="1">
+          <mxGeometry height="24" width="80" x="867" y="489" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="" vertex="1">
+          <mxGeometry height="14" width="20" x="840" y="518" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3t" parent="1" style="text;html=1;align=left;fontSize=11;strokeColor=none;fillColor=none;" value="Domain logic" vertex="1">
+          <mxGeometry height="24" width="100" x="867" y="513" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" value="" vertex="1">
+          <mxGeometry height="14" width="20" x="840" y="542" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4t" parent="1" style="text;html=1;align=left;fontSize=11;strokeColor=none;fillColor=none;" value="Pure math" vertex="1">
+          <mxGeometry height="24" width="80" x="867" y="537" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" value="" vertex="1">
+          <mxGeometry height="14" width="20" x="840" y="566" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5t" parent="1" style="text;html=1;align=left;fontSize=11;strokeColor=none;fillColor=none;" value="I/O (Docker/ROS2)" vertex="1">
+          <mxGeometry height="24" width="130" x="867" y="561" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
