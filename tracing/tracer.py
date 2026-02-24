@@ -172,4 +172,12 @@ class Tracer:
         )
 
     def contour_to_polygon(self, contour: np.ndarray) -> np.ndarray:
+        """Converts an OpenCV (Nx1x2) contour to a simple polygon (Nx2)
+
+        Args:
+            contour (np.ndarray): an OpenCV contour (Nx1x2)
+
+        Returns:
+            np.ndarray: a polygon (Nx2)
+        """
         return contour[:, 0, :]
