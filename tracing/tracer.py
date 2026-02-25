@@ -83,7 +83,7 @@ class Tracer:
             self.logger.error(f"The file {path} does not exist")
             raise FileNotFoundError(f"The file {path} does not exist")
 
-        im = Image.open(path)
+        im = Image.open(path).convert("RGB")
         return im
 
     def load_model(self, path: Path) -> Trimesh:
