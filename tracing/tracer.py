@@ -41,7 +41,7 @@ class Tracer:
 
     def compute_traces(self) -> list[Trace]:
         self.texture = self.load_texture(self.texture_path)
-        self.texture = self.discretize_texture_colors(self.texture, self.palette)
+        self.texture = self.paletize_texture(self.texture, self.palette)
         self.layers = self.split_colors(self.texture)
 
         for c, layer in tqdm.tqdm(
@@ -78,11 +78,11 @@ class Tracer:
         if not os.path.exists(path):
             self.logger.error(f"The file {path} does not exist")
             raise FileNotFoundError(f"The file {path} does not exist")
-        
+
         im = Image.open(path)
         return im
 
-    def load_model(self, path: Path) -> trimesh.base.Trimesh :
+    def load_model(self, path: Path) -> trimesh.base.Trimesh:
         """Load 3d model from it's object file into a trimesh instance
 
         Args:
@@ -96,15 +96,27 @@ class Tracer:
         if not os.path.exists(path):
             self.logger.error(f"The file {path} does not exist")
             raise FileNotFoundError(f"The file {path} does not exist")
-        
+
         mesh = trimesh.load_mesh(path)
         return mesh
 
-    def discretize_texture_colors(
+    # https://stackoverflow.com/questions/29433243/
+    def palettize_texture(
         self, img: Image.Image, palette: tuple[Color, ...]
     ) -> Image.Image:
-        self.logger.info("Discretizing texture colors")
-        return Image.new("P", img.size)
+        self.logger.info("Palettizing texture colors")
+
+        palette = self.format_palette(palette)
+        print(palette)
+
+        palette_image = Image.new("P", (1, 1))
+        palette_image.putpalette(palette)
+
+        c_img = img.convert("RGB")
+
+        output_img = c_img.quantize(palette=palette_image, dither=0)
+        output_img.show()
+
 
     def split_colors(self, img: Image.Image) -> list[Image.Image]:
         self.logger.info("Splitting colors")
@@ -221,3 +233,29 @@ class Tracer:
             xy_interp = xy_interp[:-1]
 
         return xy_interp
+    def format_palette(self, palette: tuple[Color, ...]) -> tuple[Color, ...]:
+        """Formatting an input palette to be used with PIL
+
+        Args:
+            palette (tuple[Color, ...]): Raw palette containing selected colors
+
+        Returns:
+            tuple[Color, ...]: Formatted palette to 768 values (3*256)
+        """
+        # counting existing values
+        count = 0
+        for i in palette :
+            count+=3
+
+        # adding missing values
+        palette = palette + (0, 255, 0) * ((768 - count)//3)
+        print(palette)
+
+        f_palette = []
+        for item in palette:
+            if isinstance(item, tuple):
+                f_palette.extend(item)
+            else:
+                f_palette.append(item)
+
+        return f_palette
