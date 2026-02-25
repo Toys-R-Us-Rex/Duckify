@@ -20,6 +20,8 @@
 #let llm = tag(fill: purple.lighten(60%))[LLM/AI]
 #let interface = tag(fill: yellow.lighten(40%))[UI]
 
+#let blockers = highlight(fill: yellow)[*Blockers*]
+
 
 #table(
   columns: (auto, 1fr),
@@ -53,19 +55,32 @@
       - Define performance evaluation criteria
     - #printing
       - Duck supports are printed
-      - Print base duck model
+      - Print base duck model\
+        #blockers:
+          - not useful at the moment ?
+          - unclear constraints
       - Evaluate adequacy of duck+support
       - Sketch a 3D design that can be used to have a fixed configuration of object and tools (eventually the supports) (needed to be verified by expert)
     - #robot
+      - Hand-eye calibration\
+        #blockers:
+          - access to robot
       - Assess pen gripping constraints
       - Draw on a 2D surface following instructions (tools already set and grabbed by the robot)
         - If successful, draw more complex shapes/filling (e.g. infinity shape + multiple pass)
+        - If successful, draw on a 3D plane
       - Add mock shapes into the virtual simulation
       - _Use of the camera to id and calibrate the robot relative position of the tools and object_
       - _Can grab and change tools and manipulate them (not drawing only hold into a initial position)_
-      - _Draw on a 3D surface (tools already set and grabbed by the robot)_
     - #llm
+      - Select and test generative AI solution to create textures from a textual prompt\
+        #blockers:
+          - access to disco/cha-cha
+          - client's decision (internal / external solution)
       - Evaluate generative model limits: prompt fidelity, instructions following (output format/shape)
+      - Create a few textures (4-5) *stored and labeled*
+      - Create quality benchmark for evaluating/comparing GenAI solutions
+
     - #general
       - Choose and get pen
       - Choose duck model
