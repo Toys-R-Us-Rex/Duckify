@@ -44,7 +44,7 @@
   }
 
   if scribe != none {
-    elmts.push[*Location*: #team.at(scribe)]
+    elmts.push[*Scribe*: #team.at(scribe)]
   }
 
   if elmts.len() == 0 {
