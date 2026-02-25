@@ -9,6 +9,8 @@ import tqdm
 import trimesh
 import os
 from PIL import Image
+from trimesh import Trimesh
+from trimesh.visual import TextureVisuals
 
 from tracing.color import Color
 from tracing.island import Island
@@ -19,11 +21,11 @@ from tracing.trace import Trace
 
 class Tracer:
     def __init__(
-        self,
-        texture_path: Path,
-        model_path: Path,
-        palette: tuple[Color, ...],
-        debug: bool = False
+            self,
+            texture_path: Path,
+            model_path: Path,
+            palette: tuple[Color, ...],
+            debug: bool = False
     ):
         self.logger: Logger = logging.getLogger("Tracer")
         self.debug: bool = debug
@@ -33,6 +35,7 @@ class Tracer:
         self.palette: tuple[Color, ...] = palette
 
         self.texture: Optional[Image.Image] = None
+        self.model: Optional[Trimesh] = None
         self.layers: list[Image.Image] = []
 
         self.islands: list[Island] = []
@@ -41,17 +44,18 @@ class Tracer:
 
     def compute_traces(self) -> list[Trace]:
         self.texture = self.load_texture(self.texture_path)
+        self.model = self.load_model(self.model_path)
         self.texture = self.palettize_texture(self.texture, self.palette)
         self.layers = self.split_colors(self.texture, self.palette)
 
         for c, layer in tqdm.tqdm(
-            enumerate(self.layers), desc="Island detection", unit="layer"
+                enumerate(self.layers), desc="Island detection", unit="layer"
         ):
             islands: list[Island] = self.detect_islands(layer, c)
             self.islands.extend(islands)
 
         for island in tqdm.tqdm(
-            self.islands, desc="Island segmentation", unit="island"
+                self.islands, desc="Island segmentation", unit="island"
         ):
             border: list[Segment] = self.resample_border(island)
             self.segments.extend(border)
@@ -82,8 +86,8 @@ class Tracer:
         im = Image.open(path)
         return im
 
-    def load_model(self, path: Path) -> trimesh.base.Trimesh:
-        """Load 3d model from it's object file into a trimesh instance
+    def load_model(self, path: Path) -> Trimesh:
+        """Load 3d model from its object file into a trimesh instance
 
         Args:
             path (Path): path of the 3d model file
@@ -98,11 +102,15 @@ class Tracer:
             raise FileNotFoundError(f"The file {path} does not exist")
 
         mesh = trimesh.load_mesh(path)
+
+        if self.debug:
+            mesh.show()
+
         return mesh
 
     # https://stackoverflow.com/questions/29433243/
     def palettize_texture(
-        self, img: Image.Image, palette: tuple[Color, ...]
+            self, img: Image.Image, palette: tuple[Color, ...]
     ) -> Image.Image:
         """Force textures colors to nearest one based of a given palette
 
@@ -117,7 +125,7 @@ class Tracer:
 
         palette = self.format_palette(palette)
 
-        # pour forcer l'image à utiliser la palette souhaitée 
+        # pour forcer l'image à utiliser la palette souhaitée
         # Il faut d'abord injecter la palette choisie dans une dummy image
         palette_image = Image.new("P", (1, 1))
         palette_image.putpalette(palette)
@@ -130,7 +138,7 @@ class Tracer:
         if self.debug:
             img.show("input texture image")
             output_img.show("palettized texture image")
-        
+
         return output_img
 
     # https://stackoverflow.com/questions/56942102
@@ -184,7 +192,7 @@ class Tracer:
             cv2.drawContours(with_contours, contours, -1, (0, 0, 255), 1)
             cv2.imshow("Contours", with_contours)
             cv2.waitKey(-1)
-        
+
         islands: list[Island] = []
         for i, contour in enumerate(contours):
             polygon: np.ndarray = self.contour_to_polygon(contour)
@@ -233,7 +241,7 @@ class Tracer:
         return Point3D(
             pos=np.array([uv_pos[0], uv_pos[1], 0]), normal=np.array([0, 0, 1])
         )
-    
+
     def contour_to_polygon(self, contour: np.ndarray) -> np.ndarray:
         """Converts an OpenCV (Nx1x2) contour to a simple polygon (Nx2)
 
@@ -272,7 +280,7 @@ class Tracer:
             xy_interp = xy_interp[:-1]
 
         return xy_interp
-    
+
     def format_palette(self, palette: tuple[Color, ...]) -> list:
         """Formatting an input palette to be used in  palettize_texture()
 
@@ -295,7 +303,7 @@ class Tracer:
                 f_palette.extend(item)
             else:
                 f_palette.append(item)
-        
+
         if self.debug:
             print(f"Reformatted palette : {f_palette}")
 
