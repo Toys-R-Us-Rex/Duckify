@@ -41,8 +41,8 @@ class Tracer:
 
     def compute_traces(self) -> list[Trace]:
         self.texture = self.load_texture(self.texture_path)
-        self.texture = self.paletize_texture(self.texture, self.palette)
-        self.layers = self.split_colors(self.texture)
+        self.texture = self.palettize_texture(self.texture, self.palette)
+        self.layers = self.split_colors(self.texture, self.palette)
 
         for c, layer in tqdm.tqdm(
             enumerate(self.layers), desc="Island detection", unit="layer"
