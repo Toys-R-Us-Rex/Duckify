@@ -128,15 +128,41 @@ class Tracer:
         output_img = c_img.quantize(palette=palette_image, dither=0)
 
         if self.debug:
-            img.show()
-            output_img.show()
+            img.show("input texture image")
+            output_img.show("palettized texture image")
         
         return output_img
 
+    # https://stackoverflow.com/questions/56942102
+    def split_colors(self, img: Image.Image, palette: tuple[Color, ...]) -> list[Image.Image]:
+        """ Split the paletted texture into one image per color from the palette
 
-    def split_colors(self, img: Image.Image) -> list[Image.Image]:
-        self.logger.info("Splitting colors")
-        return [img, img, img]
+        Args:
+            img (Image.Image): Paletted texture
+
+        Returns:
+            list[Image.Image]: A list of single color channel image
+        """
+        self.logger.info("Splitting colors channels")
+        images = []
+        ind = 0
+
+        for colors in palette:
+            target = palette[ind]
+            # Assurer la standardisation
+            np_img = np.array(img.convert('RGB'))
+
+            # Créer le masque : True là où la couleur correspond sur les 3 canaux (R, G, B)
+            mask = np.all(np_img == target, axis=-1)
+            # Créer une image en appliquant le masque
+            mask_img = Image.fromarray((mask * 255).astype(np.uint8))
+            images.append(mask_img)
+            ind += 1
+
+            if self.debug:
+                mask_img.show("splitted color image")
+
+        return images
 
     def detect_islands(self, img: Image.Image, color: int) -> list[Island]:
         """Detects color islands and extracts its border as a polygon
