@@ -1,5 +1,6 @@
-from logging import Logger
 import logging
+import os
+from logging import Logger
 from pathlib import Path
 from typing import Optional
 
@@ -7,7 +8,6 @@ import cv2
 import numpy as np
 import tqdm
 import trimesh
-import os
 from PIL import Image
 from trimesh import Trimesh
 from trimesh.visual import TextureVisuals
@@ -258,6 +258,15 @@ class Tracer:
         return segments
 
     def project_segment_to_3d(self, segment: Segment, mesh: Trimesh) -> Optional[Trace]:
+        """Projects a segment from UV space to a 3D trace
+
+        Args:
+            segment (Segment): a segment in UV space
+            mesh (Trimesh): the mesh
+
+        Returns:
+            Optional[Trace]: the corresponding 3D trace, or None if a point could not be projected in 3D space
+        """
         p1: Optional[Point3D] = self.interpolate_position(segment.p1, mesh)
         p2: Optional[Point3D] = self.interpolate_position(segment.p2, mesh)
         if p1 is None:
@@ -273,6 +282,15 @@ class Tracer:
         )
 
     def interpolate_position(self, uv_pos: np.ndarray, mesh: Trimesh) -> Optional[Point3D]:
+        """Interpolates the UV position on the UV map and returns the corresponding 3D point
+
+        Args:
+            uv_pos (np.ndarray): a UV position (u,v)
+            mesh (Trimesh): the mesh
+
+        Returns:
+            Optional[Point3D]: the corresponding 3D point, or None if a correspondance could not be found
+        """
         if not isinstance(mesh.visual, TextureVisuals):
             self.logger.error("Missing mesh UV coordinates")
             return None
@@ -299,6 +317,18 @@ class Tracer:
             faces: np.ndarray,
             vertices: np.ndarray,
             face_normals: np.ndarray) -> Optional[tuple[np.ndarray, np.ndarray]]:
+        """Projects a UV point to the 3D mesh and finds the corresponding normal vector
+
+        Args:
+            uv_pt (np.ndarray): a UV point (u,v)
+            uv_faces (np.ndarray): the UV coordinates of the mesh's faces (F,3,2)
+            faces (np.ndarray): the vertex indices of the mesh's faces (F,3)
+            vertices (np.ndarray): the 3D positions of the mesh's vertices (V,3)
+            face_normals (np.ndarray): the normals of the mesh's faces (F,3)
+
+        Returns:
+            Optional[tuple[np.ndarray, np.ndarray]]: the 3D position and normal, or None if the UV point is not on a UV island
+        """
         # Compute barycentric coordinates of uv_pt in each UV triangle
         # Using the 2D triangle test
         v0 = uv_faces[:, 0, :]  # (F, 2)
