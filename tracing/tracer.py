@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+import cv2
 import numpy as np
 import tqdm
 import trimesh
@@ -18,9 +19,14 @@ from trace import Trace
 
 class Tracer:
     def __init__(
-        self, texture_path: Path, model_path: Path, palette: tuple[Color, ...]
+        self,
+        texture_path: Path,
+        model_path: Path,
+        palette: tuple[Color, ...],
+        debug: bool = False
     ):
         self.logger: Logger = logging.getLogger("Tracer")
+        self.debug: bool = debug
 
         self.texture_path: Path = texture_path
         self.model_path: Path = model_path
@@ -105,21 +111,36 @@ class Tracer:
         return [img, img, img]
 
     def detect_islands(self, img: Image.Image, color: int) -> list[Island]:
+        """Detects color islands and extracts its border as a polygon
+
+        Args:
+            img (Image.Image): input binary image
+            color (int): color index for this layer
+
+        Returns:
+            list[Island]: list of islands in the layer
+        """
         self.logger.info(f"Detecting islands for color {color}")
-        return [
-            Island(
-                0,
-                color,
-                np.array(
-                    [
-                        [0, 0],
-                        [1, 0],
-                        [1, 1],
-                        [0, 1],
-                    ]
-                ),
-            )
-        ]
+
+        layer: np.ndarray = np.asarray(img)
+
+        contours, _ = cv2.findContours(layer, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        self.logger.debug(f"Found {len(contours)} contours")
+
+        if self.debug:
+            cv2.imshow("Input", layer)
+            with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
+            cv2.drawContours(with_contours, contours, -1, (0, 0, 255), 1)
+            cv2.imshow("Contours", with_contours)
+            cv2.waitKey(-1)
+        
+        islands: list[Island] = []
+        for i, contour in enumerate(contours):
+            polygon: np.ndarray = self.contour_to_polygon(contour)
+            island: Island = Island(i, color, polygon)
+            islands.append(island)
+
+        return islands
 
     def compute_fill_slices(self, island: Island) -> list[Segment]:
         self.logger.info(f"Computing fill slices for island {island.idx}")
@@ -149,3 +170,14 @@ class Tracer:
         return Point3D(
             pos=np.array([uv_pos[0], uv_pos[1], 0]), normal=np.array([0, 0, 1])
         )
+
+    def contour_to_polygon(self, contour: np.ndarray) -> np.ndarray:
+        """Converts an OpenCV (Nx1x2) contour to a simple polygon (Nx2)
+
+        Args:
+            contour (np.ndarray): an OpenCV contour (Nx1x2)
+
+        Returns:
+            np.ndarray: a polygon (Nx2)
+        """
+        return contour[:, 0, :]
