@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from point_3d import Point3D
+from tracing.point_3d import Point3D
 
 
 @dataclass

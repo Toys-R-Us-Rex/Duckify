@@ -10,3 +10,7 @@ dependencies = [
     "pillow>=12.1.1",
     "tqdm>=4.67.3",
 ]
+
+[tool.setuptools]
+packages = ["tracing"]
+package-dir = { "tracing" = "." }

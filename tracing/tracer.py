@@ -7,11 +7,11 @@ import numpy as np
 import tqdm
 from PIL import Image
 
-from color import Color
-from island import Island
-from point_3d import Point3D
-from segment import Segment
-from trace import Trace
+from tracing.color import Color
+from tracing.island import Island
+from tracing.point_3d import Point3D
+from tracing.segment import Segment
+from tracing.trace import Trace
 
 
 class Tracer:
