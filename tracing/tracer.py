@@ -63,9 +63,34 @@ class Tracer:
             fill_slices: list[Segment] = self.compute_fill_slices(island)
             self.segments.extend(fill_slices)
 
+        img = np.array(self.texture.copy())
+        size = (img.shape[1], img.shape[0])
+
         for segment in tqdm.tqdm(self.segments, desc="3D projection", unit="segment"):
-            trace: Trace = self.project_segment_to_3d(segment)
-            self.traces.append(trace)
+            trace: Optional[Trace] = self.project_segment_to_3d(segment)
+            if trace is not None:
+                self.traces.append(trace)
+
+            if self.debug:
+                p1 = self.uv_to_texture(segment.p1, size).astype(np.intp)
+                p2 = self.uv_to_texture(segment.p2, size).astype(np.intp)
+                cv2.circle(img, p1, 3, (0, 0, 255), -1)
+                cv2.circle(img, p2, 3, (0, 255, 0), -1)
+
+                col = (255, 0, 255) if trace is None else (255, 255, 0)
+                cv2.line(img, p1, p2, col)
+
+        if self.debug:
+            cv2.imshow("Segments", img)
+            pts = []
+            segments = []
+            for trace in self.traces:
+                pts.append(trace.p1.pos)
+                pts.append(trace.p2.pos)
+                segments.append(trimesh.load_path([trace.p1.pos, trace.p2.pos]))
+            cloud = trimesh.PointCloud(pts, colors=[255, 0, 0, 255])
+            scene = trimesh.Scene([self.model, cloud] + segments)
+            scene.show()
 
         return self.traces
 
