@@ -41,8 +41,8 @@ class Tracer:
 
     def compute_traces(self) -> list[Trace]:
         self.texture = self.load_texture(self.texture_path)
-        self.texture = self.discretize_texture_colors(self.texture, self.palette)
-        self.layers = self.split_colors(self.texture)
+        self.texture = self.palettize_texture(self.texture, self.palette)
+        self.layers = self.split_colors(self.texture, self.palette)
 
         for c, layer in tqdm.tqdm(
             enumerate(self.layers), desc="Island detection", unit="layer"
@@ -78,11 +78,11 @@ class Tracer:
         if not os.path.exists(path):
             self.logger.error(f"The file {path} does not exist")
             raise FileNotFoundError(f"The file {path} does not exist")
-        
+
         im = Image.open(path)
         return im
 
-    def load_model(self, path: Path) -> trimesh.base.Trimesh :
+    def load_model(self, path: Path) -> trimesh.base.Trimesh:
         """Load 3d model from it's object file into a trimesh instance
 
         Args:
@@ -96,19 +96,70 @@ class Tracer:
         if not os.path.exists(path):
             self.logger.error(f"The file {path} does not exist")
             raise FileNotFoundError(f"The file {path} does not exist")
-        
+
         mesh = trimesh.load_mesh(path)
         return mesh
 
-    def discretize_texture_colors(
+    # https://stackoverflow.com/questions/29433243/
+    def palettize_texture(
         self, img: Image.Image, palette: tuple[Color, ...]
     ) -> Image.Image:
-        self.logger.info("Discretizing texture colors")
-        return Image.new("P", img.size)
+        """Force textures colors to nearest one based of a given palette
 
-    def split_colors(self, img: Image.Image) -> list[Image.Image]:
-        self.logger.info("Splitting colors")
-        return [img, img, img]
+        Args:
+            img (Image.Image): the texture image
+            palette (tuple[Color, ...]): the palette containing selected colors
+
+        Returns:
+            Image.Image: the color palettized texture image
+        """
+        self.logger.info("Palettizing texture colors")
+
+        palette = self.format_palette(palette)
+
+        # pour forcer l'image à utiliser la palette souhaitée 
+        # Il faut d'abord injecter la palette choisie dans une dummy image
+        palette_image = Image.new("P", (1, 1))
+        palette_image.putpalette(palette)
+
+        # s'assurer de la standardization "RGB"
+        c_img = img.convert("RGB")
+        # utilise quantize() pour palettizer
+        output_img = c_img.quantize(palette=palette_image, dither=0)
+
+        if self.debug:
+            img.show("input texture image")
+            output_img.show("palettized texture image")
+        
+        return output_img
+
+    # https://stackoverflow.com/questions/56942102
+    def split_colors(self, img: Image.Image, palette: tuple[Color, ...]) -> list[Image.Image]:
+        """ Split the paletted texture into one image per color from the palette
+
+        Args:
+            img (Image.Image): Paletted texture
+
+        Returns:
+            list[Image.Image]: A list of single color channel image
+        """
+        self.logger.info("Splitting colors channels")
+        images = []
+
+        for color in palette:
+            # Assurer la standardisation
+            np_img = np.array(img.convert('RGB'))
+
+            # Créer le masque : True là où la couleur correspond sur les 3 canaux (R, G, B)
+            mask = np.all(np_img == color, axis=-1)
+            # Créer une image en appliquant le masque
+            mask_img = Image.fromarray((mask * 255).astype(np.uint8))
+            images.append(mask_img)
+
+            if self.debug:
+                mask_img.show("splitted color image")
+
+        return images
 
     def detect_islands(self, img: Image.Image, color: int) -> list[Island]:
         """Detects color islands and extracts its border as a polygon
@@ -182,7 +233,7 @@ class Tracer:
         return Point3D(
             pos=np.array([uv_pos[0], uv_pos[1], 0]), normal=np.array([0, 0, 1])
         )
-
+    
     def contour_to_polygon(self, contour: np.ndarray) -> np.ndarray:
         """Converts an OpenCV (Nx1x2) contour to a simple polygon (Nx2)
 
@@ -221,3 +272,31 @@ class Tracer:
             xy_interp = xy_interp[:-1]
 
         return xy_interp
+    
+    def format_palette(self, palette: tuple[Color, ...]) -> list:
+        """Formatting an input palette to be used in  palettize_texture()
+
+        Args:
+            palette (tuple[Color, ...]): Raw palette containing selected colors
+
+        Returns:
+            tuple[Color, ...]: Formatted palette to 768 values (3*256)
+        """
+        # counting existing values
+        count = len(palette) * 3
+
+        # completing missing values using green (as it's our current pen color)
+        palette = palette + (0, 255, 0) * ((768 - count)//3)
+
+        # formatting
+        f_palette = []
+        for item in palette:
+            if isinstance(item, tuple):
+                f_palette.extend(item)
+            else:
+                f_palette.append(item)
+        
+        if self.debug:
+            print(f"Reformatted palette : {f_palette}")
+
+        return f_palette
