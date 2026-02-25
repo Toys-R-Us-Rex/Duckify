@@ -196,8 +196,9 @@ class Tracer:
 
         islands: list[Island] = []
         for i, contour in enumerate(contours):
-            polygon: np.ndarray = self.contour_to_polygon(contour)
-            island: Island = Island(i, color, polygon)
+            polygon_tex: np.ndarray = self.contour_to_polygon(contour)
+            polygon_uv: np.ndarray = self.texture_to_uv(polygon_tex, (layer.shape[1], layer.shape[0]))
+            island: Island = Island(i, color, polygon_uv)
             islands.append(island)
 
         return islands
@@ -306,3 +307,31 @@ class Tracer:
                 f_palette.append(item)
 
         return f_palette
+
+    def texture_to_uv(self, texture_pos: np.ndarray, texture_size: tuple[int, int]) -> np.ndarray:
+        """Converts texture coordinates to UV space
+
+        Args:
+            texture_pos (np.ndarray): 2D coordinates on the texture image (x,y), (...x2)
+            texture_size (tuple[int, int]): size of the texture in pixels (w,h)
+
+        Returns:
+            np.ndarray: 2D coordinates in UV space (u,v), (...x2)
+        """
+        scaled = texture_pos / texture_size
+        scaled[..., 1] = 1 - scaled[..., 1]
+        return scaled
+
+    def uv_to_texture(self, uv_pos: np.ndarray, texture_size: tuple[int, int]) -> np.ndarray:
+        """Converts UV coordinates to texture space
+
+        Args:
+            uv_pos (np.ndarray): 2D coordinates in the UV space (u,v), (...x2)
+            texture_size (tuple[int, int]): size of the texture in pixels (w,h)
+
+        Returns:
+            np.ndarray: 2D coordinates on the texture (x,y), (...x2)
+        """
+        flipped = np.copy(uv_pos)
+        flipped[..., 1] = 1 - flipped[..., 1]
+        return flipped * texture_size
