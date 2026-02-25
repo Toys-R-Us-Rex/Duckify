@@ -145,10 +145,9 @@ class Tracer:
         """
         self.logger.info("Splitting colors channels")
         images = []
-        ind = 0
 
-        for colors in palette:
-            target = palette[ind]
+        for i in range(len(palette)):
+            target = palette[i]
             # Assurer la standardisation
             np_img = np.array(img.convert('RGB'))
 
@@ -157,7 +156,6 @@ class Tracer:
             # Créer une image en appliquant le masque
             mask_img = Image.fromarray((mask * 255).astype(np.uint8))
             images.append(mask_img)
-            ind += 1
 
             if self.debug:
                 mask_img.show("splitted color image")
@@ -286,9 +284,7 @@ class Tracer:
             tuple[Color, ...]: Formatted palette to 768 values (3*256)
         """
         # counting existing values
-        count = 0
-        for i in palette :
-            count+=3
+        count = len(palette) * 3
 
         # completing missing values using green (as it's our current pen color)
         palette = palette + (0, 255, 0) * ((768 - count)//3)
