@@ -136,8 +136,8 @@ class Tracer:
         output_img = c_img.quantize(palette=palette_image, dither=0)
 
         if self.debug:
-            img.show("input texture image")
-            output_img.show("palettized texture image")
+            cv2.imshow("input texture image", np.array(img))
+            cv2.imshow("palettized texture image", np.array(output_img))
 
         return output_img
 
@@ -165,7 +165,7 @@ class Tracer:
             images.append(mask_img)
 
             if self.debug:
-                mask_img.show("splitted color image")
+                cv2.imshow(f"splitted color image {color}", np.array(mask_img))
 
         return images
 
@@ -303,8 +303,5 @@ class Tracer:
                 f_palette.extend(item)
             else:
                 f_palette.append(item)
-
-        if self.debug:
-            print(f"Reformatted palette : {f_palette}")
 
         return f_palette
