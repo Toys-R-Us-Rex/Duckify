@@ -62,7 +62,7 @@
       - Evaluate adequacy of duck+support
       - Sketch a 3D design that can be used to have a fixed configuration of object and tools (eventually the supports) (needed to be verified by expert)
     - #robot
-      - Hand-eye calibration\
+      - Hand-eye TCP calibration\
         #blockers:
           - access to robot
       - Assess pen gripping constraints
@@ -70,8 +70,7 @@
         - If successful, draw more complex shapes/filling (e.g. infinity shape + multiple pass)
         - If successful, draw on a 3D plane
       - Add mock shapes into the virtual simulation
-      - _Use of the camera to id and calibrate the robot relative position of the tools and object_
-      - _Can grab and change tools and manipulate them (not drawing only hold into a initial position)_
+      - Can grab and change tools and manipulate them (not drawing only hold into a initial position)
     - #llm
       - Select and test generative AI solution to create textures from a textual prompt\
         #blockers:
