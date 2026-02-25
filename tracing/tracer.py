@@ -146,13 +146,12 @@ class Tracer:
         self.logger.info("Splitting colors channels")
         images = []
 
-        for i in range(len(palette)):
-            target = palette[i]
+        for color in palette:
             # Assurer la standardisation
             np_img = np.array(img.convert('RGB'))
 
             # Créer le masque : True là où la couleur correspond sur les 3 canaux (R, G, B)
-            mask = np.all(np_img == target, axis=-1)
+            mask = np.all(np_img == color, axis=-1)
             # Créer une image en appliquant le masque
             mask_img = Image.fromarray((mask * 255).astype(np.uint8))
             images.append(mask_img)
