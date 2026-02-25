@@ -104,18 +104,34 @@ class Tracer:
     def palettize_texture(
         self, img: Image.Image, palette: tuple[Color, ...]
     ) -> Image.Image:
+        """Force textures colors to nearest one based of a given palette
+
+        Args:
+            img (Image.Image): the texture image
+            palette (tuple[Color, ...]): the palette containing selected colors
+
+        Returns:
+            Image.Image: the color palettized texture image
+        """
         self.logger.info("Palettizing texture colors")
 
         palette = self.format_palette(palette)
-        print(palette)
 
+        # pour forcer l'image à utiliser la palette souhaitée 
+        # Il faut d'abord injecter la palette choisie dans une dummy image
         palette_image = Image.new("P", (1, 1))
         palette_image.putpalette(palette)
 
+        # s'assurer de la standardization "RGB"
         c_img = img.convert("RGB")
-
+        # utilise quantize() pour palettizer
         output_img = c_img.quantize(palette=palette_image, dither=0)
-        output_img.show()
+
+        if self.debug:
+            img.show()
+            output_img.show()
+        
+        return output_img
 
 
     def split_colors(self, img: Image.Image) -> list[Image.Image]:
@@ -194,7 +210,7 @@ class Tracer:
         return Point3D(
             pos=np.array([uv_pos[0], uv_pos[1], 0]), normal=np.array([0, 0, 1])
         )
-
+    
     def contour_to_polygon(self, contour: np.ndarray) -> np.ndarray:
         """Converts an OpenCV (Nx1x2) contour to a simple polygon (Nx2)
 
@@ -233,8 +249,9 @@ class Tracer:
             xy_interp = xy_interp[:-1]
 
         return xy_interp
-    def format_palette(self, palette: tuple[Color, ...]) -> tuple[Color, ...]:
-        """Formatting an input palette to be used with PIL
+    
+    def format_palette(self, palette: tuple[Color, ...]) -> list:
+        """Formatting an input palette to be used in  palettize_texture()
 
         Args:
             palette (tuple[Color, ...]): Raw palette containing selected colors
@@ -247,15 +264,18 @@ class Tracer:
         for i in palette :
             count+=3
 
-        # adding missing values
+        # completing missing values using green (as it's our current pen color)
         palette = palette + (0, 255, 0) * ((768 - count)//3)
-        print(palette)
 
+        # formatting
         f_palette = []
         for item in palette:
             if isinstance(item, tuple):
                 f_palette.extend(item)
             else:
                 f_palette.append(item)
+        
+        if self.debug:
+            print(f"Reformatted palette : {f_palette}")
 
         return f_palette
