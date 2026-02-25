@@ -67,7 +67,7 @@ class Tracer:
         size = (img.shape[1], img.shape[0])
 
         for segment in tqdm.tqdm(self.segments, desc="3D projection", unit="segment"):
-            trace: Optional[Trace] = self.project_segment_to_3d(segment)
+            trace: Optional[Trace] = self.project_segment_to_3d(segment, self.model)
             if trace is not None:
                 self.traces.append(trace)
 
@@ -257,17 +257,82 @@ class Tracer:
 
         return segments
 
-    def project_segment_to_3d(self, segment: Segment) -> Trace:
+    def project_segment_to_3d(self, segment: Segment, mesh: Trimesh) -> Optional[Trace]:
+        p1: Optional[Point3D] = self.interpolate_position(segment.p1, mesh)
+        p2: Optional[Point3D] = self.interpolate_position(segment.p2, mesh)
+        if p1 is None:
+            self.logger.error(f"UV point {segment.p1} cannot be mapped to 3D position")
+            return None
+        if p2 is None:
+            self.logger.error(f"UV point {segment.p2} cannot be mapped to 3D position")
+            return None
         return Trace(
-            p1=self.interpolate_position(segment.p1),
-            p2=self.interpolate_position(segment.p2),
+            p1=p1,
+            p2=p2,
             color=segment.color,
         )
 
-    def interpolate_position(self, uv_pos: np.ndarray) -> Point3D:
+    def interpolate_position(self, uv_pos: np.ndarray, mesh: Trimesh) -> Optional[Point3D]:
+        if not isinstance(mesh.visual, TextureVisuals):
+            self.logger.error("Missing mesh UV coordinates")
+            return None
+
+        uv: np.ndarray = mesh.visual.uv
+        faces: np.ndarray = mesh.faces
+        vertices: np.ndarray = mesh.vertices
+        normals: np.ndarray = mesh.face_normals
+        uv_faces: np.ndarray = uv[faces]
+        result = self.project_uv_point(uv_pos, uv_faces, faces, vertices, normals)
+
+        if result is None:
+            return None
+
         return Point3D(
-            pos=np.array([uv_pos[0], uv_pos[1], 0]), normal=np.array([0, 0, 1])
+            pos=result[0],
+            normal=result[1]
         )
+
+    def project_uv_point(
+            self,
+            uv_pt: np.ndarray,
+            uv_faces: np.ndarray,
+            faces: np.ndarray,
+            vertices: np.ndarray,
+            face_normals: np.ndarray) -> Optional[tuple[np.ndarray, np.ndarray]]:
+        # Compute barycentric coordinates of uv_pt in each UV triangle
+        # Using the 2D triangle test
+        v0 = uv_faces[:, 0, :]  # (F, 2)
+        v1 = uv_faces[:, 1, :]
+        v2 = uv_faces[:, 2, :]
+
+        # Barycentric coords in UV space
+        denom = ((v1[:, 1] - v2[:, 1]) * (v0[:, 0] - v2[:, 0]) +
+                 (v2[:, 0] - v1[:, 0]) * (v0[:, 1] - v2[:, 1]))
+
+        w0 = ((v1[:, 1] - v2[:, 1]) * (uv_pt[0] - v2[:, 0]) +
+              (v2[:, 0] - v1[:, 0]) * (uv_pt[1] - v2[:, 1])) / denom
+
+        w1 = ((v2[:, 1] - v0[:, 1]) * (uv_pt[0] - v2[:, 0]) +
+              (v0[:, 0] - v2[:, 0]) * (uv_pt[1] - v2[:, 1])) / denom
+
+        w2 = 1.0 - w0 - w1
+
+        # Find faces where point is inside the UV triangle
+        eps = 1e-8
+        inside = (w0 >= -eps) & (w1 >= -eps) & (w2 >= -eps)
+
+        if not np.any(inside):
+            return None  # UV point not found in any triangle
+
+        # Take the first matching face
+        idx = np.argmax(inside)
+        bary = np.array([w0[idx], w1[idx], w2[idx]])
+
+        # Interpolate 3D position using barycentric coords
+        tri_verts = vertices[faces[idx]]  # (3, 3)
+        pos = bary @ tri_verts
+        normal = face_normals[idx]
+        return pos, normal
 
     def contour_to_polygon(self, contour: np.ndarray) -> np.ndarray:
         """Converts an OpenCV (Nx1x2) contour to a simple polygon (Nx2)
