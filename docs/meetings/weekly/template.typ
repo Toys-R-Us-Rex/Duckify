@@ -55,9 +55,12 @@
 
 
 #let direction-attendees(
-  people: ()
+  present: auto
 ) = {
-  let people = people.map(p => direction-team.at(p)).join(", ")
+  if present == auto {
+    present = direction-team.keys()
+  }
+  let people = present.map(p => direction-team.at(p)).join(", ")
 
   [*Direction attendees*: #people]
 }
