@@ -35,6 +35,7 @@ class Tracer:
         self.palette: tuple[Color, ...] = palette
 
         self.texture: Optional[Image.Image] = None
+        self.paletted_texture: Optional[Image.Image] = None
         self.model: Optional[Trimesh] = None
         self.layers: list[Image.Image] = []
 
@@ -45,8 +46,8 @@ class Tracer:
     def compute_traces(self) -> list[Trace]:
         self.texture = self.load_texture(self.texture_path)
         self.model = self.load_model(self.model_path)
-        self.texture = self.palettize_texture(self.texture, self.palette)
-        self.layers = self.split_colors(self.texture, self.palette)
+        self.paletted_texture = self.palettize_texture(self.texture, self.palette)
+        self.layers = self.split_colors(self.paletted_texture, self.palette)
 
         for c, layer in tqdm.tqdm(
                 enumerate(self.layers), desc="Island detection", unit="layer"
