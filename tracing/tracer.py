@@ -91,13 +91,17 @@ class Tracer:
 
         if self.debug:
             cv2.imshow("Segments", img)
-            pts2 = []
+            clouds = []
             segments = []
             for trace in self.traces_3d:
-                pts2.extend(trace.path)
-                segments.append(trimesh.load_path(np.vstack([trace.path, [trace.path[0]]])))
-            cloud = trimesh.PointCloud(pts2, colors=[255, 0, 0, 255])
-            scene = trimesh.Scene([self.model, cloud] + segments)
+                color = self.palette[trace.color]
+                path = trimesh.load_path(np.vstack([trace.path, [trace.path[0]]]))
+                for entity in path.entities:
+                    entity.color = color
+                segments.append(path)
+                cloud = trimesh.PointCloud(trace.path, colors=color)
+                clouds.append(cloud)
+            scene = trimesh.Scene([self.model] + segments + clouds)
             scene.show()
 
         self.export_traces(self.traces_3d, self.model_path, self.texture_path, self.output_path)
