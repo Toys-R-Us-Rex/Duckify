@@ -1,26 +1,26 @@
 import logging
 import os
-import cv2
-import numpy as np
-import tqdm
-import trimesh
-import shapely
-import matplotlib.pyplot as plt
-
-from PIL import Image
-from trimesh import Trimesh
-from trimesh.visual import TextureVisuals
 from logging import Logger
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import shapely
+import tqdm
+import trimesh
+from PIL import Image
+from shapely import LineString, MultiLineString, Polygon
+from shapely.plotting import plot_line, plot_points, plot_polygon
+from trimesh import Trimesh
+from trimesh.visual import TextureVisuals
+
 from tracing.color import Color
 from tracing.island import Island
 from tracing.point_3d import Point3D
 from tracing.segment import Segment
 from tracing.trace import Trace
-from shapely.ops import split
-from shapely import LineString, Polygon
-from shapely.plotting import plot_polygon, plot_line, plot_points
 
 
 class Tracer:
@@ -264,7 +264,7 @@ class Tracer:
             plt.show()
         
         # génération d'une grille de ligne à superposer/intersecter avec l'island
-        lines : list[shapely.linestrings] = []
+        lines : list[LineString] = []
         spacing = 0.005 # TODO valeur à adapter dynamiquement plus tard ?
         c_y = miny + spacing
         while c_y < maxy:
@@ -272,13 +272,17 @@ class Tracer:
             c_y += spacing
 
         # Intersection de la grille de lignes et du polygone
-        fill_lines = [line.intersection(polygon) for line in lines if line.intersects(polygon)]
+        fill_lines: list[Union[LineString, MultiLineString]] = [
+            line.intersection(polygon)
+            for line in lines
+            if line.intersects(polygon)
+        ]  # type: ignore]
 
         if self.debug:
             fig, ax = plt.subplots()
             plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
-            for i in fill_lines:
-                plot_line(i, ax=ax, color='green', linewidth=2)
+            for fill_line in fill_lines:
+                plot_line(fill_line, ax=ax, color='green', linewidth=2)
             plt.show()
         
         # Tri entre LineString et MultiLineString et ajout à la variable de retour
