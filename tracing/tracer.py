@@ -2,13 +2,17 @@ import logging
 import os
 from logging import Logger
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
+import shapely
 import tqdm
 import trimesh
 from PIL import Image
+from shapely import LineString, MultiLineString, Polygon
+from shapely.plotting import plot_line, plot_points, plot_polygon
 from trimesh import Trimesh
 from trimesh.visual import TextureVisuals
 
@@ -227,10 +231,72 @@ class Tracer:
             islands.append(island)
 
         return islands
-
+    
+    # https://shapely.readthedocs.io/en/stable/index.html
     def compute_fill_slices(self, island: Island) -> list[Segment]:
+        """Compute the segments to fill the interior of an island
+
+        Args:
+            island (Island): Detected island of color
+
+        Returns:
+            list[Segment]: List of segments filling the island
+        """
         self.logger.info(f"Computing fill slices for island {island.idx}")
-        return [Segment(np.array([0, 0]), np.array([1, 1]), island.color)]
+
+        polygon = Polygon(island.border)
+
+        # BB du polygone
+        minx, miny, maxx, maxy = polygon.bounds
+
+        llBound = shapely.points([minx, miny])
+        urBound = shapely.points([maxx, maxy])
+        lrBound = shapely.points([maxx, miny])
+        ulound = shapely.points([minx, maxy])
+
+        if self.debug:
+            fig, ax = plt.subplots()
+            plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
+            plot_points(llBound, ax=ax, color='red')
+            plot_points(urBound, ax=ax, color='red')
+            plot_points(lrBound, ax=ax, color='red')
+            plot_points(ulound, ax=ax, color='red')
+            plt.show()
+        
+        # génération d'une grille de ligne à superposer/intersecter avec l'island
+        lines : list[LineString] = []
+        spacing = 0.005 # TODO valeur à adapter dynamiquement plus tard ?
+        c_y = miny + spacing
+        while c_y < maxy:
+            lines.append(LineString([(minx, c_y), (maxx, c_y)]))
+            c_y += spacing
+
+        # Intersection de la grille de lignes et du polygone
+        fill_lines: list[Union[LineString, MultiLineString]] = [
+            line.intersection(polygon)
+            for line in lines
+            if line.intersects(polygon)
+        ]  # type: ignore]
+
+        if self.debug:
+            fig, ax = plt.subplots()
+            plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
+            for fill_line in fill_lines:
+                plot_line(fill_line, ax=ax, color='green', linewidth=2)
+            plt.show()
+        
+        # Tri entre LineString et MultiLineString et ajout à la variable de retour
+        segments : list[Segment] = []
+        for l in fill_lines:
+            if l.geom_type == "LineString":
+                seg = Segment(np.array(l.coords[0]), np.array(l.coords[1]), island.color)
+                segments.append(seg)
+            else:
+                for ls in l.geoms:
+                    seg = Segment(np.array(ls.coords[0]), np.array(ls.coords[1]), island.color)
+                    segments.append(seg)
+
+        return segments
 
     # Utility
 
@@ -270,10 +336,8 @@ class Tracer:
         p1: Optional[Point3D] = self.interpolate_position(segment.p1, mesh)
         p2: Optional[Point3D] = self.interpolate_position(segment.p2, mesh)
         if p1 is None:
-            self.logger.error(f"UV point {segment.p1} cannot be mapped to 3D position")
             return None
         if p2 is None:
-            self.logger.error(f"UV point {segment.p2} cannot be mapped to 3D position")
             return None
         return Trace(
             p1=p1,
@@ -292,7 +356,7 @@ class Tracer:
             Optional[Point3D]: the corresponding 3D point, or None if a correspondance could not be found
         """
         if not isinstance(mesh.visual, TextureVisuals):
-            self.logger.error("Missing mesh UV coordinates")
+            # self.logger.error("Missing mesh UV coordinates")
             return None
 
         uv: np.ndarray = mesh.visual.uv
