@@ -20,7 +20,7 @@ from tracing.color import Color
 from tracing.island import Island
 from tracing.point_3d import Point3D
 from tracing.segment import Segment
-from tracing.trace import Trace
+from tracing.trace import Trace2D, Trace3D
 
 
 class Tracer:
@@ -44,10 +44,10 @@ class Tracer:
         self.layers: list[Image.Image] = []
 
         self.islands: list[Island] = []
-        self.segments: list[Segment] = []
-        self.traces: list[Trace] = []
+        self.traces_2d: list[Trace2D] = []
+        self.traces_3d: list[Trace3D] = []
 
-    def compute_traces(self) -> list[Trace]:
+    def compute_traces(self) -> list[Trace3D]:
         self.texture = self.load_texture(self.texture_path)
         self.model = self.load_model(self.model_path)
         self.paletted_texture = self.palettize_texture(self.texture, self.palette)
@@ -62,41 +62,41 @@ class Tracer:
         for island in tqdm.tqdm(
                 self.islands, desc="Island segmentation", unit="island"
         ):
-            border: list[Segment] = self.resample_border(island)
-            self.segments.extend(border)
+            self.traces_2d.append(Trace2D(
+                color=island.color,
+                path=island.border
+            ))
             fill_slices: list[Segment] = self.compute_fill_slices(island)
-            self.segments.extend(fill_slices)
+            # self.traces_2d.extend(fill_slices)
 
         img = np.array(self.texture.copy())
         size = (img.shape[1], img.shape[0])
 
-        for segment in tqdm.tqdm(self.segments, desc="3D projection", unit="segment"):
-            trace: Optional[Trace] = self.project_segment_to_3d(segment, self.model)
-            if trace is not None:
-                self.traces.append(trace)
+        for trace_2d in tqdm.tqdm(self.traces_2d, desc="3D projection", unit="trace"):
+            traces_3d: Optional[list[Trace3D]] = self.project_trace_to_3d(trace_2d, self.model)
+            if traces_3d is not None:
+                self.traces_3d.extend(traces_3d)
 
             if self.debug:
-                p1 = self.uv_to_texture(segment.p1, size).astype(np.intp)
-                p2 = self.uv_to_texture(segment.p2, size).astype(np.intp)
-                cv2.circle(img, p1, 3, (0, 0, 255), -1)
-                cv2.circle(img, p2, 3, (0, 255, 0), -1)
+                pts: np.ndarray = self.uv_to_texture(trace_2d.path, size).astype(np.intp)
+                for pt in pts:
+                    cv2.circle(img, pt, 3, (0, 0, 255), -1)
 
-                col = (255, 0, 255) if trace is None else (255, 255, 0)
-                cv2.line(img, p1, p2, col)
+                col = (255, 0, 255) if traces_3d is None else (255, 255, 0)
+                cv2.polylines(img, [pts], True, col)
 
         if self.debug:
             cv2.imshow("Segments", img)
-            pts = []
+            pts2 = []
             segments = []
-            for trace in self.traces:
-                pts.append(trace.p1.pos)
-                pts.append(trace.p2.pos)
-                segments.append(trimesh.load_path([trace.p1.pos, trace.p2.pos]))
-            cloud = trimesh.PointCloud(pts, colors=[255, 0, 0, 255])
+            for trace in self.traces_3d:
+                pts2.extend(trace.path)
+                segments.append(trimesh.load_path(np.vstack([trace.path, [trace.path[0]]])))
+            cloud = trimesh.PointCloud(pts2, colors=[255, 0, 0, 255])
             scene = trimesh.Scene([self.model, cloud] + segments)
             scene.show()
 
-        return self.traces
+        return self.traces_3d
 
     def load_texture(self, path: Path) -> Image.Image:
         """Load texture from file path
@@ -323,27 +323,39 @@ class Tracer:
 
         return segments
 
-    def project_segment_to_3d(self, segment: Segment, mesh: Trimesh) -> Optional[Trace]:
-        """Projects a segment from UV space to a 3D trace
+    def project_trace_to_3d(self, trace: Trace2D, mesh: Trimesh) -> Optional[list[Trace3D]]:
+        """Projects a trace from UV space to 3D traces
 
         Args:
-            segment (Segment): a segment in UV space
+            trace (Trace2D): a trace in UV space
             mesh (Trimesh): the mesh
 
         Returns:
-            Optional[Trace]: the corresponding 3D trace, or None if a point could not be projected in 3D space
+            Optional[list[Trace3D]]: the corresponding 3D traces, or None if a point could not be projected in 3D space
         """
-        p1: Optional[Point3D] = self.interpolate_position(segment.p1, mesh)
-        p2: Optional[Point3D] = self.interpolate_position(segment.p2, mesh)
-        if p1 is None:
-            return None
-        if p2 is None:
-            return None
-        return Trace(
-            p1=p1,
-            p2=p2,
-            color=segment.color,
-        )
+        pts: np.ndarray = np.zeros((len(trace.path), 3), dtype=np.float64)
+        face_idx: int = -1
+        normal: np.ndarray = np.zeros(3)
+        for i, pt in enumerate(trace.path):
+            pt2: Optional[Point3D] = self.interpolate_position(pt, mesh)
+            if pt2 is None:
+                return None
+            # TODO split at face edges
+            if i == 0:
+                face_idx = pt2.face_idx
+                normal = mesh.face_normals[face_idx]
+            elif face_idx != pt2.face_idx and np.linalg.norm(mesh.face_normals[pt2.face_idx] - normal) > 1e-6:
+                print(f"Not on the same face: {face_idx} -> {pt2.face_idx} | {normal} -> {mesh.face_normals[pt2.face_idx]}")
+                return None
+            pts[i] = pt2.pos
+        
+        return [
+            Trace3D(
+                face=mesh.face_normals[face_idx],
+                path=pts,
+                color=trace.color,
+            )
+        ]
 
     def interpolate_position(self, uv_pos: np.ndarray, mesh: Trimesh) -> Optional[Point3D]:
         """Interpolates the UV position on the UV map and returns the corresponding 3D point
@@ -362,38 +374,9 @@ class Tracer:
         uv: np.ndarray = mesh.visual.uv
         faces: np.ndarray = mesh.faces
         vertices: np.ndarray = mesh.vertices
-        normals: np.ndarray = mesh.face_normals
         uv_faces: np.ndarray = uv[faces]
-        result = self.project_uv_point(uv_pos, uv_faces, faces, vertices, normals)
 
-        if result is None:
-            return None
-
-        return Point3D(
-            pos=result[0],
-            normal=result[1]
-        )
-
-    def project_uv_point(
-            self,
-            uv_pt: np.ndarray,
-            uv_faces: np.ndarray,
-            faces: np.ndarray,
-            vertices: np.ndarray,
-            face_normals: np.ndarray) -> Optional[tuple[np.ndarray, np.ndarray]]:
-        """Projects a UV point to the 3D mesh and finds the corresponding normal vector
-
-        Args:
-            uv_pt (np.ndarray): a UV point (u,v)
-            uv_faces (np.ndarray): the UV coordinates of the mesh's faces (F,3,2)
-            faces (np.ndarray): the vertex indices of the mesh's faces (F,3)
-            vertices (np.ndarray): the 3D positions of the mesh's vertices (V,3)
-            face_normals (np.ndarray): the normals of the mesh's faces (F,3)
-
-        Returns:
-            Optional[tuple[np.ndarray, np.ndarray]]: the 3D position and normal, or None if the UV point is not on a UV island
-        """
-        # Compute barycentric coordinates of uv_pt in each UV triangle
+        # Compute barycentric coordinates of uv_pos in each UV triangle
         # Using the 2D triangle test
         v0 = uv_faces[:, 0, :]  # (F, 2)
         v1 = uv_faces[:, 1, :]
@@ -403,11 +386,11 @@ class Tracer:
         denom = ((v1[:, 1] - v2[:, 1]) * (v0[:, 0] - v2[:, 0]) +
                  (v2[:, 0] - v1[:, 0]) * (v0[:, 1] - v2[:, 1]))
 
-        w0 = ((v1[:, 1] - v2[:, 1]) * (uv_pt[0] - v2[:, 0]) +
-              (v2[:, 0] - v1[:, 0]) * (uv_pt[1] - v2[:, 1])) / denom
+        w0 = ((v1[:, 1] - v2[:, 1]) * (uv_pos[0] - v2[:, 0]) +
+              (v2[:, 0] - v1[:, 0]) * (uv_pos[1] - v2[:, 1])) / denom
 
-        w1 = ((v2[:, 1] - v0[:, 1]) * (uv_pt[0] - v2[:, 0]) +
-              (v0[:, 0] - v2[:, 0]) * (uv_pt[1] - v2[:, 1])) / denom
+        w1 = ((v2[:, 1] - v0[:, 1]) * (uv_pos[0] - v2[:, 0]) +
+              (v0[:, 0] - v2[:, 0]) * (uv_pos[1] - v2[:, 1])) / denom
 
         w2 = 1.0 - w0 - w1
 
@@ -425,8 +408,7 @@ class Tracer:
         # Interpolate 3D position using barycentric coords
         tri_verts = vertices[faces[idx]]  # (3, 3)
         pos = bary @ tri_verts
-        normal = face_normals[idx]
-        return pos, normal
+        return Point3D(pos, int(idx))
 
     def contour_to_polygon(self, contour: np.ndarray) -> np.ndarray:
         """Converts an OpenCV (Nx1x2) contour to a simple polygon (Nx2)

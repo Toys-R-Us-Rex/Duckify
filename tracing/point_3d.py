@@ -10,5 +10,5 @@ class Point3D:
     # 3D position
     pos: np.ndarray  # Vec3
 
-    # 3D normal vector
-    normal: np.ndarray  # Vec3
+    # Face index
+    face_idx: int
