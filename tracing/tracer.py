@@ -170,8 +170,8 @@ class Tracer:
         output_img = c_img.quantize(palette=palette_image, dither=Image.Dither.NONE)
 
         if self.debug:
-            cv2.imshow("input texture image", np.array(img))
-            cv2.imshow("palettized texture image", np.array(output_img))
+            cv2.imshow("input texture image", np.array(c_img)[..., ::-1])
+            cv2.imshow("palettized texture image", np.array(output_img.convert("RGB"))[..., ::-1])
 
         return output_img
 
@@ -495,7 +495,7 @@ class Tracer:
         flat: list[int] = list(sum(palette, start=()))
 
         # completing missing values using green (as it's our current pen color)
-        flat.extend((0, 255, 0) * (256 - len(palette)))
+        flat.extend((0, 0, 0) * (256 - len(palette)))
 
         return flat
 
