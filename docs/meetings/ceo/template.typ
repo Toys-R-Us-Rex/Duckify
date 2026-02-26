@@ -1,12 +1,12 @@
 #let team = (
-  "PY": [Pierre-Yves],
-  "A": [Alexandre],
-  "J": [Jeremy],
-  "C": [Cédric],
-  "M": [Marco],
-  "N": [Nathan],
-  "K": [Kevin],
-  "L": [Louis],
+  "PY": [Pierre-Yves Savioz],
+  "A": [Alexandre Venturi],
+  "J": [Jeremy Duc],
+  "C": [Cédric Mariéthoz],
+  "M": [Marco Caporizzi],
+  "N": [Nathan Antonietti],
+  "K": [Kevin Voisin],
+  "L": [Louis Heredero],
 )
 
 #let attendees(
@@ -25,7 +25,7 @@
 
   let people = present.map(p => team.at(p)) + extra
 
-  block[*Attendees*: #people.join(", ")]
+  block[*Présent*: #people.join(", ")]
 }
 
 #let settings(
@@ -36,11 +36,11 @@
   let elmts = ()
 
   if location != none {
-    elmts.push[*Location*: #location]
+    elmts.push[*Lieu*: #location]
   }
 
   if time != none {
-    elmts.push[*Time*: #time]
+    elmts.push[*Heure*: #time]
   }
 
   if scribe != none {
@@ -76,7 +76,7 @@
   
   block(
     text(size: 1.6em, weight: "bold")[
-      Daily Meeting (#date.display("[day].[month].[year]"))
+      Procès verbal de la réunion du #date.display("[day].[month].[year] (Duckify)")
     ]
   )
 
