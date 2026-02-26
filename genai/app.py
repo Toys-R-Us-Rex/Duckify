@@ -15,8 +15,11 @@ load_dotenv()
 app = Flask(__name__)
 
 HF_TOKEN = os.environ.get("hf_token")
-if not HF_TOKEN:
-    raise ValueError("Le token HF est manquant dans le fichier .env")
+GH_USER = os.environ.get("GH_USER")
+GH_TOKEN = os.environ.get("GH_TOKEN")
+
+if not all([HF_TOKEN, GH_USER, GH_TOKEN]):
+    raise ValueError("Il manque hf_token, GH_USER ou GH_TOKEN dans le fichier .env")
 
 JOBS_DIR = Path("jobs_temp")
 JOBS_DIR.mkdir(exist_ok=True)
@@ -43,9 +46,15 @@ def generate_texture():
         safe_filename = os.path.basename(input_filename)
         input_path = current_job_path / safe_filename
         file.save(input_path)
+        
+        
+        
 
         print(f"[{job_id}] Démarrage du job pour : {prompt}")
-        texture_model = TextureModel(base_path=current_job_path, hf_token=HF_TOKEN)
+        
+        
+        
+        texture_model = TextureModel(base_path=current_job_path, hf_token=HF_TOKEN, gh_user=GH_USER, gh_token=GH_TOKEN)
 
         experiment_path = texture_model.run(text_prompt=prompt, obj_file=input_path)
 
@@ -55,8 +64,6 @@ def generate_texture():
             for root, dirs, files in os.walk(experiment_path):
                 for filename in files:
                     file_path = os.path.join(root, filename)
-                    # On ajoute le fichier au zip en gardant une structure propre
-                    # arcname permet de ne pas avoir toute l'arborescence absolue dans le zip
                     arcname = os.path.relpath(file_path, start=experiment_path)
                     zf.write(file_path, arcname=arcname)
         
@@ -78,8 +85,17 @@ def generate_texture():
 
     finally:
         if current_job_path.exists():
-            shutil.rmtree(current_job_path)
-            print(f"[{job_id}] Nettoyage terminé.")
+            def remove_readonly(func, path, excinfo):
+                import stat
+                os.chmod(path, stat.S_IWRITE)
+                func(path)
+
+            try:
+                # On ajoute ignore_errors ou on utilise la fonction de rappel
+                shutil.rmtree(current_job_path, onerror=remove_readonly)
+                print(f"[{job_id}] Nettoyage terminé.")
+            except Exception as cleanup_error:
+                print(f"[{job_id}] Erreur nettoyage forcé : {cleanup_error}")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
