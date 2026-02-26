@@ -76,7 +76,7 @@
   
   block(
     text(size: 1.6em, weight: "bold")[
-      Procès verbale de la réunion du #date.display("[day].[month].[year] (Duckifiy)")
+      Procès verbal de la réunion du #date.display("[day].[month].[year] (Duckify)")
     ]
   )
 
