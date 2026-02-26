@@ -157,17 +157,17 @@ class Tracer:
         """
         self.logger.info("Palettizing texture colors")
 
-        palette = self.format_palette(palette)
+        pil_palette = self.format_palette(palette)
 
         # pour forcer l'image à utiliser la palette souhaitée
         # Il faut d'abord injecter la palette choisie dans une dummy image
         palette_image = Image.new("P", (1, 1))
-        palette_image.putpalette(palette)
+        palette_image.putpalette(pil_palette)
 
         # s'assurer de la standardization "RGB"
         c_img = img.convert("RGB")
         # utilise quantize() pour palettizer
-        output_img = c_img.quantize(palette=palette_image, dither=0)
+        output_img = c_img.quantize(palette=palette_image, dither=Image.Dither.NONE)
 
         if self.debug:
             cv2.imshow("input texture image", np.array(img))
@@ -476,30 +476,23 @@ class Tracer:
 
         return xy_interp
 
-    def format_palette(self, palette: tuple[Color, ...]) -> list:
+    def format_palette(self, palette: tuple[Color, ...]) -> list[int]:
         """Formatting an input palette to be used in  palettize_texture()
 
         Args:
             palette (tuple[Color, ...]): Raw palette containing selected colors
 
         Returns:
-            tuple[Color, ...]: Formatted palette to 768 values (3*256)
+            list[int]: Formatted palette to 768 values (3*256)
         """
-        # counting existing values
-        count = len(palette) * 3
+
+        # flatten tuple of colors (tuple of tuples) into a list of ints
+        flat: list[int] = list(sum(palette, start=()))
 
         # completing missing values using green (as it's our current pen color)
-        palette = palette + (0, 255, 0) * ((768 - count)//3)
+        flat.extend((0, 255, 0) * (256 - len(palette)))
 
-        # formatting
-        f_palette = []
-        for item in palette:
-            if isinstance(item, tuple):
-                f_palette.extend(item)
-            else:
-                f_palette.append(item)
-
-        return f_palette
+        return flat
 
     def texture_to_uv(self, texture_pos: np.ndarray, texture_size: tuple[int, int]) -> np.ndarray:
         """Converts texture coordinates to UV space
