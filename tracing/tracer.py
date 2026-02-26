@@ -70,8 +70,8 @@ class Tracer:
                 color=island.color,
                 path=island.border
             ))
-            fill_slices: list[Segment] = self.compute_fill_slices(island)
-            # self.traces_2d.extend(fill_slices)
+            fill_slices: list[Trace2D] = self.compute_fill_slices(island)
+            self.traces_2d.extend(fill_slices)
 
         img = np.array(self.texture.copy())
         size = (img.shape[1], img.shape[0])
@@ -237,14 +237,14 @@ class Tracer:
         return islands
     
     # https://shapely.readthedocs.io/en/stable/index.html
-    def compute_fill_slices(self, island: Island) -> list[Segment]:
-        """Compute the segments to fill the interior of an island
+    def compute_fill_slices(self, island: Island) -> list[Trace2D]:
+        """Compute the traces to fill the interior of an island
 
         Args:
             island (Island): Detected island of color
 
         Returns:
-            list[Segment]: List of segments filling the island
+            list[Trace2D]: List of 2D traces filling the island
         """
         self.logger.info(f"Computing fill slices for island {island.idx}")
 
@@ -290,17 +290,22 @@ class Tracer:
             plt.show()
         
         # Tri entre LineString et MultiLineString et ajout à la variable de retour
-        segments : list[Segment] = []
+        traces : list[Trace2D] = []
         for l in fill_lines:
             if l.geom_type == "LineString":
-                seg = Segment(np.array(l.coords[0]), np.array(l.coords[1]), island.color)
-                segments.append(seg)
+                trace = Trace2D(
+                    color=island.color,
+                    path=l.coords
+                )
+                traces.append(trace)
             else:
                 for ls in l.geoms:
-                    seg = Segment(np.array(ls.coords[0]), np.array(ls.coords[1]), island.color)
-                    segments.append(seg)
-
-        return segments
+                    trace = Trace2D(
+                        color=island.color,
+                        path=ls.coords
+                    )
+                    traces.append(trace)
+        return traces
     
     def export_traces(self, traces: list[Trace3D], model_path: Path, texture_path: Path, output_path: Path):
         output_path.parent.mkdir(parents=True, exist_ok=True)
