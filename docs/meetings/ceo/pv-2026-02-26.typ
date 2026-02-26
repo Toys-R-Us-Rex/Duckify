@@ -28,6 +28,10 @@ Cette réunion a été mise en place dans le but que l'équipe travaillant sur l
   - Arrêter un choix sur le processus de génération de la texture a appliquée au canard 
   - *Commentaire de M.misk* : Les alternatives présentées ne sont pas suffisament claire et sourcées (en coût) pour qu'une décision soit prise.
 
++ *Discussion*
+  - Le choix de l'interface entre le client et le processus de production a été évoqué. 
+  - *Commentaire de M.misk* : L'utilisation d'une interface web, par exemple via le site de l'entreprise est une piste intéressante.
+
 + *Information de l'équipe*
   - Les contraintes suivantes sont a prendre note :
     - Lors de la phase d'application de la texture sur le canard, le nombre de couleurs sera limité (~ 4 à 6)
