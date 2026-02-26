@@ -1,3 +1,5 @@
+import datetime
+import json
 import logging
 import os
 from logging import Logger
@@ -29,6 +31,7 @@ class Tracer:
             texture_path: Path,
             model_path: Path,
             palette: tuple[Color, ...],
+            output_path: Path,
             debug: bool = False
     ):
         self.logger: Logger = logging.getLogger("Tracer")
@@ -36,6 +39,7 @@ class Tracer:
 
         self.texture_path: Path = texture_path
         self.model_path: Path = model_path
+        self.output_path: Path = output_path
         self.palette: tuple[Color, ...] = palette
 
         self.texture: Optional[Image.Image] = None
@@ -47,7 +51,7 @@ class Tracer:
         self.traces_2d: list[Trace2D] = []
         self.traces_3d: list[Trace3D] = []
 
-    def compute_traces(self) -> list[Trace3D]:
+    def compute_traces(self) -> None:
         self.texture = self.load_texture(self.texture_path)
         self.model = self.load_model(self.model_path)
         self.paletted_texture = self.palettize_texture(self.texture, self.palette)
@@ -96,7 +100,7 @@ class Tracer:
             scene = trimesh.Scene([self.model, cloud] + segments)
             scene.show()
 
-        return self.traces_3d
+        self.export_traces(self.traces_3d, self.model_path, self.texture_path, self.output_path)
 
     def load_texture(self, path: Path) -> Image.Image:
         """Load texture from file path
@@ -297,6 +301,29 @@ class Tracer:
                     segments.append(seg)
 
         return segments
+    
+    def export_traces(self, traces: list[Trace3D], model_path: Path, texture_path: Path, output_path: Path):
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        if output_path.exists():
+            choice = input(f"File {output_path} already exists. Overwrite ? N/y")
+            if choice.lower().strip() != "y":
+                return
+
+        traces_out: list[dict] = []
+        for trace in traces:
+            traces_out.append({
+                "face": trace.face.tolist(),
+                "color": trace.color,
+                "path": trace.path.tolist()
+            })
+
+        with open(output_path, "w") as f:
+            json.dump({
+                "generated_at": datetime.datetime.now().isoformat(),
+                "model": str(model_path),
+                "texture": str(texture_path),
+                "traces": traces_out
+            }, f, indent=4)
 
     # Utility
 
