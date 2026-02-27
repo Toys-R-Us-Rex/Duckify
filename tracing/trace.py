@@ -1,17 +1,28 @@
 from dataclasses import dataclass
 
-from tracing.point_3d import Point3D
+import numpy as np
 
 
 @dataclass
-class Trace:
-    """3D drawing segment"""
+class Trace3D:
+    """3D drawing path on a flat surface"""
 
-    # First 3D point
-    p1: Point3D
-
-    # Second 3D point
-    p2: Point3D
+    # Face normal (3D vector)
+    face: np.ndarray
 
     # Color index
     color: int
+
+    # List of points on the face (Nx3)
+    path: np.ndarray
+
+
+@dataclass
+class Trace2D:
+    """2D drawing path on the texture"""
+
+    # Color index
+    color: int
+
+    # List of points on the texture (Nx2)
+    path: np.ndarray
