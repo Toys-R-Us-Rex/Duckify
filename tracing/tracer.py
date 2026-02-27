@@ -19,6 +19,7 @@ from trimesh import Trimesh
 from trimesh.visual import TextureVisuals
 
 from tracing.color import Color
+from tracing.config import TracerConfig
 from tracing.island import Island
 from tracing.point_3d import Point3D
 from tracing.segment import Segment
@@ -28,13 +29,13 @@ from tracing.trace import Trace2D, Trace3D
 class Tracer:
     def __init__(
             self,
+            config: TracerConfig,
             texture_path: Path,
             model_path: Path,
-            palette: tuple[Color, ...],
-            debug: bool = False
+            palette: tuple[Color, ...]
     ):
         self.logger: Logger = logging.getLogger("Tracer")
-        self.debug: bool = debug
+        self.config: TracerConfig = config
 
         self.texture_path: Path = texture_path
         self.model_path: Path = model_path
@@ -79,7 +80,7 @@ class Tracer:
             if traces_3d is not None:
                 self.traces_3d.extend(traces_3d)
 
-            if self.debug:
+            if self.config.debug:
                 pts: np.ndarray = self.uv_to_texture(trace_2d.path, size).astype(np.intp)
                 for pt in pts:
                     cv2.circle(img, pt, 3, (0, 0, 255), -1)
@@ -87,7 +88,7 @@ class Tracer:
                 col = (255, 0, 255) if traces_3d is None else (255, 255, 0)
                 cv2.polylines(img, [pts], True, col)
 
-        if self.debug:
+        if self.config.debug:
             cv2.imshow("Segments", img)
             clouds = []
             segments = []
@@ -137,7 +138,7 @@ class Tracer:
 
         mesh = trimesh.load_mesh(path)
 
-        if self.debug:
+        if self.config.debug:
             mesh.show()
 
         return mesh
@@ -169,7 +170,7 @@ class Tracer:
         # utilise quantize() pour palettizer
         output_img = c_img.quantize(palette=palette_image, dither=Image.Dither.NONE)
 
-        if self.debug:
+        if self.config.debug:
             cv2.imshow("input texture image", np.array(c_img)[..., ::-1])
             cv2.imshow("palettized texture image", np.array(output_img.convert("RGB"))[..., ::-1])
 
@@ -198,7 +199,7 @@ class Tracer:
             mask_img = Image.fromarray((mask * 255).astype(np.uint8))
             images.append(mask_img)
 
-            if self.debug:
+            if self.config.debug:
                 cv2.imshow(f"splitted color image {color}", np.array(mask_img))
 
         return images
@@ -220,7 +221,7 @@ class Tracer:
         contours, _ = cv2.findContours(layer, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         self.logger.debug(f"Found {len(contours)} contours")
 
-        if self.debug:
+        if self.config.debug:
             cv2.imshow("Input", layer)
             with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
             cv2.drawContours(with_contours, contours, -1, (0, 0, 255), 1)
@@ -258,7 +259,7 @@ class Tracer:
         lrBound = shapely.points([maxx, miny])
         ulound = shapely.points([minx, maxy])
 
-        if self.debug:
+        if self.config.debug:
             fig, ax = plt.subplots()
             plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
             plot_points(llBound, ax=ax, color='red')
@@ -282,7 +283,7 @@ class Tracer:
             if line.intersects(polygon)
         ]  # type: ignore]
 
-        if self.debug:
+        if self.config.debug:
             fig, ax = plt.subplots()
             plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
             for fill_line in fill_lines:
@@ -427,7 +428,7 @@ class Tracer:
         w2 = 1.0 - w0 - w1
 
         # Find faces where point is inside the UV triangle
-        eps = 1e-8
+        eps: float = self.config.barycentric_epsilon
         inside = (w0 >= -eps) & (w1 >= -eps) & (w2 >= -eps)
 
         if not np.any(inside):
