@@ -274,7 +274,7 @@ class Tracer:
         
         # génération d'une grille de ligne à superposer/intersecter avec l'island
         lines : list[LineString] = []
-        spacing = 0.005 # TODO valeur à adapter dynamiquement plus tard ?
+        spacing: float = self.config.fill_slice_spacing
         c_y = miny + spacing
         while c_y < maxy:
             lines.append(LineString([(minx, c_y), (maxx, c_y)]))
