@@ -22,7 +22,6 @@ from tracing.color import Color
 from tracing.config import TracerConfig
 from tracing.island import Island
 from tracing.point_3d import Point3D
-from tracing.segment import Segment
 from tracing.trace import Trace2D, Trace3D
 
 
@@ -264,7 +263,7 @@ class Tracer:
             urBound = shapely.points([maxx, maxy])
             lrBound = shapely.points([maxx, miny])
             ulBound = shapely.points([minx, maxy])
-            
+
             fig, ax = plt.subplots()
             plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
             plot_points(llBound, ax=ax, color='red')
@@ -337,29 +336,6 @@ class Tracer:
             }, f, indent=4)
 
     # Utility
-
-    def resample_border(self, island: Island) -> list[Segment]:
-        border: np.ndarray = self.resample_polygon(island.border, closed=True)
-        segments: list[Segment] = []
-        for i in range(border.shape[0]):
-            p1: np.ndarray = border[i]
-            p2: np.ndarray = border[(i + 1) % border.shape[0]]
-            segments.append(Segment(p1, p2, island.color))
-        return segments
-
-    def resample_fill_segment(self, segment: Segment, n: int) -> list[Segment]:
-        pts: np.ndarray = self.resample_polygon(np.array([
-            segment.p1,
-            segment.p2
-        ]), n)
-        segments: list[Segment] = []
-
-        for i in range(pts.shape[0]):
-            p1: np.ndarray = pts[i]
-            p2: np.ndarray = pts[(i + 1) % pts.shape[0]]
-            segments.append(Segment(p1, p2, segment.color))
-
-        return segments
 
     def project_trace_to_3d(self, trace: Trace2D, mesh: Trimesh) -> Optional[list[Trace3D]]:
         """Projects a trace from UV space to 3D traces
