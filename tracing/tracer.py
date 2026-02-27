@@ -382,9 +382,11 @@ class Tracer:
             if i == 0:
                 face_idx = pt2.face_idx
                 normal = mesh.face_normals[face_idx]
-            elif face_idx != pt2.face_idx and np.linalg.norm(mesh.face_normals[pt2.face_idx] - normal) > 1e-6:
-                print(f"Not on the same face: {face_idx} -> {pt2.face_idx} | {normal} -> {mesh.face_normals[pt2.face_idx]}")
-                return None
+            elif face_idx != pt2.face_idx:
+                diff = np.linalg.norm(mesh.face_normals[pt2.face_idx] - normal)
+                if diff > self.config.parallel_normal_epsilon:
+                    self.logger.warning(f"Not on the same face: {face_idx} -> {pt2.face_idx} | {normal} -> {mesh.face_normals[pt2.face_idx]}")
+                    return None
             pts[i] = pt2.pos
         
         return [
