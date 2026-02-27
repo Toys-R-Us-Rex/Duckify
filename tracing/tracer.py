@@ -259,18 +259,18 @@ class Tracer:
         # BB du polygone
         minx, miny, maxx, maxy = polygon.bounds
 
-        llBound = shapely.points([minx, miny])
-        urBound = shapely.points([maxx, maxy])
-        lrBound = shapely.points([maxx, miny])
-        ulound = shapely.points([minx, maxy])
-
         if self.config.debug:
+            llBound = shapely.points([minx, miny])
+            urBound = shapely.points([maxx, maxy])
+            lrBound = shapely.points([maxx, miny])
+            ulBound = shapely.points([minx, maxy])
+            
             fig, ax = plt.subplots()
             plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
             plot_points(llBound, ax=ax, color='red')
             plot_points(urBound, ax=ax, color='red')
             plot_points(lrBound, ax=ax, color='red')
-            plot_points(ulound, ax=ax, color='red')
+            plot_points(ulBound, ax=ax, color='red')
             plt.show()
         
         # génération d'une grille de ligne à superposer/intersecter avec l'island
@@ -286,7 +286,7 @@ class Tracer:
             line.intersection(polygon)
             for line in lines
             if line.intersects(polygon)
-        ]  # type: ignore]
+        ]  # type: ignore
 
         if self.config.debug:
             fig, ax = plt.subplots()
