@@ -53,6 +53,11 @@ class Tracer:
     def compute_traces(self) -> None:
         self.texture = self.load_texture(self.texture_path)
         self.model = self.load_model(self.model_path)
+
+        if not self.mesh_has_uv_map(self.model):
+            self.logger.error("Missing mesh UV coordinates")
+            return
+
         self.paletted_texture = self.palettize_texture(self.texture, self.palette)
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
@@ -401,7 +406,6 @@ class Tracer:
             Optional[Point3D]: the corresponding 3D point, or None if a correspondance could not be found
         """
         if not isinstance(mesh.visual, TextureVisuals):
-            # self.logger.error("Missing mesh UV coordinates")
             return None
 
         uv: np.ndarray = mesh.visual.uv
@@ -527,3 +531,6 @@ class Tracer:
         flipped = np.copy(uv_pos)
         flipped[..., 1] = 1 - flipped[..., 1]
         return flipped * texture_size
+
+    def mesh_has_uv_map(self, mesh: Trimesh) -> bool:
+        return isinstance(mesh.visual, TextureVisuals)
