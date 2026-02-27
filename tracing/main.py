@@ -16,8 +16,9 @@ def main():
     output_path: Path = OUTPUT_DIR / f"{model_name}-{texture_name}-trace.json"
     palette: tuple[Color, ...] = ((255, 255, 255), (255, 0, 0), (0, 255, 0))
 
-    tracer: Tracer = Tracer(texture_path, model_path, palette, output_path, debug=True)
+    tracer: Tracer = Tracer(texture_path, model_path, palette, debug=True)
     tracer.compute_traces()
+    tracer.export_traces(output_path)
 
 
 if __name__ == "__main__":
