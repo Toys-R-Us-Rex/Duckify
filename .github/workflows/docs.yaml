@@ -37,7 +37,7 @@ jobs:
           done
 
           # Compile Typst files (excluding templates)
-          find docs -name "*.typ" -a ! \(-name "_*" -o -name "*template*" \) | while read -r file; do
+          find docs -name "*.typ" -a ! \( -name "_*" -o -name "*template*" \) | while read -r file; do
             rel_path="${file#docs/}"
             out_pdf="output/${rel_path%.typ}.pdf"
             mkdir -p "$(dirname "$out_pdf")"
