@@ -47,7 +47,8 @@ jobs:
       - name: Generate Tree Index
         run: |
           sudo apt-get install -y tree
-          tree -H '.' \
+          tree output \
+               -H '.' \
                -T "Duckify - Project Documentation" \
                -P "*.pdf" \
                -P "*.md" \
