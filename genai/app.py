@@ -14,12 +14,12 @@ load_dotenv()
 
 app = Flask(__name__)
 
-HF_TOKEN = os.environ.get("hf_token")
+HF_TOKEN = os.environ.get("HF_TOKEN")
 GH_USER = os.environ.get("GH_USER")
 GH_TOKEN = os.environ.get("GH_TOKEN")
 
 if not all([HF_TOKEN, GH_USER, GH_TOKEN]):
-    raise ValueError("Il manque hf_token, GH_USER ou GH_TOKEN dans le fichier .env")
+    raise ValueError("Il manque HF_TOKEN, GH_USER ou GH_TOKEN dans le fichier .env")
 
 JOBS_DIR = Path("jobs_temp")
 JOBS_DIR.mkdir(exist_ok=True)
