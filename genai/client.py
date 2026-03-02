@@ -63,5 +63,4 @@ def run(fichier_obj, prompt, base_path):
 
     except Exception as e:
         print(f"Erreur globale SSH/Requête : {e}")
-        # CORRECTION 3 : Retour constant en cas de plantage total
         return None, []

@@ -1,6 +1,5 @@
 import docker
 import shutil
-# import subprocess  <-- On n'en a même plus besoin grâce à l'API docker !
 from pathlib import Path
 from typing import Optional
 from docker.types import DeviceRequest
@@ -17,7 +16,6 @@ class TextureModel:
         gh_token: str
     ):
         self.base_path = base_path
-        # CORRECTION 2 : On assigne les variables à l'instance
         self.gh_user = gh_user
         self.gh_token = gh_token
         
@@ -46,8 +44,6 @@ class TextureModel:
         mesh_target = self.base_path / "shapes" / obj_file.name
         shutil.copy(obj_file, mesh_target)
 
-        # Create config file 
-        # AMÉLIORATION 3 : Aligné à gauche pour avoir un YAML valide
         config_yaml = f"""prompt: "{text_prompt}"
         mesh_path: "shapes/{obj_file.name}"
         """

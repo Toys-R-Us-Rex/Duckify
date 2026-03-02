@@ -91,7 +91,6 @@ def generate_texture():
                 func(path)
 
             try:
-                # On ajoute ignore_errors ou on utilise la fonction de rappel
                 shutil.rmtree(current_job_path, onerror=remove_readonly)
                 print(f"[{job_id}] Nettoyage terminé.")
             except Exception as cleanup_error:
