@@ -5,6 +5,9 @@ on:
   
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -38,7 +41,7 @@ jobs:
             rel_path="${file#docs/}"
             out_pdf="output/${rel_path%.typ}.pdf"
             mkdir -p "$(dirname "$out_pdf")"
-            typst compile "$file" "$out_pdf"
+            typst compile --root . "$file" "$out_pdf"
           done
 
       - name: Generate Tree Index
