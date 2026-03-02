@@ -16,8 +16,6 @@ def run(fichier_obj, prompt, base_path):
             ssh_username=SSH_USER,
             ssh_pkey=SSH_KEY_PATH,
             remote_bind_address=('127.0.0.1', 5000),
-            ssh_timeout=10.0,
-            banner_timeout=5.0
         ) as tunnel:
             
             api_url = f'http://127.0.0.1:{tunnel.local_bind_port}/generate'

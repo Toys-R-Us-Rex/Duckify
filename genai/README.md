@@ -8,6 +8,9 @@
 - GH_USER : Github username
 - GH_TOKEN : Github user token
 
+To generate a `GH_TOKEN`, go to 'https://github.com/settings/tokens'
+Generate a `personal token (classic)` with *read:packages* scope activated 
+
 
 ## How to run ?
 
