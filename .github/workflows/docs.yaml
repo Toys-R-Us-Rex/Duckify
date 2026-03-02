@@ -1,0 +1,62 @@
+name: Deploy Docs
+on:
+  push:
+    branches: ["main"]
+  
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Fontist
+        uses: fontist/setup-fontist@v2
+
+      - name: Install Fonts
+        run: fontist install "Source"
+
+      - name: Setup Typst
+        uses: typst-community/setup-typst@v3
+
+      - name: Compile
+        run: |
+          mkdir -p output
+          
+          # Copy existing PDFs and Markdowns (e.g., PowerPoints)
+          find docs -name "*.pdf" -o -name "*.md" | while read -r file; do
+            rel_path="${file#docs/}"
+            out_path="output/$rel_path"
+            mkdir -p "$(dirname "$out_path")"
+            cp "$file" "$out_path"
+          done
+
+          # Compile Typst files (excluding templates)
+          find docs -name "*.typ" -a ! \(-name "_*" -o -name "*template*" \) | while read -r file; do
+            rel_path="${file#docs/}"
+            out_pdf="output/${rel_path%.typ}.pdf"
+            mkdir -p "$(dirname "$out_pdf")"
+            typst compile "$file" "$out_pdf"
+          done
+
+      - name: Generate Tree Index
+        run: |
+          sudo apt-get install -y tree
+          tree -H '.' \
+               -T "Duckify - Project Documentation" \
+               -P "*.pdf" \
+               -P "*.md" \
+               -I "index.html" \
+               --noreport \
+               --charset utf-8 \
+               -o output/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4.4.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages # The branch the action should deploy to.
+          folder: output # The folder the action should deploy.
+          clean: true # Automatically remove deleted files from the deploy branch
