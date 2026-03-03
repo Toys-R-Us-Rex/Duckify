@@ -20,7 +20,7 @@ This project sets up a client-server pipeline to generate AI-driven textures for
 
 ## Prerequisites
 
-Before starting, ensure you have:
+Before starting, make sure you have:
 - **[uv](https://docs.astral.sh/uv/)** installed on both your local machine and the server.
 - **Docker** installed and running on the remote server (with NVIDIA GPU support).
 - **SSH Access** configured from your local machine to the remote server.
