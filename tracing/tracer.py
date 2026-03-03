@@ -4,7 +4,6 @@ import logging
 import os
 from logging import Logger
 from pathlib import Path
-import sys
 from typing import Optional, Union
 
 import cv2
@@ -18,7 +17,6 @@ from shapely import LineString, MultiLineString, Polygon
 from shapely.plotting import plot_line, plot_points, plot_polygon
 from trimesh import Trimesh
 from trimesh.visual import TextureVisuals
-from collections import defaultdict
 from tracing.color import Color
 from tracing.config import TracerConfig
 from tracing.hierarchy import Hierarchy
@@ -73,7 +71,12 @@ class Tracer:
         ):
             self.traces_2d.append(Trace2D(
                 color=island.color,
-                path=island.border
+                path=island.outer_border
+            ))
+            for inner_border in island.inner_borders:
+                self.traces_2d.append(Trace2D(
+                color=island.color,
+                path=inner_border
             ))
             fill_slices: list[Trace2D] = self.compute_fill_slices(island)
             self.traces_2d.extend(fill_slices)
@@ -228,9 +231,7 @@ class Tracer:
         self.logger.debug(f"Found {len(contours)} contours")
 
         if self.config.debug:
-            print(f"La hierarchy de l'image :")
-            print(" ")
-            print(hierarchy)
+            print("\nLa hiérarchie de l'image :\n", hierarchy)
             
             cv2.imshow("Input", layer)
             with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
@@ -240,7 +241,6 @@ class Tracer:
 
         # gérer la hierarchie : https://learnopencv.com/contour-detection-using-opencv-python-c/
         hierachies: list[Hierarchy] = []
-        idx = 0
         for idx, (contour, values) in enumerate(zip(contours, hierarchy[0])):
             hierach: Hierarchy = Hierarchy (
                 index= idx,
@@ -251,7 +251,6 @@ class Tracer:
                 polygon=self.contour_to_polygon(contour)
             )
             hierachies.append(hierach)
-            idx += 1
         
         islands: list[Island] = []
         processed = set()
@@ -266,11 +265,6 @@ class Tracer:
        # multi-border (outer+inner)
         parents = {h.index: h for h in hierachies 
                     if h.parent == -1 and h.first_child != -1}
-        
-        if self.config.debug:
-            print("Les parents :")
-            for i in parents:
-                print(i)
 
         for parent in parents.values():
             outer = self.texture_to_uv(parent.polygon, (layer.shape[1], layer.shape[0]))
@@ -284,10 +278,7 @@ class Tracer:
                 outer_border=outer,
                 inner_borders=inner_borders
             ))
-        """if self.config.debug:
-            print("Islands : ")
-            for i in islands:
-                print(i)"""
+            processed.add(parent.index)
 
         return islands
     
@@ -301,9 +292,9 @@ class Tracer:
         Returns:
             list[Trace2D]: List of 2D traces filling the island
         """
-        self.logger.info(f"Computing fill slices for island {island.idx}")
-
-        polygon = Polygon(island.border)
+        self.logger.info(f"Computing fill slices for island : {island}")
+        
+        polygon = Polygon(island.outer_border, island.inner_borders)
 
         # BB du polygone
         minx, miny, maxx, maxy = polygon.bounds
@@ -346,7 +337,7 @@ class Tracer:
         
         # Tri entre LineString et MultiLineString et ajout à la variable de retour
         traces : list[Trace2D] = []
-        for l in fill_lines:
+        for l in fill_lines:  # noqa: E741
             if l.geom_type == "LineString":
                 trace = Trace2D(
                     color=island.color,
