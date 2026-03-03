@@ -7,7 +7,7 @@ from pathlib import Path
 from docker.types import DeviceRequest
 
 class TextureModel:
-    GITHUB_REPO = "ghcr.io/toys-r-us-rex/texturepaper:0.1.0"
+    DOCKER_IMAGE = "ghcr.io/toys-r-us-rex/texturepaper:0.1.0"
     RAW_REPO_URL = "https://raw.githubusercontent.com/TEXTurePaper/TEXTurePaper/main"
 
     def __init__(
@@ -39,7 +39,7 @@ class TextureModel:
 
         print("Connexion à GitHub Container Registry (ghcr.io) et Pull de l'image...")
         self.image = self.client.images.pull(
-            self.GITHUB_REPO, 
+            self.DOCKER_IMAGE, 
             auth_config=auth_config
         )
         print("Image ready:", self.image.tags)
@@ -64,7 +64,7 @@ class TextureModel:
 
         shutil.copy(obj_file, self.base_path / "shapes" / obj_file.name)
 
-        vendor_base = Path("~/Duckify/vendor/TEXTure").expanduser()
+        vendor_base = Path("../../vendor/TEXTure").expanduser()
         
         self.download_if_lfs(
             vendor_base / "shapes/env_sphere.obj",
@@ -105,7 +105,7 @@ class TextureModel:
         uid, gid = os.getuid(), os.getgid()
 
         container = self.client.containers.run(
-            self.GITHUB_REPO,
+            self.DOCKER_IMAGE,
             command="python -m scripts.run_texture --config_path=configs/run.yaml",
             user=f"{uid}:{gid}", 
             detach=True,
