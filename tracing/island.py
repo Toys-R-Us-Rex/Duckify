@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional
 
 import numpy as np
 
@@ -7,10 +8,10 @@ import numpy as np
 class Island:
     """Bounded color island on the texture"""
 
-    idx: int
-
     # Color index
     color: int
 
     # Border polygon in UV coordinates
-    border: np.ndarray  # Nx2
+    outer_border: np.ndarray  # Nx2
+    # List of inner(s) border(s)
+    inner_borders: list[np.ndarray] = field(default_factory=list)  # Nx2

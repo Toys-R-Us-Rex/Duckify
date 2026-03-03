@@ -4,6 +4,7 @@ import logging
 import os
 from logging import Logger
 from pathlib import Path
+import sys
 from typing import Optional, Union
 
 import cv2
@@ -17,9 +18,10 @@ from shapely import LineString, MultiLineString, Polygon
 from shapely.plotting import plot_line, plot_points, plot_polygon
 from trimesh import Trimesh
 from trimesh.visual import TextureVisuals
-
+from collections import defaultdict
 from tracing.color import Color
 from tracing.config import TracerConfig
+from tracing.hierarchy import Hierarchy
 from tracing.island import Island
 from tracing.point_3d import Point3D
 from tracing.trace import Trace2D, Trace3D
@@ -143,7 +145,7 @@ class Tracer:
         mesh = trimesh.load_mesh(path)
 
         if self.config.debug:
-            mesh.show()
+            mesh.show(resolution = (800,600))
 
         return mesh
 
@@ -222,22 +224,70 @@ class Tracer:
 
         layer: np.ndarray = np.asarray(img)
 
-        contours, _ = cv2.findContours(layer, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(layer, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
         self.logger.debug(f"Found {len(contours)} contours")
 
         if self.config.debug:
+            print(f"La hierarchy de l'image :")
+            print(" ")
+            print(hierarchy)
+            
             cv2.imshow("Input", layer)
             with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
             cv2.drawContours(with_contours, contours, -1, (0, 0, 255), 1)
             cv2.imshow("Contours", with_contours)
             cv2.waitKey(-1)
 
+        # gérer la hierarchie : https://learnopencv.com/contour-detection-using-opencv-python-c/
+        hierachies: list[Hierarchy] = []
+        idx = 0
+        for idx, (contour, values) in enumerate(zip(contours, hierarchy[0])):
+            hierach: Hierarchy = Hierarchy (
+                index= idx,
+                next=int(values[0]),
+                previous=int(values[1]),
+                first_child=int(values[2]),
+                parent=int(values[3]),
+                polygon=self.contour_to_polygon(contour)
+            )
+            hierachies.append(hierach)
+            idx += 1
+        
         islands: list[Island] = []
-        for i, contour in enumerate(contours):
-            polygon_tex: np.ndarray = self.contour_to_polygon(contour)
-            polygon_uv: np.ndarray = self.texture_to_uv(polygon_tex, (layer.shape[1], layer.shape[0]))
-            island: Island = Island(i, color, polygon_uv)
-            islands.append(island)
+        processed = set()
+
+        # border simple
+        for h in hierachies:
+            if h.parent == -1 and h.first_child == -1:
+                polygon_uv = self.texture_to_uv(h.polygon, (layer.shape[1], layer.shape[0]))
+                islands.append(Island(color=color, outer_border=polygon_uv))
+                processed.add(h.index)
+
+       # multi-border (outer+inner)
+        parents = {h.index: h for h in hierachies 
+                    if h.parent == -1 and h.first_child != -1}
+        
+        if self.config.debug:
+            print("Les parents :")
+            for i in parents:
+                print(i)
+
+        for parent in parents.values():
+            outer = self.texture_to_uv(parent.polygon, (layer.shape[1], layer.shape[0]))
+            inner_borders = [
+                self.texture_to_uv(h.polygon, (layer.shape[1], layer.shape[0]))
+                for h in hierachies
+                if h.parent == parent.index
+            ]
+            islands.append(Island(
+                color=color,
+                outer_border=outer,
+                inner_borders=inner_borders
+            ))
+        """if self.config.debug:
+            print("Islands : ")
+            for i in islands:
+                print(i)"""
 
         return islands
     
