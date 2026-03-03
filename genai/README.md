@@ -29,7 +29,7 @@ Before starting, make sure you have:
 
 ## Configuration
 
-### You have to create a `.env` file in the folder *genai* (see the example in *.env.example*):
+### You have to create a `.env` file in the `genai` folder (see the example in [`.env.example`](.env.example)):
 
 - `HF_TOKEN` : Access token from HuggingFace (to download the AI models).
 - `GH_USER` : GitHub username.
