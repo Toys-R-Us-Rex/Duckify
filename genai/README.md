@@ -9,13 +9,13 @@ This project sets up a client-server pipeline to generate AI-driven textures for
 
 ### How the Pipeline Works:
 
-1. **Client Execution**: You run the client script locally, which opens a secure SSH tunnel to the calypso server.
+1. **Client Execution**: The client script ([client.py](client.py)) runs locally. It opens an SSH tunnel to the inference server ([app.py](app.py)).
 
-2. **API Request**: Through this tunnel, the client sends your .obj file and text prompt to the server's /generate endpoint.
+2. **API Request**: Through this tunnel, the client sends your .obj file and text prompt to the server's `/generate` endpoint.
 
-3. **AI Processing**: The API receives the inputs and triggers a Docker container to compute the texture generation.
+3. **AI Processing**: The API receives the inputs and runs a Docker container to generate the texture.
 
-4. **Result Delivery**: Once the rendering is done, the API packages the newly textured 3D mesh and sends it back to the client.
+4. **Result Delivery**: Once the rendering is done, the API packages the newly generated artifacts and sends them back to the client.
 
 
 ## Prerequisites
