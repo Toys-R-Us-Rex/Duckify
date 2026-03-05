@@ -256,7 +256,7 @@ class Tracer:
 
         # border simple
         for h in hierarchies:
-            if h.parent == -1 and h.first_child == -1:
+            if not h.has_parent and not h.has_child:
                 polygon_uv = self.texture_to_uv(h.polygon, (layer.shape[1], layer.shape[0]))
                 islands.append(Island(color=color, outer_border=polygon_uv))
 
