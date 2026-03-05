@@ -19,3 +19,21 @@ class Hierarchy:
     parent: int
     # Contours in polygon form
     polygon: np.ndarray 
+
+    @property
+    def has_parent(self) -> bool:
+        """State if a hierarchy does/doesn't have a parent
+
+        Returns:
+            bool: False if no parent, else True
+        """
+        return self.parent != -1
+
+    @property
+    def has_child(self) -> bool:
+        """State if a hierarchy does/doesn't have a child
+
+        Returns:
+            bool: False if no child, else True
+        """
+        return self.first_child != -1
