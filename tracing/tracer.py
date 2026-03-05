@@ -71,7 +71,7 @@ class Tracer:
         ):
             self.traces_2d.append(Trace2D(
                 color=island.color,
-                path=np.vstack([island.outer_border, island.outer_border[0]])
+                path=np.vstack([island.outer_border, [island.outer_border[0]]])
             ))
             for inner_border in island.inner_borders:
                 self.traces_2d.append(Trace2D(
