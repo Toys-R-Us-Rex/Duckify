@@ -262,7 +262,7 @@ class Tracer:
 
        # multi-border (outer+inner)
         parents = {h.index: h for h in hierarchies 
-                    if h.parent == -1 and h.first_child != -1}
+                    if not h.has_parent and h.has_child}
 
         for parent in parents.values():
             outer = self.texture_to_uv(parent.polygon, (layer.shape[1], layer.shape[0]))
