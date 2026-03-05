@@ -75,9 +75,9 @@ class Tracer:
             ))
             for inner_border in island.inner_borders:
                 self.traces_2d.append(Trace2D(
-                color=island.color,
-                path=inner_border
-            ))
+                    color=island.color,
+                    path=inner_border
+                ))
             fill_slices: list[Trace2D] = self.compute_fill_slices(island)
             self.traces_2d.extend(fill_slices)
 
@@ -240,7 +240,7 @@ class Tracer:
             cv2.waitKey(-1)
 
         # gérer la hierarchie : https://learnopencv.com/contour-detection-using-opencv-python-c/
-        hierachies: list[Hierarchy] = []
+        hierarchies: list[Hierarchy] = []
         for idx, (contour, values) in enumerate(zip(contours, hierarchy[0])):
             hierach: Hierarchy = Hierarchy (
                 index= idx,
@@ -250,27 +250,25 @@ class Tracer:
                 parent=int(values[3]),
                 polygon=self.contour_to_polygon(contour)
             )
-            hierachies.append(hierach)
+            hierarchies.append(hierach)
         
         islands: list[Island] = []
-        processed = set()
 
         # border simple
-        for h in hierachies:
+        for h in hierarchies:
             if h.parent == -1 and h.first_child == -1:
                 polygon_uv = self.texture_to_uv(h.polygon, (layer.shape[1], layer.shape[0]))
                 islands.append(Island(color=color, outer_border=polygon_uv))
-                processed.add(h.index)
 
        # multi-border (outer+inner)
-        parents = {h.index: h for h in hierachies 
+        parents = {h.index: h for h in hierarchies 
                     if h.parent == -1 and h.first_child != -1}
 
         for parent in parents.values():
             outer = self.texture_to_uv(parent.polygon, (layer.shape[1], layer.shape[0]))
             inner_borders = [
                 self.texture_to_uv(h.polygon, (layer.shape[1], layer.shape[0]))
-                for h in hierachies
+                for h in hierarchies
                 if h.parent == parent.index
             ]
             islands.append(Island(
@@ -278,7 +276,6 @@ class Tracer:
                 outer_border=outer,
                 inner_borders=inner_borders
             ))
-            processed.add(parent.index)
 
         return islands
     
