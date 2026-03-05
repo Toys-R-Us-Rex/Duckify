@@ -47,3 +47,31 @@
 - Segments may need to be split when crossing sharp edges
 
 - Other filling patterns can be implemented (e.g. concentric border, dots, waves, crosses, etc.)
+
+#pagebreak()
+
+= Cross-face algorithm
+
+#pseudocode-list[
+  + *Input*: Point $A$ on face $A_f$, with normal $A_n$
+  + *Input*: Point $B$ on face $B_f$, with normal $B_n$
+  + $P = {}$
+  + *if* $A_f != B_f$ *then*
+    + *compute* the middle point $M$ on face $M_f$ with normal $M_n$
+    + *if* $"dist"(A, B) < d$ or max depth reached *then*
+      + *if* $"angle"(A_n, B_n) > theta$ *then*
+        + $P = P union {(M, A_n), (M, M_n), (M, B_n)}$
+      + *else*
+        + $P = P union {(M, M_n)}$
+      + *end*
+    + *else*
+      + *if* $A_f != M_f$ *then*
+        + $P = P union "compute_edge_points"(A, M)$
+      + *end*
+      + *if* $M_f != B_f$ *then*
+        + $P = P union "compute_edge_points"(M, B)$
+      + *end*
+    + *end*
+  + *end*
+  + *return* $P$
+]
