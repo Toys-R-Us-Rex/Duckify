@@ -99,7 +99,7 @@
       - Define performance evaluation criteria
       - Cross-face traces
       - Multicolor texture pipeline
-      - Path optimization working as defined by scope and goal
+      - Detection of multiple nested contours
     - #printing
       - Validate all the non-validates pieces :
         - Duck support
