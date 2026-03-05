@@ -16,9 +16,7 @@
 = Presentation :
 
 - Pres Robot: On montre les avantages du robot contre l'humain. On montre les chiffres de robot vs humain. 
-
 - Pres AI: On montre les avantages de l'option standard et l'option plus. 
-
 - Pres Impression 3D: On montre les 3 design de canard.
 
 = CEO Commitments :
@@ -32,7 +30,7 @@
 - Nom minuscule, Temps de production de canard, Correction du PV
 - Pour vendredi 06.03.2026: Envoyer la vidéo du canard au CEO
 
-= Point pour la prochaine séeance: 
+= Point pour la prochaine séance: 
 
 - Changer de salle si possible
 
