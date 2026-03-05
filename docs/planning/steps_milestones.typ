@@ -93,17 +93,36 @@
       - Pen
   ],
   [W3], [
+    *Project overview / scrum-master*: Nathan
+    
     - #mapping
-      - Full pipeline done: side images to 3D drawing segments
+      - Define performance evaluation criteria
+      - Cross-face traces
+      - Multicolor texture pipeline
       - Path optimization working as defined by scope and goal
     - #printing
-      - Print tool support + attachments
+      - Validate all the non-validates pieces :
+        - Duck support
+        - Duck
+        - Wooden base
+      - Have the wooden piece used as support to arrange the position of the rest (pen support, duck support) done
+      - Have a support of duck printed
     - #robot
-      - Draw a line on a duck and switch pen
+      - #text(fill: red, weight: "bold")[Safely move robot arm]
+      - Can grab and change tools and _manipulate_ them (not drawing only hold into a initial position)
+      - Draw with at least 2 different pens using tools manipulation (*see above*)
+      - _Refine robot drawing pipeline: schema and notebook example_
+      - Draw on a 3D surface no plane (Duck!) with multiple pens (switching tools)
+    - #llm
+      - Create full automated benchmark to evaluate and compare models, prompts, methods
+      - Solution that can generate a (future used model) duck with results that respect the constraint of the prompt without hallucinating using prompt engineering
+      - Explore resource-heavy solutions on Chacha and Disco, gather the results, and conduct a comparison  
     - #general
       - *MVP / Prototype*
-    - #llm
-      - Generate unwrapped textures from models that respect cubic/simple-shaped duck model shape 
+
+    *End Goals*:
+    - Draw on a 3D duck
+      
   ],
   [W4], [
     - #robot
