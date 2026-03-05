@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -12,3 +14,17 @@ class Point3D:
 
     # Face index
     face_idx: int
+
+    # Face normal
+    normal: np.ndarray  # Vec3
+
+    # UV coordinates
+    uv: np.ndarray  # Vec2
+
+    def with_normal(self, other: Point3D) -> Point3D:
+        return Point3D(
+            pos=self.pos,
+            face_idx=other.face_idx,
+            normal=other.normal,
+            uv=self.uv
+        )

@@ -2,19 +2,24 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from tracing.point_3d import Point3D
+
 
 @dataclass
 class Trace3D:
-    """3D drawing path on a flat surface"""
-
-    # Face normal (3D vector)
-    face: np.ndarray
+    """3D drawing path"""
 
     # Color index
     color: int
 
-    # List of points on the face (Nx3)
-    path: np.ndarray
+    # List of points
+    path: list[Point3D]
+
+    def get_polygon(self) -> np.ndarray:
+        return np.array([
+            p.pos
+            for p in self.path
+        ])
 
 
 @dataclass

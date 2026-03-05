@@ -71,7 +71,7 @@ class Tracer:
         ):
             self.traces_2d.append(Trace2D(
                 color=island.color,
-                path=island.outer_border
+                path=np.vstack([island.outer_border, island.outer_border[0]])
             ))
             for inner_border in island.inner_borders:
                 self.traces_2d.append(Trace2D(
@@ -103,11 +103,12 @@ class Tracer:
             segments = []
             for trace in self.traces_3d:
                 color = self.palette[trace.color]
-                path = trimesh.load_path(np.vstack([trace.path, [trace.path[0]]]))
+                polygon = trace.get_polygon()
+                path = trimesh.load_path(polygon)
                 for entity in path.entities:
                     entity.color = color
                 segments.append(path)
-                cloud = trimesh.PointCloud(trace.path, colors=color)
+                cloud = trimesh.PointCloud(polygon, colors=color)
                 clouds.append(cloud)
             scene = trimesh.Scene([self.model] + segments + clouds)
             scene.show()
@@ -360,9 +361,11 @@ class Tracer:
         traces_out: list[dict] = []
         for trace in self.traces_3d:
             traces_out.append({
-                "face": trace.face.tolist(),
                 "color": trace.color,
-                "path": trace.path.tolist()
+                "path": [
+                    (pt.pos.tolist(), pt.normal.tolist())
+                    for pt in trace.path
+                ]
             })
 
         with open(output_path, "w") as f:
@@ -385,31 +388,49 @@ class Tracer:
         Returns:
             Optional[list[Trace3D]]: the corresponding 3D traces, or None if a point could not be projected in 3D space
         """
-        pts: np.ndarray = np.zeros((len(trace.path), 3), dtype=np.float64)
-        face_idx: int = -1
-        normal: np.ndarray = np.zeros(3)
+        pts: list[Point3D] = []
+        
         for i, pt in enumerate(trace.path):
-            pt2: Optional[Point3D] = self.interpolate_position(pt, mesh)
+            pt2: Optional[Point3D] = self.interpolate_position(np.array(pt), mesh)
             if pt2 is None:
                 return None
-            # TODO split at face edges
-            if i == 0:
-                face_idx = pt2.face_idx
-                normal = mesh.face_normals[face_idx]
-            elif face_idx != pt2.face_idx:
-                diff = np.linalg.norm(mesh.face_normals[pt2.face_idx] - normal)
-                if diff > self.config.parallel_normal_epsilon:
-                    self.logger.warning(f"Not on the same face: {face_idx} -> {pt2.face_idx} | {normal} -> {mesh.face_normals[pt2.face_idx]}")
-                    return None
-            pts[i] = pt2.pos
+            
+            if i != 0:
+                pts.extend(self.compute_edge_points(pts[-1], pt2, mesh))
+            pts.append(pt2)
         
         return [
             Trace3D(
-                face=mesh.face_normals[face_idx],
                 path=pts,
                 color=trace.color,
             )
         ]
+
+    def compute_edge_points(self, p1: Point3D, p2: Point3D, mesh: Trimesh, depth: int = 0) -> list[Point3D]:
+        pts: list[Point3D] = []
+        if p1.face_idx == p2.face_idx:
+            return pts
+        
+        mid_uv: np.ndarray = (p1.uv + p2.uv) / 2
+        mid: Optional[Point3D] = self.interpolate_position(mid_uv, mesh)
+        if mid is None:
+            return pts
+
+        dist = np.linalg.norm(p2.pos - p1.pos)
+        if dist < self.config.min_segment_length or depth > self.config.max_edge_recursion_depth:
+            diff = np.dot(p1.normal, p2.normal)
+            if diff < 0.5:
+                pts.append(mid.with_normal(p1))
+                pts.append(mid)
+                pts.append(mid.with_normal(p2))
+            else:
+                pts.append(mid)
+        else:
+            if p1.face_idx != mid.face_idx:
+                pts.extend(self.compute_edge_points(p1, mid, mesh, depth + 1))
+            if p2.face_idx != mid.face_idx:
+                pts.extend(self.compute_edge_points(mid, p2, mesh, depth + 1))
+        return pts
 
     def interpolate_position(self, uv_pos: np.ndarray, mesh: Trimesh) -> Optional[Point3D]:
         """Interpolates the UV position on the UV map and returns the corresponding 3D point
@@ -461,7 +482,12 @@ class Tracer:
         # Interpolate 3D position using barycentric coords
         tri_verts = vertices[faces[idx]]  # (3, 3)
         pos = bary @ tri_verts
-        return Point3D(pos, int(idx))
+        return Point3D(
+            pos=pos,
+            face_idx=int(idx),
+            normal=mesh.face_normals[idx],
+            uv=uv_pos
+        )
 
     def contour_to_polygon(self, contour: np.ndarray) -> np.ndarray:
         """Converts an OpenCV (Nx1x2) contour to a simple polygon (Nx2)
