@@ -130,7 +130,7 @@ class Tracer:
             raise FileNotFoundError(f"The file {path} does not exist")
 
         im = Image.open(path).convert("RGB")
-        return im
+        return im.resize((1024,1024))
 
     def load_model(self, path: Path) -> Trimesh:
         """Load 3d model from its object file into a trimesh instance
@@ -178,8 +178,10 @@ class Tracer:
 
         # s'assurer de la standardization "RGB"
         c_img = img.convert("RGB")
-        # utilise quantize() pour palettizer
-        output_img = c_img.quantize(palette=palette_image, dither=Image.Dither.NONE)
+        output_img = self.quantize_to_palette(np.array(c_img), np.array(palette))
+        print(output_img.shape)
+        print(output_img.dtype)
+        output_img = Image.fromarray(output_img.astype(np.uint8), "RGB")
 
         if self.config.debug:
             cv2.imshow("input texture image", np.array(c_img)[..., ::-1])
@@ -294,8 +296,12 @@ class Tracer:
             list[Trace2D]: List of 2D traces filling the island
         """
         self.logger.info(f"Computing fill slices for island : {island}")
-        
-        polygon = Polygon(island.outer_border, island.inner_borders)
+
+
+        try:
+            polygon = Polygon(island.outer_border, island.inner_borders)
+        except ValueError:
+            return []
 
         # BB du polygone
         minx, miny, maxx, maxy = polygon.bounds
@@ -332,8 +338,11 @@ class Tracer:
         if self.config.debug:
             fig, ax = plt.subplots()
             plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
-            for fill_line in fill_lines:
-                plot_line(fill_line, ax=ax, color='green', linewidth=2)
+            try :
+                for fill_line in fill_lines:
+                    plot_line(fill_line, ax=ax, color='green', linewidth=2)
+            except NotImplementedError:
+                pass
             plt.show()
         
         # Tri entre LineString et MultiLineString et ajout à la variable de retour
@@ -634,3 +643,25 @@ class Tracer:
             cv2.waitKey(-1)
 
         return Image.fromarray(blurred_img)
+    
+        # This fonction was as such, re-used from https://stackoverflow.com/questions/73666119/open-cv-python-quantize-to-a-given-color-palette
+    def quantize_to_palette(self, image: np.ndarray, palette: tuple[Color, ...]):
+        """Quantize color value in an image to the one in the given palette
+
+        Args:
+            image (np.ndarray): The texture image
+            palette (tuple[Color, ...]): the list of colors available in the draw processing
+
+        Returns:
+            np.ndarray: the palettized texture
+        """
+        X_query = image.reshape(-1, 3).astype(np.float32)
+        X_index = palette.astype(np.float32)
+
+        knn = cv2.ml.KNearest_create()
+        knn.train(X_index, cv2.ml.ROW_SAMPLE, np.arange(len(palette)))
+        ret, results, neighbours, dist = knn.findNearest(X_query, 1)
+
+        quantized_image = np.array([palette[idx] for idx in neighbours.astype(int)])
+        quantized_image = quantized_image.reshape(image.shape)
+        return quantized_image
