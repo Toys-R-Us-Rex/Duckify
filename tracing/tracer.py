@@ -396,12 +396,16 @@ class Tracer:
         normals = np.vstack(traces_normals)
         
         fig, ax = plt.subplots(2)
+        ax[0].set_ylabel("Position")
         ax[0].plot(i, pos[..., 0], label="X")
         ax[0].plot(i, pos[..., 1], label="Y")
         ax[0].plot(i, pos[..., 2], label="Z")
+        ax[0].legend()
+        ax[1].set_ylabel("Normal")
         ax[1].plot(i, normals[..., 0], label="NX")
         ax[1].plot(i, normals[..., 1], label="NY")
         ax[1].plot(i, normals[..., 2], label="NZ")
+        ax[1].legend()
         
         for i in seps:
             ax[0].axvline(i)
