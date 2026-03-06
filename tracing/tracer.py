@@ -375,6 +375,38 @@ class Tracer:
                 "texture": str(self.texture_path),
                 "traces": traces_out
             }, f, indent=4)
+    
+    def show_graphs(self):
+        seps = [0]
+        for trace in self.traces_3d:
+            seps.append(seps[-1] + len(trace.path))
+        
+        i = range(seps[-1])
+        traces_pos = []
+        traces_normals = []
+        
+        for trace in self.traces_3d:
+            traces_pos.append(trace.get_polygon())
+            traces_normals.append(np.array([
+                p.normal
+                for p in trace.path
+            ]))
+        
+        pos = np.vstack(traces_pos)
+        normals = np.vstack(traces_normals)
+        
+        fig, ax = plt.subplots(2)
+        ax[0].plot(i, pos[..., 0], label="X")
+        ax[0].plot(i, pos[..., 1], label="Y")
+        ax[0].plot(i, pos[..., 2], label="Z")
+        ax[1].plot(i, normals[..., 0], label="NX")
+        ax[1].plot(i, normals[..., 1], label="NY")
+        ax[1].plot(i, normals[..., 2], label="NZ")
+        
+        for i in seps:
+            ax[0].axvline(i)
+            ax[1].axvline(i)
+        plt.show()
 
     # Utility
 
