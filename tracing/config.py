@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+import numpy as np
+
 
 @dataclass
 class TracerConfig:
@@ -20,3 +22,6 @@ class TracerConfig:
 
     max_edge_recursion_depth: int = 100
     """Maximum edge detection recursion depth"""
+
+    sharp_edge_threshold: float = np.cos(np.radians(30))
+    """Dot-product threshold when considering sharp edges"""

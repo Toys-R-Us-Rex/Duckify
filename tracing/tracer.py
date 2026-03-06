@@ -417,9 +417,10 @@ class Tracer:
             return pts
 
         dist = np.linalg.norm(p2.pos - p1.pos)
-        if dist < self.config.min_segment_length or depth > self.config.max_edge_recursion_depth:
+        if (dist < self.config.min_segment_length or
+            depth > self.config.max_edge_recursion_depth):
             diff = np.dot(p1.normal, p2.normal)
-            if diff < 0.5:
+            if diff < self.config.sharp_edge_threshold:
                 pts.append(mid.with_normal(p1))
                 pts.append(mid)
                 pts.append(mid.with_normal(p2))
