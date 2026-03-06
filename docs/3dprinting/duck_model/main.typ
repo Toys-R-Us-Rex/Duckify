@@ -12,7 +12,7 @@ This doc will give the basic information about the 3D model of duck we will use 
   *here*
 ].
 
-It doesn't mean we will not stay only on it but with the state of the project now (03.03.2026) we will not explore this idea. 
+It doesn't mean we will only stay on this model but at the state of the project (03.03.2026), we will.
 
 Here is the model :
 
