@@ -57,7 +57,7 @@ class Tracer:
             self.logger.error("Missing mesh UV coordinates")
             return
 
-        self.paletted_texture = self.palettize_texture(self.texture, self.palette)
+        self.paletted_texture = self.palettize_texture(self.blur(self.texture), self.palette)
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
         for c, layer in tqdm.tqdm(
@@ -93,6 +93,7 @@ class Tracer:
                 pts: np.ndarray = self.uv_to_texture(trace_2d.path, size).astype(np.intp)
                 for pt in pts:
                     cv2.circle(img, pt, 3, (0, 0, 255), -1)
+                
 
                 col = (255, 0, 255) if traces_3d is None else (255, 255, 0)
                 cv2.polylines(img, [pts], True, col)
@@ -183,6 +184,7 @@ class Tracer:
         if self.config.debug:
             cv2.imshow("input texture image", np.array(c_img)[..., ::-1])
             cv2.imshow("palettized texture image", np.array(output_img.convert("RGB"))[..., ::-1])
+            cv2.waitKey(-1)
 
         return output_img
 
@@ -211,6 +213,7 @@ class Tracer:
 
             if self.config.debug:
                 cv2.imshow(f"splitted color image {color}", np.array(mask_img))
+                cv2.waitKey(-1)
 
         return images
 
@@ -238,7 +241,7 @@ class Tracer:
             with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
             cv2.drawContours(with_contours, contours, -1, (0, 0, 255), 1)
             cv2.imshow("Contours", with_contours)
-            cv2.waitKey(-1)
+            # cv2.waitKey(-1)
 
         # gérer la hierarchie : https://learnopencv.com/contour-detection-using-opencv-python-c/
         hierarchies: list[Hierarchy] = []
@@ -613,3 +616,21 @@ class Tracer:
 
     def mesh_has_uv_map(self, mesh: Trimesh) -> bool:
         return isinstance(mesh.visual, TextureVisuals)
+
+    def blur(self, img: Image.Image) -> Image.Image:
+        """Apply blur to texture to help disolve small artefacts
+
+        Args:
+            img (Image.Image): The texture
+
+        Returns:
+            Image.Image: The blurred texture
+        """
+        np_img = np.array(img.convert('RGB'))
+        blurred_img = cv2.blur(np_img,(5,5))
+
+        if self.config.debug:
+            cv2.imshow("blurred image", blurred_img)
+            cv2.waitKey(-1)
+
+        return Image.fromarray(blurred_img)
