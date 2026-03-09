@@ -22,8 +22,14 @@
 = Changes done :
 - [x] Add the `blur()` method in the `Tracer Class`
 - [x] Changes the quantize methode, using #link("https://stackoverflow.com/questions/73666119/open-cv-python-quantize-to-a-given-color-palette")[`quantize_to_palette()`] a function re-used as such from the found source.
-- [/] Add a mask function (#link("https://learnopencv.com/warp-one-triangle-to-another-using-opencv-c-python/#:~:text=Mask%20pixels%20outside%20the%20triangle,%5D+r2%5B2%5D%5D%20+%20img2Cropped
+- [x] Add a mask function (#link("https://learnopencv.com/warp-one-triangle-to-another-using-opencv-c-python/#:~:text=Mask%20pixels%20outside%20the%20triangle,%5D+r2%5B2%5D%5D%20+%20img2Cropped
 ")[used source 1] and #link("https://pyimagesearch.com/2021/01/19/image-masking-with-opencv/
 ")[used source 2])
+
+= New issues
+- After thoses three updates, palettization is now confusing backround of texture (not part of UV map) and the texture to applied, so the mask is to be applied after the palettization.
+- Small artefacts are still remaining. Deactivating the blur proved to be a first good step.
+- When visualazing the projected traces on the model, a new issue appeared :
+  - Probably due to the mask, the points are now a bit outside the uv-map. A shrink of the uv-surfaces should resolve.
 
 

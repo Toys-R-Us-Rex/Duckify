@@ -57,8 +57,9 @@ class Tracer:
             self.logger.error("Missing mesh UV coordinates")
             return
         
-        self.texture = self.mask_outside_UV_texture(self.texture, self.model)
-        self.paletted_texture = self.palettize_texture(self.blur(self.texture), self.palette)
+        self.texture = self.mask_outside_uv_texture(self.texture, self.model)
+        self.paletted_texture = self.palettize_texture(self.texture, self.palette)
+        self.paletted_texture = self.mask_outside_uv_texture(self.paletted_texture, self.model)
 
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
@@ -678,7 +679,7 @@ class Tracer:
         quantized_image = quantized_image.reshape(image.shape)
         return quantized_image
 
-    def mask_outside_UV_texture(self, img: Image.Image,  mesh: Trimesh) -> Image.Image:
+    def mask_outside_uv_texture(self, img: Image.Image,  mesh: Trimesh) -> Image.Image:
         uv = mesh.visual.uv
         faces = mesh.faces
         width, height = img.size
