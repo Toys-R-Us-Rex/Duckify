@@ -11,4 +11,3 @@
 *.idw filter=lfs diff=lfs merge=lfs -text
 *.webp filter=lfs diff=lfs merge=lfs -text
 *.blend* filter=lfs diff=lfs merge=lfs -text
-docs/meeting/assets/model3d.png filter=lfs diff=lfs merge=lfs -text
