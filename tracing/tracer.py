@@ -56,8 +56,10 @@ class Tracer:
         if not self.mesh_has_uv_map(self.model):
             self.logger.error("Missing mesh UV coordinates")
             return
-
+        
+        self.texture = self.mask_outside_UV_texture(self.texture, self.model)
         self.paletted_texture = self.palettize_texture(self.blur(self.texture), self.palette)
+
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
         for c, layer in tqdm.tqdm(
@@ -509,7 +511,7 @@ class Tracer:
 
         # Compute barycentric coordinates of uv_pos in each UV triangle
         # Using the 2D triangle test
-        v0 = uv_faces[:, 0, :]  # (F, 2)
+        v0 = uv_faces[:, 0, :]  # (F, 2)- content(F,V=3,UV=2)
         v1 = uv_faces[:, 1, :]
         v2 = uv_faces[:, 2, :]
 
@@ -675,3 +677,30 @@ class Tracer:
         quantized_image = np.array([palette[idx] for idx in neighbours.astype(int)])
         quantized_image = quantized_image.reshape(image.shape)
         return quantized_image
+
+    def mask_outside_UV_texture(self, img: Image.Image,  mesh: Trimesh) -> Image.Image:
+        uv = mesh.visual.uv
+        faces = mesh.faces
+        width, height = img.size
+        # normalisation des coordonnées UV aux dimensions de textures
+        pixel_coords = uv * np.array([width - 1, height - 1])
+        # inverse coordonée vertical (format de base UV est zero=bottom-left et on veut zero=top-left)
+        pixel_coords[:, 1] = (height - 1) - pixel_coords[:, 1]
+        
+        uv_faces = pixel_coords[faces].astype(np.int32)
+        np_img = np.array(img.convert('RGB'))
+        mask = np.zeros((height, width), dtype=np.uint8)
+        cv2.fillPoly(mask, uv_faces, 255)
+        masked_texture = cv2.bitwise_and(np_img, np_img, mask=mask)
+        
+        if self.config.debug:
+            cv2.namedWindow('Mask', cv2.WINDOW_KEEPRATIO)
+            cv2.imshow('Mask', mask)
+            cv2.resizeWindow('Mask', 600, 600)
+
+            cv2.namedWindow('Masked texture', cv2.WINDOW_KEEPRATIO)
+            cv2.imshow('Masked texture', masked_texture)
+            cv2.resizeWindow('Masked texture', 600, 600)
+            cv2.waitKey(-1)
+        
+        return Image.fromarray(masked_texture)
