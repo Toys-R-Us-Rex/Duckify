@@ -1,0 +1,22 @@
+services:
+  MV-Adapter:
+    image: ghcr.io/toys-r-us-rex/mv-adapter:0.1.0
+    container_name: MV-Adapter
+    command: |
+      python -m scripts.texture_t2tex \
+        --mesh assets/sphere.glb \
+        --text "The Earth, in a minimalist style, with vibrant colors and well defined continents" \
+        --save_dir outputs --save_name earth
+    restart: no
+    environment:
+      - HF_TOKEN=$HUGGINGFACE_TOKEN
+    volumes:
+      - ${PWD}/assets:/workspace/assets
+      - ${PWD}/outputs:/workspace/outputs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
