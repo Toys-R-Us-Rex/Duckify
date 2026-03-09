@@ -25,3 +25,6 @@ class TracerConfig:
 
     sharp_edge_threshold: float = np.cos(np.radians(30))
     """Dot-product threshold when considering sharp edges"""
+
+    blur_kernel: tuple[int,...] = (5,5)
+    """Kernel size values for blur() function"""

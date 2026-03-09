@@ -636,7 +636,7 @@ class Tracer:
             Image.Image: The blurred texture
         """
         np_img = np.array(img.convert('RGB'))
-        blurred_img = cv2.blur(np_img,(5,5))
+        blurred_img = cv2.blur(np_img, self.config.blur_kernel)
 
         if self.config.debug:
             cv2.imshow("blurred image", blurred_img)
