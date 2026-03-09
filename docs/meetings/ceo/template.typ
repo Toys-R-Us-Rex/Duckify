@@ -7,6 +7,9 @@
   "N": [Nathan Antonietti],
   "K": [Kevin Voisin],
   "L": [Louis Heredero],
+  "CTO": underline[M. Lettru],
+  "PO": underline[M. Travelletto],
+  "CEO": underline[M. Misk],
 )
 
 #let attendees(
@@ -16,6 +19,9 @@
 ) = {
   if type(absent) == str {
     absent = (absent,)
+  }
+  if type(extra) != array {
+    extra = (extra,)
   }
   if present == auto {
     present = team.keys().filter(p => p not in absent)
@@ -44,7 +50,11 @@
   }
 
   if scribe != none {
-    elmts.push[*Scribe*: #team.at(scribe)]
+    if type(scribe) != array {
+      scribe = (scribe,)
+    }
+    let title = if scribe.len() == 1 [Scribe] else [Scribes]
+    elmts.push[*#title*: #scribe.map(s => team.at(s)).join[, ]]
   }
 
   if elmts.len() == 0 {
@@ -65,18 +75,21 @@
   body
 ) = {
   set text(
-    font: "Source Sans 3",
+    font: ("Source Sans 3", "Source Sans Pro"),
     lang: "fr"
   )
 
-  show list.item: it => {
-    show regex(`[a-zA-Z-/\s]*?\s*:`.text): strong
-    it
-  }
+  show quote.where(block: true): block.with(
+    stroke: (left: gray + 2pt),
+    width: 100%,
+    inset: .8em
+  )
+  show quote.where(block: true): set par(justify: true)
+
   
   block(
     text(size: 1.6em, weight: "bold")[
-      Procès verbal de la réunion du #date.display("[day].[month].[year] (Duckify)")
+      Procès verbal de la réunion du #date.display("[day].[month].[year]") (Duckify)
     ]
   )
 

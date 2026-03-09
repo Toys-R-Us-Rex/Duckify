@@ -1,17 +1,10 @@
-#import "@preview/suiji:0.5.1": *
-#import "./template.typ": meeting, worker-attendees, direction-attendees, team
+#import "./template.typ": meeting
 
 #show: meeting.with(
-  date: datetime(year: 2026, month: 03, day: 03)
+  date: datetime(year: 2026, month: 03, day: 03),
+  time: [10h30],
+  scribe: "M"
 )
-
-#worker-attendees()\
-#direction-attendees()\M. Misk, M. Lettru, M. Travelletti
-
-
-*Time*: 10h30
-
-*Scribes* Marco
 
 = Presentation :
 
