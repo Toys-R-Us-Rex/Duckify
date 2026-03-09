@@ -2,7 +2,6 @@
 #show figure: set align(start)
 #show: meeting.with(
   date: datetime(year: 2026, month: 2, day: 26),
-  extra: ([Elan Misk (CEO)],),
   location: [23N308],
   time: [8h15],
   scribe: "J"
