@@ -184,8 +184,13 @@ class Tracer:
         output_img = Image.fromarray(output_img.astype(np.uint8), "RGB")
 
         if self.config.debug:
-            cv2.imshow("input texture image", np.array(c_img)[..., ::-1])
-            cv2.imshow("palettized texture image", np.array(output_img.convert("RGB"))[..., ::-1])
+            cv2.namedWindow('input texture image', cv2.WINDOW_KEEPRATIO)
+            cv2.imshow('input texture image', np.array(c_img)[..., ::-1])
+            cv2.resizeWindow('input texture image', 600, 600)
+
+            cv2.namedWindow('palettized texture image', cv2.WINDOW_KEEPRATIO)
+            cv2.imshow('palettized texture image', np.array(output_img.convert("RGB"))[..., ::-1])
+            cv2.resizeWindow('palettized texture image', 600, 600)
             cv2.waitKey(-1)
 
         return output_img
@@ -214,7 +219,9 @@ class Tracer:
             images.append(mask_img)
 
             if self.config.debug:
-                cv2.imshow(f"splitted color image {color}", np.array(mask_img))
+                cv2.namedWindow(f'splitted color image based on : {color}', cv2.WINDOW_KEEPRATIO)
+                cv2.imshow(f'splitted color image based on : {color}', np.array(mask_img))
+                cv2.resizeWindow(f'splitted color image based on : {color}', 600, 600)
                 cv2.waitKey(-1)
 
         return images
@@ -238,12 +245,13 @@ class Tracer:
 
         if self.config.debug:
             print("\nLa hiérarchie de l'image :\n", hierarchy)
-            
-            cv2.imshow("Input", layer)
+
             with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
             cv2.drawContours(with_contours, contours, -1, (0, 0, 255), 1)
-            cv2.imshow("Contours", with_contours)
-            # cv2.waitKey(-1)
+            cv2.namedWindow('Contours', cv2.WINDOW_KEEPRATIO)
+            cv2.imshow('Contours', with_contours)
+            cv2.resizeWindow('Contours', 600, 600)
+            cv2.waitKey(-1)
 
         # gérer la hierarchie : https://learnopencv.com/contour-detection-using-opencv-python-c/
         hierarchies: list[Hierarchy] = []
@@ -639,7 +647,9 @@ class Tracer:
         blurred_img = cv2.blur(np_img, self.config.blur_kernel)
 
         if self.config.debug:
-            cv2.imshow("blurred image", blurred_img)
+            cv2.namedWindow('blurred image', cv2.WINDOW_KEEPRATIO)
+            cv2.imshow('blurred image', blurred_img)
+            cv2.resizeWindow('blurred image', 600, 600)
             cv2.waitKey(-1)
 
         return Image.fromarray(blurred_img)
