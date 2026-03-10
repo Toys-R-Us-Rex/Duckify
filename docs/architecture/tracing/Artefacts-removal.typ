@@ -30,6 +30,24 @@
 - After thoses three updates, palettization is now confusing backround of texture (not part of UV map) and the texture to applied, so the mask is to be applied after the palettization.
 - Small artefacts are still remaining. Deactivating the blur proved to be a first good step.
 - When visualazing the projected traces on the model, a new issue appeared :
-  - Probably due to the mask, the points are now a bit outside the uv-map. A shrink of the uv-surfaces should resolve.
+  - Possibly due to the new mask, some points are now a bit outside the uv-map making their relative trace undrawable. 
+    - An idea to solve this issue could be to shrink the uv mask to ensure that all traces claculated will start/end on the model.
+  - Also, some borders between parts of the uv map are very close (up to 1px), thus in the palettization/island detection they get caught in one block.
+
+#align(center)[
+  #grid(
+    columns: (1fr,1fr),
+    rows: 8cm,
+    figure(
+      image("./assets/1pixel_marge.png"),
+      caption: [Exemple de marge à 1 px entre deux blocs de la UV map],
+    ),
+    figure(
+      image("./assets/1pixel_marge_source.png"),
+      caption: [Emplacement de cet exemple],
+    )
+  )
+]
+
 
 
