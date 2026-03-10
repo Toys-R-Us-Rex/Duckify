@@ -29,5 +29,33 @@ docker build -t mv-adapter:latest .
 
 To run MV-Adapter, you can use the provided docker compose configuration.
 
-> [!IMPORTANT]
-> **TODO**
+1. Copy `.env.template` as `.env` and put in an access token from Huggingface
+2. Start the container
+   ```bash
+   docker compose up -d MV-Adapter
+   ```
+
+The container will keep running indefinitely. You can then either run a bash terminal or your command directly in it:
+
+- Running a bash terminal
+  ```bash
+  docker exec -it MV-Adapter /bin/bash
+  ```
+
+- Directly running your command
+  ```bash
+  docker exec MV-Adapter python -m scripts.texture_t2tex \
+    --variant sd21 \
+    --mesh assets/sphere.glb \
+    --text "The Earth, in a minimalist style, with vibrant colors and well defined continents" \
+    --save_dir outputs --save_name earth
+  ```
+
+> [!WARNING]
+> When running a command the first time, it may take some time to download the needed models from Huggingface. Additionally, if the container is removed, so will the HF cache, and the models will need to be downloaded again
+
+### Assets and results
+
+You can put your assets (3D model in `.glb` format) in the `assets` directory.
+The results can be retrieved in the `outputs` folder.\
+Both folders are mounted as volumes by the docker compose configuration.
