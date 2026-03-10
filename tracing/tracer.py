@@ -242,16 +242,17 @@ class Tracer:
 
         # gérer la hierarchie : https://learnopencv.com/contour-detection-using-opencv-python-c/
         hierarchies: list[Hierarchy] = []
-        for idx, (contour, values) in enumerate(zip(contours, hierarchy[0])):
-            hierarch: Hierarchy = Hierarchy (
-                index= idx,
-                next=int(values[0]),
-                previous=int(values[1]),
-                first_child=int(values[2]),
-                parent=int(values[3]),
-                polygon=self.contour_to_polygon(contour)
-            )
-            hierarchies.append(hierarch)
+        if hierarchy is not None:
+            for idx, (contour, values) in enumerate(zip(contours, hierarchy[0])):
+                hierarch: Hierarchy = Hierarchy (
+                    index= idx,
+                    next=int(values[0]),
+                    previous=int(values[1]),
+                    first_child=int(values[2]),
+                    parent=int(values[3]),
+                    polygon=self.contour_to_polygon(contour)
+                )
+                hierarchies.append(hierarch)
         
         islands: list[Island] = []
 
