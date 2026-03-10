@@ -52,7 +52,7 @@ The container will keep running indefinitely. You can then either run a bash ter
   ```
 
 > [!WARNING]
-> When running a command the first time, it may take some time to download the needed models from Huggingface. Additionally, if the container is removed, so will the HF cache, and the models will need to be downloaded again
+> When running a command the first time, it may take some time to download the needed models from Huggingface. Additionally, if the container is removed, so will the HF cache, and the models will need to be downloaded again.
 
 ### Assets and results
 
