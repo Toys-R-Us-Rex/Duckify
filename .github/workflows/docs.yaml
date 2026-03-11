@@ -21,7 +21,7 @@ jobs:
         uses: fontist/setup-fontist@v2
 
       - name: Install Fonts
-        run: fontist install "Source"
+        run: fontist manifest install docs/fonts.yaml
 
       - name: Setup Typst
         uses: typst-community/setup-typst@v3
