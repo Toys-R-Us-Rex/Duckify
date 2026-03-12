@@ -54,7 +54,12 @@ class Tracer:
         self.next_trace_id: int = 0
     
     def trace_id(self) -> int:
-        i = self.next_trace_id
+        """Generates a new unique id for a 2D trace
+
+        Returns:
+            int: the new id
+        """
+        i: int = self.next_trace_id
         self.next_trace_id += 1
         return i
 
@@ -500,14 +505,29 @@ class Tracer:
                     pts.extend(self.compute_edge_points(pts[-1], pt2, mesh))
                 pts.append(pt2)
                 outside_uv = False
-        
-        if len(pts) != 0:
+
+        if len(pts) > 1:
             self.logger.debug(f"Adding remaining trace with {len(pts)} points")
             traces.append(Trace3D(path=pts, color=trace.color, parent_2d_trace=trace.i))
 
         return traces
 
     def compute_edge_points(self, p1: Point3D, p2: Point3D, mesh: Trimesh, depth: int = 0) -> list[Point3D]:
+        """Computes the intersections of the segment (p1,p2) with all edges of the mesh
+
+        This process is done empirically using bissection.
+        When encountering a "sharp" edge, 3 points are created, using the normals of the first face,
+        the average normal and the normal of the second face respectively
+
+        Args:
+            p1 (Point3D): the start of the segment
+            p2 (Point3D): the end of the segment
+            mesh (Trimesh): the mesh
+            depth (int, optional): current recursion depth. Defaults to 0.
+
+        Returns:
+            list[Point3D]: the list of intermediary points
+        """
         pts: list[Point3D] = []
         if p1.face_idx == p2.face_idx:
             return pts
@@ -535,11 +555,21 @@ class Tracer:
         return pts
 
     def compute_uv_edge(self, p1: np.ndarray, p2: np.ndarray, mesh: Trimesh) -> np.ndarray:
+        """Computes the intersection of the segment (p1,p2) and the edge of the UV map
+
+        Args:
+            p1 (np.ndarray): the start of the segment
+            p2 (np.ndarray): the end of the segment
+            mesh (Trimesh): the mesh
+
+        Returns:
+            np.ndarray: the point on the segment at the UV map's edge
+        """
         q1: Optional[Point3D] = self.interpolate_position(p1, mesh)
         q2: Optional[Point3D] = self.interpolate_position(p2, mesh)
         v1: int = -1 if q1 is None else 1
         v2: int = -1 if q2 is None else 1
-        for _ in range(100):
+        for _ in range(10):
             pm: np.ndarray = (p1 + p2) / 2
             qm: Optional[Point3D] = self.interpolate_position(pm, mesh)
             vm: int = -1 if qm is None else 1
