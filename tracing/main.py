@@ -16,14 +16,14 @@ def main():
     model_name: str = model_path.stem
     output_path: Path = OUTPUT_DIR / f"{model_name}-{texture_name}-trace.json"
     palette: tuple[Color, ...] = ((0, 255, 0), (255, 255, 0),(255,255,255),)
-    outlier: Color = (0,0,0)
+    ignored_color: Color = (0,0,0)
 
     config: TracerConfig = TracerConfig(
         debug=True,
-        fill_slicing_toggle=False
+        enable_fill_slicing=False
     )
 
-    tracer: Tracer = Tracer(config, texture_path, model_path, palette, outlier)
+    tracer: Tracer = Tracer(config, texture_path, model_path, palette, ignored_color)
     tracer.compute_traces()
     tracer.export_traces(output_path)
 

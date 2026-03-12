@@ -32,7 +32,7 @@ class Tracer:
             texture_path: Path,
             model_path: Path,
             palette: tuple[Color, ...],
-            outlier: Color
+            ignored_color: Color
     ):
         self.logger: Logger = logging.getLogger("Tracer")
         self.config: TracerConfig = config
@@ -40,7 +40,7 @@ class Tracer:
         self.texture_path: Path = texture_path
         self.model_path: Path = model_path
         self.palette: tuple[Color, ...] = palette
-        self.outlier: Color = outlier
+        self.ignored_color: Color = ignored_color
 
         self.texture: Optional[Image.Image] = None
         self.paletted_texture: Optional[Image.Image] = None
@@ -60,7 +60,7 @@ class Tracer:
             return
 
         self.texture = self.mask_outside_UV_texture(self.texture, self.model)
-        self.paletted_texture = self.palettize_texture(self.texture, self.palette, self.outlier)
+        self.paletted_texture = self.palettize_texture(self.texture, self.palette, self.ignored_color)
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
         for c, layer in tqdm.tqdm(
@@ -81,7 +81,7 @@ class Tracer:
                     color=island.color,
                     path=inner_border
                 ))
-            if self.config.fill_slicing_toggle:
+            if self.config.enable_fill_slicing:
                 fill_slices: list[Trace2D] = self.compute_fill_slices(island)
                 self.traces_2d.extend(fill_slices)
 
@@ -133,7 +133,7 @@ class Tracer:
             raise FileNotFoundError(f"The file {path} does not exist")
 
         im = Image.open(path).convert("RGB")
-        return im.resize((1024,1024))
+        return im.resize(self.config.image_size)
 
     def load_model(self, path: Path) -> Trimesh:
         """Load 3d model from its object file into a trimesh instance
@@ -158,14 +158,24 @@ class Tracer:
         return mesh
 
     # https://stackoverflow.com/questions/29433243/
-    def palettize_texture(self, img: Image.Image, palette: tuple[Color, ...], outlier: Color) -> Image.Image:
+    def palettize_texture(self, img: Image.Image, palette: tuple[Color, ...], ignored_color: Color) -> Image.Image:
+        """Force textures colors to nearest one based of a given palette
+
+        Args:
+            img (Image.Image): the texture image
+            palette (tuple[Color, ...]): the palette containing selected colors
+            ignored_color Color: the color to ignore when palettizing
+
+        Returns:
+            Image.Image: the color palettized texture image
+        """
         self.logger.info("Palettizing texture colors")
         
         c_img_arr = np.array(img.convert("RGB"))
         
-        outlier_rgb = np.array([outlier])
-        mask = np.any(c_img_arr != outlier_rgb, axis=-1)
-        # récupérer les pixels des couleurs de la palette sans l'outlier
+        ignored_color_rgb = np.array([ignored_color])
+        mask = np.any(c_img_arr != ignored_color_rgb, axis=-1)
+        # récupérer les pixels des couleurs de la palette sans l'ignored_color
         pixels_to_quantize = c_img_arr[mask]
 
         palettized_pixels = self.quantize_to_palette(pixels_to_quantize, np.array(palette))
@@ -176,7 +186,6 @@ class Tracer:
         output_img = Image.fromarray(output_arr.astype(np.uint8), "RGB")
 
         if self.config.debug:
-            import cv2
             cv2.imshow("input texture image", c_img_arr[..., ::-1])
             cv2.imshow("palettized texture image", output_arr[..., ::-1])
             
@@ -612,7 +621,7 @@ class Tracer:
         return isinstance(mesh.visual, TextureVisuals)
 
     # This fonction was as such, re-used from https://stackoverflow.com/questions/73666119/open-cv-python-quantize-to-a-given-color-palette
-    def quantize_to_palette(self, image: np.ndarray, palette: tuple[Color, ...]):
+    def quantize_to_palette(self, image: np.ndarray, palette: tuple[Color, ...]) -> Image.Image:
         """Quantize color value in an image to the one in the given palette
 
         Args:
@@ -634,15 +643,15 @@ class Tracer:
         return quantized_image
     
     def mask_outside_UV_texture(self, img: Image.Image,  mesh: Trimesh) -> Image.Image:
-        """Overlapp the mask of the UV map over the texture to ensure that all treated pixels of the texture are on the model
+        """Mask out regions of the given texture not covered by the UV map
 
         Args:
-            img (Image.Image): Texture
-            mesh (Trimesh): Model
+            img (Image.Image): the raw texture
+            mesh (Trimesh): the model's mesh
 
         Returns:
-            Image.Image: The masked texture
-                     """
+            Image.Image: the masked texture
+        """
         uv = mesh.visual.uv
         faces = mesh.faces
         width, height = img.size

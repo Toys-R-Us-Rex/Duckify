@@ -28,3 +28,6 @@ class TracerConfig:
 
     enable_fill_slicing: bool = True
     """Whether islands filling segments should be computed"""
+
+    image_size: tuple[int,int] = (800,800)
+    """Size format for the loaded texture image"""
