@@ -1,3 +1,4 @@
+#import "@preview/cheq:0.3.0": checklist
 #let date = datetime(year: 2026, month: 3, day: 11)
 
 #set document(
@@ -9,6 +10,7 @@
 #set text(
   font: ("Source Sans 3", "Source Sans Pro")
 )
+#show: checklist
 
 = Tracing Algorithm Improvements (#date.display("[day].[month].[year]"))
 
@@ -73,8 +75,7 @@ Filtering out very small islands should reduce mathematical errors
   breakable: false
 )[
   *Jeremy*
-  - Finalize color quantization
-  - Polish PR
+  - [x] Finalize color quantization
   - Identify and solve fill slicing issues
 ]
 
