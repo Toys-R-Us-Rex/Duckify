@@ -64,8 +64,8 @@ Filtering out very small islands should reduce mathematical errors
   breakable: false
 )[
   *Louis*
-  - Out of bounds
-  - UV seams
+  - [ ] Out of bounds
+  - [ ] UV seams
 ]
 
 #block(
@@ -76,7 +76,7 @@ Filtering out very small islands should reduce mathematical errors
 )[
   *Jeremy*
   - [x] Finalize color quantization
-  - Identify and solve fill slicing issues
+  - [ ] Identify and solve fill slicing issues
 ]
 
 #block(
@@ -86,7 +86,7 @@ Filtering out very small islands should reduce mathematical errors
   breakable: false
 )[
   *TBD*
-  - Unreachable areas
+  - [ ] Unreachable areas
 ]
 
 == Is the current solution the right one ?
