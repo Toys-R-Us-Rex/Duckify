@@ -86,7 +86,7 @@ class Tracer:
 
         # 4. Compute border and fill traces (2D)
         for i, island in tqdm.tqdm(
-                enumerate(self.islands), desc="Island segmentation", unit="island"
+                list(enumerate(self.islands)), desc="Island segmentation", unit="island"
         ):
             self.traces_2d.append(Trace2D(
                 color=island.color,
@@ -108,7 +108,7 @@ class Tracer:
         size = (img.shape[1], img.shape[0])
 
         # 5. Project 2D traces in 3D
-        for i, trace_2d in tqdm.tqdm(enumerate(self.traces_2d), desc="3D projection", unit="trace"):
+        for i, trace_2d in tqdm.tqdm(list(enumerate(self.traces_2d)), desc="3D projection", unit="trace"):
             self.logger.debug(f"Processing trace {i}")
             traces_3d: Optional[list[Trace3D]] = self.project_trace_to_3d(trace_2d, self.model)
             if traces_3d is not None:
