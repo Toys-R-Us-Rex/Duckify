@@ -9,6 +9,8 @@ from tracing.point_3d import Point3D
 class Trace3D:
     """3D drawing path"""
 
+    parent_2d_trace: int
+
     # Color index
     color: int
 

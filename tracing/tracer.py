@@ -113,8 +113,8 @@ class Tracer:
 
             if self.config.debug:
                 pts: np.ndarray = self.uv_to_texture(trace_2d.path, size).astype(np.intp)
-                for pt in pts:
-                    cv2.circle(img, pt, 3, (0, 0, 255), -1)
+                #for pt in pts:
+                #    cv2.circle(img, pt, 3, (0, 0, 255), -1)
 
                 col = (255, 0, 255) if traces_3d is None or len(traces_3d) == 0 else (255, 255, 0)
                 cv2.polylines(img, [pts], True, col)
@@ -450,23 +450,61 @@ class Tracer:
         Returns:
             Optional[list[Trace3D]]: the corresponding 3D traces, or None if a point could not be projected in 3D space
         """
+
+        traces: list[Trace3D] = []
         pts: list[Point3D] = []
+
+        outside_uv: bool = False
         
         for i, pt in enumerate(trace.path):
-            pt2: Optional[Point3D] = self.interpolate_position(np.array(pt), mesh)
+            self.logger.debug(f"Processing pt {i}")
+            pt = np.array(pt)
+            pt2: Optional[Point3D] = self.interpolate_position(pt, mesh)
+
+            if i == 0:
+                outside_uv = pt2 is None
+                self.logger.debug(f"First point is {'outside' if outside_uv else 'inside'} UV")
+
             if pt2 is None:
-                return None
+                self.logger.debug("Outside")
+                if len(pts) == 0:
+                    self.logger.debug("> First point")
+                    continue
+
+                if not outside_uv:
+                    self.logger.debug("> Previous was inside, finding boundary")
+                    end: np.ndarray = self.compute_uv_edge(np.array(trace.path[i - 1]), pt, mesh)
+                    end2: Optional[Point3D] = self.interpolate_position(end, mesh)
+                    if end2 is None:
+                        raise RuntimeError("Unprojectable edge point")
+                    pts.append(end2)
+                    traces.append(Trace3D(path=pts, color=trace.color, parent_2d_trace=trace.i))
+                    self.logger.debug(f">> Adding trace with {len(pts)} points")
+                    pts = []
+                
+                outside_uv = True
             
-            if i != 0:
-                pts.extend(self.compute_edge_points(pts[-1], pt2, mesh))
-            pts.append(pt2)
+            else:
+                self.logger.debug("Inside")
+                #if len(pts) != 0:
+                self.logger.debug("Not first")
+                if outside_uv:
+                    self.logger.debug("> Previous was outside, finding boundary")
+                    start: np.ndarray = self.compute_uv_edge(np.array(trace.path[i - 1]), pt, mesh)
+                    start2: Optional[Point3D] = self.interpolate_position(start, mesh)
+                    if start2 is None:
+                        raise RuntimeError("Unprojectable edge point")
+                    pts.append(start2)
+                if len(pts) != 0:
+                    pts.extend(self.compute_edge_points(pts[-1], pt2, mesh))
+                pts.append(pt2)
+                outside_uv = False
         
-        return [
-            Trace3D(
-                path=pts,
-                color=trace.color,
-            )
-        ]
+        if len(pts) != 0:
+            self.logger.debug(f"Adding remaining trace with {len(pts)} points")
+            traces.append(Trace3D(path=pts, color=trace.color, parent_2d_trace=trace.i))
+
+        return traces
 
     def compute_edge_points(self, p1: Point3D, p2: Point3D, mesh: Trimesh, depth: int = 0) -> list[Point3D]:
         pts: list[Point3D] = []
@@ -494,6 +532,24 @@ class Tracer:
             if p2.face_idx != mid.face_idx:
                 pts.extend(self.compute_edge_points(mid, p2, mesh, depth + 1))
         return pts
+
+    def compute_uv_edge(self, p1: np.ndarray, p2: np.ndarray, mesh: Trimesh) -> np.ndarray:
+        q1: Optional[Point3D] = self.interpolate_position(p1, mesh)
+        q2: Optional[Point3D] = self.interpolate_position(p2, mesh)
+        v1: int = -1 if q1 is None else 1
+        v2: int = -1 if q2 is None else 1
+        for _ in range(100):
+            pm: np.ndarray = (p1 + p2) / 2
+            qm: Optional[Point3D] = self.interpolate_position(pm, mesh)
+            vm: int = -1 if qm is None else 1
+            if v1 * vm < 0:
+                v2 = vm
+                p2 = pm
+            else:
+                v1 = vm
+                p1 = pm
+        
+        return p1 if v1 == 1 else p2
 
     def interpolate_position(self, uv_pos: np.ndarray, mesh: Trimesh) -> Optional[Point3D]:
         """Interpolates the UV position on the UV map and returns the corresponding 3D point
