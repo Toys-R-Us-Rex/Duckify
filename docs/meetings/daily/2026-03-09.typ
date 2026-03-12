@@ -70,7 +70,7 @@ plan: get_reachable
 
 - L : Faut pas penser faut faire (citation approximative de M. Lettry)
 - C : conserver la seed des générations
-- C : Mettre les méta-datas, pourrait être utile
+- C : Mettre les méta-datas, pourraient être utiles
 
 *Post-Daily Meeting*
 
