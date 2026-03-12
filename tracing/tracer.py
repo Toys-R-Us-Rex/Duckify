@@ -477,6 +477,7 @@ class Tracer:
                     end2: Optional[Point3D] = self.interpolate_position(end, mesh)
                     if end2 is None:
                         raise RuntimeError("Unprojectable edge point")
+                    pts.extend(self.compute_edge_points(pts[-1], end2, mesh))
                     pts.append(end2)
                     traces.append(Trace3D(path=pts, color=trace.color, parent_2d_trace=trace.i))
                     self.logger.debug(f">> Adding trace with {len(pts)} points")
