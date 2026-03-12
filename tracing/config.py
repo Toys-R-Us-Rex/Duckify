@@ -25,3 +25,6 @@ class TracerConfig:
 
     sharp_edge_threshold: float = np.cos(np.radians(30))
     """Dot-product threshold when considering sharp edges"""
+
+    fill_slicing_toggle: bool = True
+    """A toogle boolean to enable/disable the compute and processing of the islands filling segments"""

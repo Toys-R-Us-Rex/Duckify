@@ -31,7 +31,8 @@ class Tracer:
             config: TracerConfig,
             texture_path: Path,
             model_path: Path,
-            palette: tuple[Color, ...]
+            palette: tuple[Color, ...],
+            outlier: Color
     ):
         self.logger: Logger = logging.getLogger("Tracer")
         self.config: TracerConfig = config
@@ -39,6 +40,7 @@ class Tracer:
         self.texture_path: Path = texture_path
         self.model_path: Path = model_path
         self.palette: tuple[Color, ...] = palette
+        self.outlier: Color = outlier
 
         self.texture: Optional[Image.Image] = None
         self.paletted_texture: Optional[Image.Image] = None
@@ -57,7 +59,8 @@ class Tracer:
             self.logger.error("Missing mesh UV coordinates")
             return
 
-        self.paletted_texture = self.palettize_texture(self.texture, self.palette)
+        self.texture = self.mask_outside_UV_texture(self.texture, self.model)
+        self.paletted_texture = self.palettize_texture(self.texture, self.palette, self.outlier)
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
         for c, layer in tqdm.tqdm(
@@ -78,8 +81,9 @@ class Tracer:
                     color=island.color,
                     path=inner_border
                 ))
-            fill_slices: list[Trace2D] = self.compute_fill_slices(island)
-            self.traces_2d.extend(fill_slices)
+            if self.config.fill_slicing_toggle:
+                fill_slices: list[Trace2D] = self.compute_fill_slices(island)
+                self.traces_2d.extend(fill_slices)
 
         img = np.array(self.texture.copy())
         size = (img.shape[1], img.shape[0])
@@ -129,7 +133,7 @@ class Tracer:
             raise FileNotFoundError(f"The file {path} does not exist")
 
         im = Image.open(path).convert("RGB")
-        return im
+        return im.resize((1024,1024))
 
     def load_model(self, path: Path) -> Trimesh:
         """Load 3d model from its object file into a trimesh instance
@@ -154,36 +158,28 @@ class Tracer:
         return mesh
 
     # https://stackoverflow.com/questions/29433243/
-    def palettize_texture(
-            self, img: Image.Image, palette: tuple[Color, ...]
-    ) -> Image.Image:
-        """Force textures colors to nearest one based of a given palette
-
-        Args:
-            img (Image.Image): the texture image
-            palette (tuple[Color, ...]): the palette containing selected colors
-
-        Returns:
-            Image.Image: the color palettized texture image
-        """
+    def palettize_texture(self, img: Image.Image, palette: tuple[Color, ...], outlier: Color) -> Image.Image:
         self.logger.info("Palettizing texture colors")
+        
+        c_img_arr = np.array(img.convert("RGB"))
+        
+        outlier_rgb = np.array([outlier])
+        mask = np.any(c_img_arr != outlier_rgb, axis=-1)
+        # récupérer les pixels des couleurs de la palette sans l'outlier
+        pixels_to_quantize = c_img_arr[mask]
 
-        pil_palette = self.format_palette(palette)
+        palettized_pixels = self.quantize_to_palette(pixels_to_quantize, np.array(palette))
+        # Réinjection des pixels palettizés dans image de base
+        output_arr = c_img_arr.copy()
+        output_arr[mask] = palettized_pixels
 
-        # pour forcer l'image à utiliser la palette souhaitée
-        # Il faut d'abord injecter la palette choisie dans une dummy image
-        palette_image = Image.new("P", (1, 1))
-        palette_image.putpalette(pil_palette)
-
-        # s'assurer de la standardization "RGB"
-        c_img = img.convert("RGB")
-        # utilise quantize() pour palettizer
-        output_img = c_img.quantize(palette=palette_image, dither=Image.Dither.NONE)
+        output_img = Image.fromarray(output_arr.astype(np.uint8), "RGB")
 
         if self.config.debug:
-            cv2.imshow("input texture image", np.array(c_img)[..., ::-1])
-            cv2.imshow("palettized texture image", np.array(output_img.convert("RGB"))[..., ::-1])
-
+            import cv2
+            cv2.imshow("input texture image", c_img_arr[..., ::-1])
+            cv2.imshow("palettized texture image", output_arr[..., ::-1])
+            
         return output_img
 
     # https://stackoverflow.com/questions/56942102
@@ -613,3 +609,61 @@ class Tracer:
 
     def mesh_has_uv_map(self, mesh: Trimesh) -> bool:
         return isinstance(mesh.visual, TextureVisuals)
+
+    # This fonction was as such, re-used from https://stackoverflow.com/questions/73666119/open-cv-python-quantize-to-a-given-color-palette
+    def quantize_to_palette(self, image: np.ndarray, palette: tuple[Color, ...]):
+        """Quantize color value in an image to the one in the given palette
+
+        Args:
+            image (np.ndarray): The texture image
+            palette (tuple[Color, ...]): the list of colors available in the draw processing
+
+        Returns:
+            np.ndarray: the palettized texture
+        """
+        X_query = image.reshape(-1, 3).astype(np.float32)
+        X_index = palette.astype(np.float32)
+
+        knn = cv2.ml.KNearest_create()
+        knn.train(X_index, cv2.ml.ROW_SAMPLE, np.arange(len(palette)))
+        ret, results, neighbours, dist = knn.findNearest(X_query, 1)
+
+        quantized_image = np.array([palette[idx] for idx in neighbours.astype(int)])
+        quantized_image = quantized_image.reshape(image.shape)
+        return quantized_image
+    
+    def mask_outside_UV_texture(self, img: Image.Image,  mesh: Trimesh) -> Image.Image:
+        """Overlapp the mask of the UV map over the texture to ensure that all treated pixels of the texture are on the model
+
+        Args:
+            img (Image.Image): Texture
+            mesh (Trimesh): Model
+
+        Returns:
+            Image.Image: The masked texture
+                     """
+        uv = mesh.visual.uv
+        faces = mesh.faces
+        width, height = img.size
+        # normalisation des coordonnées UV aux dimensions de textures
+        pixel_coords = uv * np.array([width - 1, height - 1])
+        # inverse coordonée vertical (format de base UV est zero=bottom-left et on veut zero=top-left)
+        pixel_coords[:, 1] = (height - 1) - pixel_coords[:, 1]
+        
+        uv_faces = pixel_coords[faces].astype(np.int32)
+        np_img = np.array(img.convert('RGB'))
+        mask = np.zeros((height, width), dtype=np.uint8)
+        cv2.fillPoly(mask, uv_faces, 255)
+        masked_texture = cv2.bitwise_and(np_img, np_img, mask=mask)
+        
+        if self.config.debug:
+            cv2.namedWindow('Mask', cv2.WINDOW_KEEPRATIO)
+            cv2.imshow('Mask', mask)
+            cv2.resizeWindow('Mask', 600, 600)
+
+            cv2.namedWindow('Masked texture', cv2.WINDOW_KEEPRATIO)
+            cv2.imshow('Masked texture', masked_texture)
+            cv2.resizeWindow('Masked texture', 600, 600)
+            cv2.waitKey(-1)
+        
+        return Image.fromarray(masked_texture)
