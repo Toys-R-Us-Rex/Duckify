@@ -64,7 +64,7 @@ Filtering out very small islands should reduce mathematical errors
   breakable: false
 )[
   *Louis*
-  - [ ] Out of bounds
+  - [x] Out of bounds
   - [ ] UV seams
 ]
 
