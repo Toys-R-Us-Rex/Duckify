@@ -43,7 +43,7 @@ jobs:
             rel_path="${file#docs/}"
             out_pdf="output/${rel_path%.typ}.pdf"
             mkdir -p "$(dirname "$out_pdf")"
-            typst compile --root . "$file" "$out_pdf"
+            typst compile --root . "$file" "$out_pdf" --font-path ~/.fontist/fonts
           done
 
       - name: Generate Tree Index
