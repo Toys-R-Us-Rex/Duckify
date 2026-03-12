@@ -47,9 +47,9 @@ plan: faire le mouvement entre différents feutres.
 *Cédric*
 
 Rétrospective labo de vendredi:
-- Problème de précision : a cause de la surface, précision de calibration
+- Problème de précision : à cause de la surface, précision de calibration
 
-plan: a dessiner une ligne sur un canard.
+plan: à dessiner une ligne sur un canard.
 Question sur le jour off mardi -> R: seulement demi-journée ( après midi)
 
 *Nathan*
