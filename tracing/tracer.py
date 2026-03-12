@@ -51,7 +51,15 @@ class Tracer:
         self.traces_2d: list[Trace2D] = []
         self.traces_3d: list[Trace3D] = []
 
+        self.next_trace_id: int = 0
+    
+    def trace_id(self) -> int:
+        i = self.next_trace_id
+        self.next_trace_id += 1
+        return i
+
     def compute_traces(self) -> None:
+        # 1. Load assets
         self.texture = self.load_texture(self.texture_path)
         self.model = self.load_model(self.model_path)
 
@@ -59,46 +67,56 @@ class Tracer:
             self.logger.error("Missing mesh UV coordinates")
             return
 
+        # 2. Quantize and split colors
         self.texture = self.mask_outside_UV_texture(self.texture, self.model)
         self.paletted_texture = self.palettize_texture(self.texture, self.palette, self.ignored_color)
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
+        # 3. Identify color islands
         for c, layer in tqdm.tqdm(
                 enumerate(self.layers), desc="Island detection", unit="layer"
         ):
             islands: list[Island] = self.detect_islands(layer, c)
             self.islands.extend(islands)
 
-        for island in tqdm.tqdm(
-                self.islands, desc="Island segmentation", unit="island"
+        # 4. Compute border and fill traces (2D)
+        for i, island in tqdm.tqdm(
+                enumerate(self.islands), desc="Island segmentation", unit="island"
         ):
             self.traces_2d.append(Trace2D(
                 color=island.color,
-                path=np.vstack([island.outer_border, [island.outer_border[0]]])
+                path=np.vstack([island.outer_border, [island.outer_border[0]]]),
+                i=self.trace_id()
             ))
             for inner_border in island.inner_borders:
                 self.traces_2d.append(Trace2D(
                     color=island.color,
-                    path=inner_border
+                    path=inner_border,
+                    i=self.trace_id()
                 ))
             if self.config.enable_fill_slicing:
                 fill_slices: list[Trace2D] = self.compute_fill_slices(island)
+                self.logger.debug(f"Island {i}: {len(fill_slices)} fill slices")
                 self.traces_2d.extend(fill_slices)
 
         img = np.array(self.texture.copy())
         size = (img.shape[1], img.shape[0])
 
-        for trace_2d in tqdm.tqdm(self.traces_2d, desc="3D projection", unit="trace"):
+        # 5. Project 2D traces in 3D
+        for i, trace_2d in tqdm.tqdm(enumerate(self.traces_2d), desc="3D projection", unit="trace"):
+            self.logger.debug(f"Processing trace {i}")
             traces_3d: Optional[list[Trace3D]] = self.project_trace_to_3d(trace_2d, self.model)
             if traces_3d is not None:
                 self.traces_3d.extend(traces_3d)
+                if len(traces_3d) == 0:
+                    self.logger.warning(f"2D trace {i} did not produce any 3D trace")
 
             if self.config.debug:
                 pts: np.ndarray = self.uv_to_texture(trace_2d.path, size).astype(np.intp)
                 for pt in pts:
                     cv2.circle(img, pt, 3, (0, 0, 255), -1)
 
-                col = (255, 0, 255) if traces_3d is None else (255, 255, 0)
+                col = (255, 0, 255) if traces_3d is None or len(traces_3d) == 0 else (255, 255, 0)
                 cv2.polylines(img, [pts], True, col)
 
         if self.config.debug:
@@ -345,14 +363,16 @@ class Tracer:
             if l.geom_type == "LineString":
                 trace = Trace2D(
                     color=island.color,
-                    path=l.coords
+                    path=l.coords,
+                    i=self.trace_id()
                 )
                 traces.append(trace)
             else:
                 for ls in l.geoms:
                     trace = Trace2D(
                         color=island.color,
-                        path=ls.coords
+                        path=ls.coords,
+                        i=self.trace_id()
                     )
                     traces.append(trace)
         return traces

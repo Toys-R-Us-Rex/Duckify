@@ -26,6 +26,8 @@ class Trace3D:
 class Trace2D:
     """2D drawing path on the texture"""
 
+    i: int
+
     # Color index
     color: int
 
