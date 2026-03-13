@@ -9,6 +9,8 @@ from tracing.point_3d import Point3D
 class Trace3D:
     """3D drawing path"""
 
+    parent_2d_trace: int
+
     # Color index
     color: int
 
@@ -25,6 +27,8 @@ class Trace3D:
 @dataclass
 class Trace2D:
     """2D drawing path on the texture"""
+
+    i: int
 
     # Color index
     color: int

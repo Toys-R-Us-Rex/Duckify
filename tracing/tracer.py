@@ -51,7 +51,20 @@ class Tracer:
         self.traces_2d: list[Trace2D] = []
         self.traces_3d: list[Trace3D] = []
 
+        self.next_trace_id: int = 0
+    
+    def trace_id(self) -> int:
+        """Generates a new unique id for a 2D trace
+
+        Returns:
+            int: the new id
+        """
+        i: int = self.next_trace_id
+        self.next_trace_id += 1
+        return i
+
     def compute_traces(self) -> None:
+        # 1. Load assets
         self.texture = self.load_texture(self.texture_path)
         self.model = self.load_model(self.model_path)
 
@@ -59,46 +72,56 @@ class Tracer:
             self.logger.error("Missing mesh UV coordinates")
             return
 
+        # 2. Quantize and split colors
         self.texture = self.mask_outside_UV_texture(self.texture, self.model)
         self.paletted_texture = self.palettize_texture(self.texture, self.palette, self.ignored_color)
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
+        # 3. Identify color islands
         for c, layer in tqdm.tqdm(
                 enumerate(self.layers), desc="Island detection", unit="layer"
         ):
             islands: list[Island] = self.detect_islands(layer, c)
             self.islands.extend(islands)
 
-        for island in tqdm.tqdm(
-                self.islands, desc="Island segmentation", unit="island"
+        # 4. Compute border and fill traces (2D)
+        for i, island in tqdm.tqdm(
+                list(enumerate(self.islands)), desc="Island segmentation", unit="island"
         ):
             self.traces_2d.append(Trace2D(
                 color=island.color,
-                path=np.vstack([island.outer_border, [island.outer_border[0]]])
+                path=np.vstack([island.outer_border, [island.outer_border[0]]]),
+                i=self.trace_id()
             ))
             for inner_border in island.inner_borders:
                 self.traces_2d.append(Trace2D(
                     color=island.color,
-                    path=inner_border
+                    path=inner_border,
+                    i=self.trace_id()
                 ))
             if self.config.enable_fill_slicing:
                 fill_slices: list[Trace2D] = self.compute_fill_slices(island)
+                self.logger.debug(f"Island {i}: {len(fill_slices)} fill slices")
                 self.traces_2d.extend(fill_slices)
 
         img = np.array(self.texture.copy())
         size = (img.shape[1], img.shape[0])
 
-        for trace_2d in tqdm.tqdm(self.traces_2d, desc="3D projection", unit="trace"):
+        # 5. Project 2D traces in 3D
+        for i, trace_2d in tqdm.tqdm(list(enumerate(self.traces_2d)), desc="3D projection", unit="trace"):
+            self.logger.debug(f"Processing trace {i}")
             traces_3d: Optional[list[Trace3D]] = self.project_trace_to_3d(trace_2d, self.model)
             if traces_3d is not None:
                 self.traces_3d.extend(traces_3d)
+                if len(traces_3d) == 0:
+                    self.logger.warning(f"2D trace {i} did not produce any 3D trace")
 
             if self.config.debug:
                 pts: np.ndarray = self.uv_to_texture(trace_2d.path, size).astype(np.intp)
-                for pt in pts:
-                    cv2.circle(img, pt, 3, (0, 0, 255), -1)
+                #for pt in pts:
+                #    cv2.circle(img, pt, 3, (0, 0, 255), -1)
 
-                col = (255, 0, 255) if traces_3d is None else (255, 255, 0)
+                col = (255, 0, 255) if traces_3d is None or len(traces_3d) == 0 else (255, 255, 0)
                 cv2.polylines(img, [pts], True, col)
 
         if self.config.debug:
@@ -345,14 +368,16 @@ class Tracer:
             if l.geom_type == "LineString":
                 trace = Trace2D(
                     color=island.color,
-                    path=l.coords
+                    path=l.coords,
+                    i=self.trace_id()
                 )
                 traces.append(trace)
             else:
                 for ls in l.geoms:
                     trace = Trace2D(
                         color=island.color,
-                        path=ls.coords
+                        path=ls.coords,
+                        i=self.trace_id()
                     )
                     traces.append(trace)
         return traces
@@ -430,25 +455,88 @@ class Tracer:
         Returns:
             Optional[list[Trace3D]]: the corresponding 3D traces, or None if a point could not be projected in 3D space
         """
+
+        def is_outside_uv(point: Optional[Point3D]) -> bool:
+            return point is None
+
+        traces: list[Trace3D] = []
         pts: list[Point3D] = []
+
+        prev_outside_uv: bool = False
         
-        for i, pt in enumerate(trace.path):
-            pt2: Optional[Point3D] = self.interpolate_position(np.array(pt), mesh)
-            if pt2 is None:
-                return None
+        for i, uv_point in enumerate(trace.path):
+            self.logger.debug(f"Processing pt {i}")
+            uv_point = np.array(uv_point)
+            projected_point: Optional[Point3D] = self.interpolate_position(uv_point, mesh)
+            cur_outside_uv: bool = is_outside_uv(projected_point)
+
+            # Initialize `outside_uv` state on first point
+            if i == 0:
+                prev_outside_uv = cur_outside_uv
+                self.logger.debug(f"First point is {'outside' if prev_outside_uv else 'inside'} UV")
+
+            if cur_outside_uv != prev_outside_uv:
+                # Compute boundary point between last UV point and current point
+                prev_uv_point: np.ndarray = np.array(trace.path[i - 1])
+                boundary_point: np.ndarray = self.compute_uv_boundary(prev_uv_point, uv_point, mesh)
+                projected_boundary_point: Optional[Point3D] = self.interpolate_position(boundary_point, mesh)
+                # Should never be True
+                if is_outside_uv(projected_boundary_point):
+                    raise RuntimeError("Unprojectable edge point")
+
+                if prev_outside_uv:
+                    pts.append(projected_boundary_point)
+                    pts.extend(self.compute_edge_points(projected_boundary_point, projected_point, mesh))
+                
+                elif cur_outside_uv:
+                    if len(pts) != 0:
+                        prev_projected_point: Point3D = pts[-1]
+                        pts.extend(self.compute_edge_points(prev_projected_point, projected_boundary_point, mesh))
+                    pts.append(projected_boundary_point)
+                    traces.append(Trace3D(
+                        path=pts,
+                        color=trace.color,
+                        parent_2d_trace=trace.i
+                    ))
+                    pts = []
             
-            if i != 0:
-                pts.extend(self.compute_edge_points(pts[-1], pt2, mesh))
-            pts.append(pt2)
-        
-        return [
-            Trace3D(
+            # If both points are inside
+            elif not cur_outside_uv:
+                if len(pts) != 0:
+                    prev_projected_point: Point3D = pts[-1]
+                    pts.extend(self.compute_edge_points(prev_projected_point, projected_point, mesh))
+
+            if not cur_outside_uv:
+                pts.append(projected_point)
+
+            prev_outside_uv = cur_outside_uv
+
+        if len(pts) > 1:
+            self.logger.debug(f"Adding remaining trace with {len(pts)} points")
+            traces.append(Trace3D(
                 path=pts,
                 color=trace.color,
-            )
-        ]
+                parent_2d_trace=trace.i
+            ))
+
+        return traces
 
     def compute_edge_points(self, p1: Point3D, p2: Point3D, mesh: Trimesh, depth: int = 0) -> list[Point3D]:
+        """Computes the intersections of the segment (p1,p2) with all edges of the mesh
+
+        This process is done empirically using bissection.
+        When encountering a "sharp" edge, 3 points are created, using the normals of the first face,
+        the average normal and the normal of the second face respectively
+
+        Args:
+            p1 (Point3D): the start of the segment
+            p2 (Point3D): the end of the segment
+            mesh (Trimesh): the mesh
+            depth (int, optional): current recursion depth. Defaults to 0.
+
+        Returns:
+            list[Point3D]: the list of intermediary points
+        """
         pts: list[Point3D] = []
         if p1.face_idx == p2.face_idx:
             return pts
@@ -474,6 +562,40 @@ class Tracer:
             if p2.face_idx != mid.face_idx:
                 pts.extend(self.compute_edge_points(mid, p2, mesh, depth + 1))
         return pts
+
+    def compute_uv_boundary(self, p1: np.ndarray, p2: np.ndarray, mesh: Trimesh) -> np.ndarray:
+        """Computes the intersection of the segment (p1,p2) and the edge of the UV map
+
+        One of the points MUST be outside of the UV map and the other inside
+
+        Args:
+            p1 (np.ndarray): the start of the segment
+            p2 (np.ndarray): the end of the segment
+            mesh (Trimesh): the mesh
+
+        Returns:
+            np.ndarray: the point on the segment at the UV map's edge
+        """
+        p1_projected: Optional[Point3D] = self.interpolate_position(p1, mesh)
+        p2_projected: Optional[Point3D] = self.interpolate_position(p2, mesh)
+        p1_outside: bool = p1_projected is None
+        p2_outside: bool = p2_projected is None
+
+        if p1_outside == p2_outside:
+            raise RuntimeError("Cannot compute UV map boundary because both points are either inside or outside")
+
+        for _ in range(10):
+            pm: np.ndarray = (p1 + p2) / 2
+            pm_projected: Optional[Point3D] = self.interpolate_position(pm, mesh)
+            pm_outside: bool = pm_projected is None
+            if p1_outside != pm_outside:
+                p2_outside = pm_outside
+                p2 = pm
+            else:
+                p1_outside = pm_outside
+                p1 = pm
+        
+        return p2 if p1_outside else p1
 
     def interpolate_position(self, uv_pos: np.ndarray, mesh: Trimesh) -> Optional[Point3D]:
         """Interpolates the UV position on the UV map and returns the corresponding 3D point
