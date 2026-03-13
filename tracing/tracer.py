@@ -566,6 +566,8 @@ class Tracer:
     def compute_uv_boundary(self, p1: np.ndarray, p2: np.ndarray, mesh: Trimesh) -> np.ndarray:
         """Computes the intersection of the segment (p1,p2) and the edge of the UV map
 
+        One of the points MUST be outside of the UV map and the other inside
+
         Args:
             p1 (np.ndarray): the start of the segment
             p2 (np.ndarray): the end of the segment
@@ -574,22 +576,26 @@ class Tracer:
         Returns:
             np.ndarray: the point on the segment at the UV map's edge
         """
-        q1: Optional[Point3D] = self.interpolate_position(p1, mesh)
-        q2: Optional[Point3D] = self.interpolate_position(p2, mesh)
-        v1: int = -1 if q1 is None else 1
-        v2: int = -1 if q2 is None else 1
+        p1_projected: Optional[Point3D] = self.interpolate_position(p1, mesh)
+        p2_projected: Optional[Point3D] = self.interpolate_position(p2, mesh)
+        p1_outside: bool = p1_projected is None
+        p2_outside: bool = p2_projected is None
+
+        if p1_outside == p2_outside:
+            raise RuntimeError("Cannot compute UV map boundary because both points are either inside or outside")
+
         for _ in range(10):
             pm: np.ndarray = (p1 + p2) / 2
-            qm: Optional[Point3D] = self.interpolate_position(pm, mesh)
-            vm: int = -1 if qm is None else 1
-            if v1 * vm < 0:
-                v2 = vm
+            pm_projected: Optional[Point3D] = self.interpolate_position(pm, mesh)
+            pm_outside: bool = pm_projected is None
+            if p1_outside != pm_outside:
+                p2_outside = pm_outside
                 p2 = pm
             else:
-                v1 = vm
+                p1_outside = pm_outside
                 p1 = pm
         
-        return p1 if v1 == 1 else p2
+        return p2 if p1_outside else p1
 
     def interpolate_position(self, uv_pos: np.ndarray, mesh: Trimesh) -> Optional[Point3D]:
         """Interpolates the UV position on the UV map and returns the corresponding 3D point
