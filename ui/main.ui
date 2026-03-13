@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tabGenAI">
        <attribute name="title">
@@ -91,8 +91,20 @@
             <layout class="QVBoxLayout" name="verticalLayout_5">
              <item>
               <widget class="QListView" name="genAIResults">
+               <property name="editTriggers">
+                <set>QAbstractItemView::NoEditTriggers</set>
+               </property>
+               <property name="dragDropMode">
+                <enum>QAbstractItemView::NoDragDrop</enum>
+               </property>
+               <property name="spacing">
+                <number>8</number>
+               </property>
                <property name="viewMode">
-                <enum>QListView::IconMode</enum>
+                <enum>QListView::ListMode</enum>
+               </property>
+               <property name="wordWrap">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
