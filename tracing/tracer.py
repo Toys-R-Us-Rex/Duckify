@@ -475,53 +475,40 @@ class Tracer:
                 prev_outside_uv = cur_outside_uv
                 self.logger.debug(f"First point is {'outside' if prev_outside_uv else 'inside'} UV")
 
-            if cur_outside_uv:
-                self.logger.debug("Outside")
-                if len(pts) == 0:
-                    self.logger.debug("> First point")
-                    continue
+            if cur_outside_uv != prev_outside_uv:
+                # Compute boundary point between last UV point and current point
+                prev_uv_point: np.ndarray = np.array(trace.path[i - 1])
+                boundary_point: np.ndarray = self.compute_uv_boundary(prev_uv_point, uv_point, mesh)
+                projected_boundary_point: Optional[Point3D] = self.interpolate_position(boundary_point, mesh)
+                # Should never be True
+                if is_outside_uv(projected_boundary_point):
+                    raise RuntimeError("Unprojectable edge point")
 
-                if not prev_outside_uv:
-                    self.logger.debug("> Previous was inside, finding boundary")
-
-                    # Compute boundary point between last UV point and current point
-                    prev_uv_point: np.ndarray = np.array(trace.path[i - 1])
-                    boundary_point: np.ndarray = self.compute_uv_boundary(prev_uv_point, uv_point, mesh)
-                    projected_boundary_point: Optional[Point3D] = self.interpolate_position(boundary_point, mesh)
-                    # Should never be True
-                    if is_outside_uv(projected_boundary_point):
-                        raise RuntimeError("Unprojectable edge point")
-
-                    # Add edge points (intersection with mesh edges) and projected boundary point
-                    prev_projected_point: Point3D = pts[-1]
-                    pts.extend(self.compute_edge_points(prev_projected_point, projected_boundary_point, mesh))
+                if prev_outside_uv:
+                    pts.append(projected_boundary_point)
+                    pts.extend(self.compute_edge_points(projected_boundary_point, projected_point, mesh))
+                
+                elif cur_outside_uv:
+                    if len(pts) != 0:
+                        prev_projected_point: Point3D = pts[-1]
+                        pts.extend(self.compute_edge_points(prev_projected_point, projected_boundary_point, mesh))
                     pts.append(projected_boundary_point)
                     traces.append(Trace3D(
                         path=pts,
                         color=trace.color,
                         parent_2d_trace=trace.i
                     ))
-                    self.logger.debug(f">> Adding trace with {len(pts)} points")
                     pts = []
             
-            else:
-                self.logger.debug("Inside")
-                if prev_outside_uv:
-                    self.logger.debug("> Previous was outside, finding boundary")
-
-                    # Compute boundary point between last UV point and current point
-                    prev_uv_point: np.ndarray = np.array(trace.path[i - 1])
-                    boundary_point: np.ndarray = self.compute_uv_boundary(prev_uv_point, uv_point, mesh)
-                    projected_boundary_point: Optional[Point3D] = self.interpolate_position(boundary_point, mesh)
-                    # Should never be True
-                    if is_outside_uv(projected_boundary_point):
-                        raise RuntimeError("Unprojectable edge point")
-                    pts.append(projected_boundary_point)
+            # If both points are inside
+            elif not cur_outside_uv:
                 if len(pts) != 0:
                     prev_projected_point: Point3D = pts[-1]
                     pts.extend(self.compute_edge_points(prev_projected_point, projected_point, mesh))
+
+            if not cur_outside_uv:
                 pts.append(projected_point)
-            
+
             prev_outside_uv = cur_outside_uv
 
         if len(pts) > 1:
