@@ -10,7 +10,10 @@ dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["tracing"]
+members = [
+    "tracing",
+    "ui",
+]
 
 [tool.uv.sources]
 tracing = { workspace = true }
