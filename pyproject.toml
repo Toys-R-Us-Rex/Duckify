@@ -11,7 +11,11 @@ dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["tracing","genai"]
+members = [
+    "genai",
+    "tracing",
+    "ui",
+]
 
 [tool.uv.sources]
 tracing = { workspace = true }
