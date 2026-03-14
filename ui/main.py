@@ -8,6 +8,7 @@ from PyQt6.QtGui import QStandardItemModel, QStandardItem, QIcon
 from main_ui import Ui_MainWindow
 from tracing.color import Color
 from tracing.config import TracerConfig
+from tracing.stats import TracingStats
 from tracing.tracer import Tracer
 
 ROOT_DIR: Path = Path(__file__).parent.parent
@@ -83,8 +84,10 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         )
 
         tracer: Tracer = Tracer(config, texture_path, model_path, palette, ignored_color)
-        tracer.compute_traces()
-        tracer.export_traces(self.traces_path)
+        stats: TracingStats = tracer.compute_traces(progress_callback=self.update_tracing_progress)
+        tracer.export_traces(self.traces_path, force=True)
+        
+        self.set_tracing_stats(stats)
     
     def set_texture_results(self, results: list[Path]):
         model: QStandardItemModel = self.gen_ai_result_model
@@ -99,6 +102,17 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
     def select_gen_ai_result(self, item: QStandardItem):
         path: Path = item.data()
         print(f"Selected {path}")
+    
+    def update_tracing_progress(self, current: int, maximum: int, label: str):
+        self.tracingProgressLabel.setText(label)
+        self.tracingProgress.setMaximum(maximum)
+        self.tracingProgress.setValue(current)
+    
+    def set_tracing_stats(self, stats: TracingStats):
+        self.tracingStatIslands.setText(str(stats.n_islands))
+        self.tracingStat2DTraces.setText(str(stats.n_2d_traces))
+        self.tracingStat3DTraces.setText(str(stats.n_3d_traces))
+        self.tracingStatPoints.setText(str(stats.n_points))
 
 
 def main():

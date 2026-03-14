@@ -4,7 +4,8 @@ import logging
 import os
 from logging import Logger
 from pathlib import Path
-from typing import Optional, Union
+import time
+from typing import Callable, Optional, Union
 
 import cv2
 import matplotlib.pyplot as plt
@@ -22,6 +23,7 @@ from tracing.config import TracerConfig
 from tracing.hierarchy import Hierarchy
 from tracing.island import Island
 from tracing.point_3d import Point3D
+from tracing.stats import TracingStats
 from tracing.trace import Trace2D, Trace3D
 
 
@@ -51,7 +53,12 @@ class Tracer:
         self.traces_2d: list[Trace2D] = []
         self.traces_3d: list[Trace3D] = []
 
-    def compute_traces(self) -> None:
+    def compute_traces(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> TracingStats:
+        if progress_callback is None:
+            progress_callback = lambda _, __, ___: None
+        
+        start: float = time.time()
+        
         self.texture = self.load_texture(self.texture_path)
         self.model = self.load_model(self.model_path)
 
@@ -63,15 +70,19 @@ class Tracer:
         self.paletted_texture = self.palettize_texture(self.texture, self.palette, self.ignored_color)
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
+        n_layers: int = len(self.layers)
         for c, layer in tqdm.tqdm(
-                enumerate(self.layers), desc="Island detection", unit="layer"
+                list(enumerate(self.layers)), desc="Island detection", unit="layer"
         ):
+            progress_callback(c, n_layers, "(1 / 3) Island detection")
             islands: list[Island] = self.detect_islands(layer, c)
             self.islands.extend(islands)
 
-        for island in tqdm.tqdm(
-                self.islands, desc="Island segmentation", unit="island"
+        n_islands: int = len(self.islands)
+        for i, island in tqdm.tqdm(
+                list(enumerate(self.islands)), desc="Island segmentation", unit="island"
         ):
+            progress_callback(i, n_islands, "(2 / 3) Island segmentation")
             self.traces_2d.append(Trace2D(
                 color=island.color,
                 path=np.vstack([island.outer_border, [island.outer_border[0]]])
@@ -87,8 +98,10 @@ class Tracer:
 
         img = np.array(self.texture.copy())
         size = (img.shape[1], img.shape[0])
+        n_traces_2d: int = len(self.traces_2d)
 
-        for trace_2d in tqdm.tqdm(self.traces_2d, desc="3D projection", unit="trace"):
+        for i, trace_2d in tqdm.tqdm(list(enumerate(self.traces_2d)), desc="3D projection", unit="trace"):
+            progress_callback(i, n_traces_2d, "(3 / 3) 3D projection")
             traces_3d: Optional[list[Trace3D]] = self.project_trace_to_3d(trace_2d, self.model)
             if traces_3d is not None:
                 self.traces_3d.extend(traces_3d)
@@ -101,6 +114,8 @@ class Tracer:
                 col = (255, 0, 255) if traces_3d is None else (255, 255, 0)
                 cv2.polylines(img, [pts], True, col)
 
+        n_traces_3d: int = len(self.traces_3d)
+        n_points: int = sum(map(lambda t: len(t.path), self.traces_3d))
         if self.config.debug:
             cv2.imshow("Segments", img)
             clouds = []
@@ -116,6 +131,17 @@ class Tracer:
                 clouds.append(cloud)
             scene = trimesh.Scene([self.model] + segments + clouds)
             scene.show()
+        
+        end: float = time.time()
+        progress_callback(1, 1, "Done")
+        
+        return TracingStats(
+            end - start,
+            n_islands,
+            n_traces_2d,
+            n_traces_3d,
+            n_points
+        )
 
     def load_texture(self, path: Path) -> Image.Image:
         """Load texture from file path
