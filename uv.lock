@@ -2287,12 +2287,14 @@ name = "ui"
 version = "0.1.0"
 source = { virtual = "ui" }
 dependencies = [
+    { name = "pillow" },
     { name = "pyopengl" },
     { name = "pyqt6" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "pillow", specifier = ">=12.1.1" },
     { name = "pyopengl", specifier = ">=3.1.10" },
     { name = "pyqt6", specifier = ">=6.10.2" },
 ]

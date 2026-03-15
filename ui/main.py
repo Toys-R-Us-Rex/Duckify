@@ -1,8 +1,10 @@
 from pathlib import Path
 import sys
 import tempfile
+from typing import Optional
 
 from PyQt6 import QtWidgets
+from PyQt6.QtCore import QModelIndex
 from PyQt6.QtGui import QStandardItemModel, QStandardItem, QIcon
 
 from main_ui import Ui_MainWindow
@@ -24,7 +26,6 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         
         self.gen_ai_result_model: QStandardItemModel = QStandardItemModel(self.genAIResults)
-        self.gen_ai_result_model.itemChanged.connect(self.select_gen_ai_result)
         working_dir = tempfile.TemporaryDirectory(prefix="duckify_")
         self.working_dir: Path = Path(working_dir.name)
 
@@ -127,10 +128,14 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.genAIResults.setModel(model)
         self.genAIVisual.load_model(self.genAIModel.currentData())
     
-    def select_gen_ai_result(self, item: QStandardItem):
+    def select_gen_ai_result(self):
+        index: QModelIndex = self.genAIResults.currentIndex()
+        item: Optional[QStandardItem] = self.gen_ai_result_model.itemFromIndex(index)
+        if item is None:
+            return
         path: Path = item.data()
         print(f"Selected {path}")
-        # TODO: Show in 3D visualization
+        self.genAIVisual.load_texture(path)
     
     def update_tracing_progress(self, current: int, maximum: int, label: str):
         self.tracingProgressLabel.setText(label)
@@ -145,6 +150,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
     
     def show_tracing_result(self, model_path: Path, texture_path: Path, traces_path: Path):
         self.tracingVisualTexture.load_model(model_path)
+        self.tracingVisualTexture.load_texture(texture_path)
         self.tracingVisualTraces.load_model(model_path)
 
 
