@@ -1,3 +1,4 @@
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -8,6 +9,7 @@ from mesh_visualizer import MeshVisualizer
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QModelIndex
 from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
+from PyQt6.QtWidgets import QFileDialog
 
 from tracing.color import Color
 from tracing.config import TracerConfig
@@ -20,6 +22,7 @@ ROOT_DIR: Path = Path(__file__).parent.parent
 class App(QtWidgets.QMainWindow, Ui_MainWindow):
     MODELS_DIR: Path = ROOT_DIR / "assets" / "models"
     TEXTURES_DIR: Path = ROOT_DIR / "assets" / "textures"
+    OUTPUT_DIR: Path = ROOT_DIR / "output"
     PALETTE: tuple[Color, ...] = (
         (0, 255, 0),
         (255, 255, 0),
@@ -65,6 +68,9 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.genAIGenerate.clicked.connect(self.generate_texture)
         self.genAIResults.clicked.connect(self.select_gen_ai_result)
 
+        self.genAISaveAs.clicked.connect(self.prompt_save_texture)
+        self.genAIToTracing.clicked.connect(self.pass_texture_to_tracing)
+
     def setup_tracing(self):
         for model_path in self.list_models():
             name: str = str(model_path.relative_to(self.MODELS_DIR))
@@ -99,6 +105,9 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracingVisualTracesAzimuth.valueChanged.connect(
             traces_visualizer.set_azimuth
         )
+
+        self.tracingSaveAs.clicked.connect(self.prompt_save_traces)
+        self.tracingToRobot.clicked.connect(self.pass_traces_to_robot)
 
     def setup_robot(self):
         pass
@@ -159,6 +168,23 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         print(f"Selected {path}")
         self.genAIVisual.load_texture(path)
 
+    def prompt_save_texture(self):
+        index: QModelIndex = self.genAIResults.currentIndex()
+        item: Optional[QStandardItem] = self.gen_ai_result_model.itemFromIndex(index)
+        if item is None:
+            return
+        texture_path: Path = item.data()
+        save_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save generated texture",
+            str(self.TEXTURES_DIR),
+            "Images (*.png *.jpg)",
+        )
+        shutil.copy(texture_path, save_path)
+
+    def pass_texture_to_tracing(self):
+        pass
+
     def update_tracing_progress(self, current: int, maximum: int, label: str):
         self.tracingProgressLabel.setText(label)
         self.tracingProgress.setMaximum(maximum)
@@ -176,6 +202,15 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracingVisualTexture.load_model(model_path)
         self.tracingVisualTexture.load_texture(texture_path)
         self.tracingVisualTraces.load_model(model_path)
+
+    def prompt_save_traces(self):
+        save_path, _ = QFileDialog.getSaveFileName(
+            self, "Save traces", str(self.OUTPUT_DIR), "Traces (*.json)"
+        )
+        shutil.copy(self.traces_path, save_path)
+
+    def pass_traces_to_robot(self):
+        pass
 
 
 def main():
