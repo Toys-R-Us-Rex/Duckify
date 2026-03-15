@@ -158,32 +158,49 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.genAIResults.setModel(model)
         self.genAIVisual.load_model(self.genAIModel.currentData())
-
-    def select_gen_ai_result(self):
+    
+    def get_selected_genai_texture(self) -> Optional[Path]:
         index: QModelIndex = self.genAIResults.currentIndex()
         item: Optional[QStandardItem] = self.gen_ai_result_model.itemFromIndex(index)
         if item is None:
+            return None
+        return item.data()
+
+    def select_gen_ai_result(self):
+        path: Optional[Path] = self.get_selected_genai_texture()
+        if path is None:
             return
-        path: Path = item.data()
         print(f"Selected {path}")
         self.genAIVisual.load_texture(path)
 
     def prompt_save_texture(self):
-        index: QModelIndex = self.genAIResults.currentIndex()
-        item: Optional[QStandardItem] = self.gen_ai_result_model.itemFromIndex(index)
-        if item is None:
+        texture_path: Optional[Path] = self.get_selected_genai_texture()
+        if texture_path is None:
             return
-        texture_path: Path = item.data()
         save_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save generated texture",
             str(self.TEXTURES_DIR),
             "Images (*.png *.jpg)",
         )
+        if save_path.strip() == "":
+            return
         shutil.copy(texture_path, save_path)
 
     def pass_texture_to_tracing(self):
-        pass
+        model_path: Path = self.genAIModel.currentData()
+        texture_path: Optional[Path] = self.get_selected_genai_texture()
+        if texture_path is None:
+            return
+        
+        model_name: str = str(model_path.relative_to(self.MODELS_DIR))
+        self.tracingModel.addItem(model_name, model_path)
+        self.tracingModel.setCurrentIndex(self.tracingModel.count() - 1)
+        
+        self.tracingTexture.addItem("Generated texture", texture_path)
+        self.tracingTexture.setCurrentIndex(self.tracingTexture.count() - 1)
+        
+        self.steps.setCurrentWidget(self.tabTracing)
 
     def update_tracing_progress(self, current: int, maximum: int, label: str):
         self.tracingProgressLabel.setText(label)
@@ -207,6 +224,8 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         save_path, _ = QFileDialog.getSaveFileName(
             self, "Save traces", str(self.OUTPUT_DIR), "Traces (*.json)"
         )
+        if save_path.strip() == "":
+            return
         shutil.copy(self.traces_path, save_path)
 
     def pass_traces_to_robot(self):
