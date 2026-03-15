@@ -10,6 +10,7 @@ from tracing.color import Color
 from tracing.config import TracerConfig
 from tracing.stats import TracingStats
 from tracing.tracer import Tracer
+from mesh_visualizer import MeshVisualizer
 
 ROOT_DIR: Path = Path(__file__).parent.parent
 
@@ -43,6 +44,14 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         for model_path in self.list_models():
             name: str = str(model_path.relative_to(self.MODELS_DIR))
             self.genAIModel.addItem(name, model_path)
+        
+        # Result visualizer
+        result_visualizer: MeshVisualizer = MeshVisualizer(self)
+        self.genAIVisualizerGroup.layout().replaceWidget(self.genAIVisual, result_visualizer) # type: ignore
+        self.genAIVisual.deleteLater()
+        self.genAIVisual = result_visualizer
+        self.genAIVisualAltitude.valueChanged.connect(result_visualizer.set_altitude)
+        self.genAIVisualAzimuth.valueChanged.connect(result_visualizer.set_azimuth)
 
         self.genAIGenerate.clicked.connect(self.generate_texture)
         self.genAIResults.clicked.connect(self.select_gen_ai_result)
@@ -57,6 +66,22 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tracingTexture.addItem(name, texture_path)
 
         self.tracingTrace.clicked.connect(self.start_tracing)
+        
+        # Texture visualizer
+        texture_visualizer: MeshVisualizer = MeshVisualizer(self)
+        self.tabTexture.layout().replaceWidget(self.tracingVisualTexture, texture_visualizer) # type: ignore
+        self.tracingVisualTexture.deleteLater()
+        self.tracingVisualTexture = texture_visualizer
+        self.tracingVisualTextureAltitude.valueChanged.connect(texture_visualizer.set_altitude)
+        self.tracingVisualTextureAzimuth.valueChanged.connect(texture_visualizer.set_azimuth)
+        
+        # Traces visualizer
+        traces_visualizer: MeshVisualizer = MeshVisualizer(self)
+        self.tabTraces.layout().replaceWidget(self.tracingVisualTraces, traces_visualizer) # type: ignore
+        self.tracingVisualTraces.deleteLater()
+        self.tracingVisualTraces = traces_visualizer
+        self.tracingVisualTracesAltitude.valueChanged.connect(traces_visualizer.set_altitude)
+        self.tracingVisualTracesAzimuth.valueChanged.connect(traces_visualizer.set_azimuth)
 
     def setup_robot(self):
         pass
@@ -70,6 +95,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
     def generate_texture(self):
         self.set_texture_results(list(self.TEXTURES_DIR.iterdir()))
         print("Generating texture")
+        # TODO: Call GenAI endpoint
 
     def start_tracing(self):
         print("Starting tracing")
@@ -88,6 +114,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         tracer.export_traces(self.traces_path, force=True)
         
         self.set_tracing_stats(stats)
+        self.show_tracing_result(model_path, texture_path, self.traces_path)
     
     def set_texture_results(self, results: list[Path]):
         model: QStandardItemModel = self.gen_ai_result_model
@@ -98,10 +125,12 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
             model.appendRow(item)
         
         self.genAIResults.setModel(model)
+        self.genAIVisual.load_model(self.genAIModel.currentData())
     
     def select_gen_ai_result(self, item: QStandardItem):
         path: Path = item.data()
         print(f"Selected {path}")
+        # TODO: Show in 3D visualization
     
     def update_tracing_progress(self, current: int, maximum: int, label: str):
         self.tracingProgressLabel.setText(label)
@@ -113,6 +142,10 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracingStat2DTraces.setText(str(stats.n_2d_traces))
         self.tracingStat3DTraces.setText(str(stats.n_3d_traces))
         self.tracingStatPoints.setText(str(stats.n_points))
+    
+    def show_tracing_result(self, model_path: Path, texture_path: Path, traces_path: Path):
+        self.tracingVisualTexture.load_model(model_path)
+        self.tracingVisualTraces.load_model(model_path)
 
 
 def main():
