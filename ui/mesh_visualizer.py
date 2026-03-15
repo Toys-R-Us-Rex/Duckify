@@ -9,8 +9,17 @@ from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from trimesh import Trimesh
 from trimesh.visual import TextureVisuals
 
+GlColor = tuple[float, float, float, float]
 
 class MeshVisualizer(QOpenGLWidget):
+    BACKGROUND_COLOR: GlColor = (0.12, 0.12, 0.14, 1.0)
+    LIGHT_COLOR: GlColor = (0.9, 0.9, 0.9, 1.0)
+    AMBIENT_COLOR: GlColor = (0.3, 0.3, 0.3, 1.0)
+    FOV: float = 45.0
+    LIMIT_NEAR: float = 0.1
+    LIMIT_FAR: float = 10.0
+    ZOOM: float = 3.0
+    
     def __init__(self, parent) -> None:
         QOpenGLWidget.__init__(self, parent)
 
@@ -121,16 +130,19 @@ class MeshVisualizer(QOpenGLWidget):
         self.update()
 
     def paintGL(self) -> None:
-        glClearColor(0.12, 0.12, 0.14, 1.0)
+        glClearColor(*self.BACKGROUND_COLOR)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # type: ignore
 
         if not self.mesh_loaded:
             return
 
         glLoadIdentity()
-        glTranslatef(0.0, 0.0, -3.0)
-        glRotatef(self.altitude, 1.0, 0.0, 0.0)
-        glRotatef(self.azimuth, 0.0, 1.0, 0.0)
+        glTranslatef(0.0, 0.0, -self.ZOOM)
+        # Correct axes: X+ out of the screen, Z+ up
+        glRotatef(-90.0, 0.0, 1.0, 0.0)
+        glRotatef(-90.0, 1.0, 0.0, 0.0)
+        glRotatef(self.altitude, 0.0, 1.0, 0.0)
+        glRotatef(-self.azimuth, 0.0, 0.0, 1.0)
         
         if self.has_texture and self.texture_loaded:
             glEnable(GL_TEXTURE_2D)
@@ -146,7 +158,7 @@ class MeshVisualizer(QOpenGLWidget):
 
     def initializeGL(self):
         glClearDepth(1.0)
-        glClearColor(0.12, 0.12, 0.14, 1.0)
+        glClearColor(*self.BACKGROUND_COLOR)
         glDepthFunc(GL_LESS)
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_LIGHTING)
@@ -158,17 +170,17 @@ class MeshVisualizer(QOpenGLWidget):
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
 
         glLightfv(GL_LIGHT0, GL_POSITION, [2.0, 4.0, 3.0, 1.0])
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, [0.9, 0.9, 0.9, 1.0])
-        glLightfv(GL_LIGHT0, GL_AMBIENT, [0.15, 0.15, 0.15, 1.0])
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, self.LIGHT_COLOR)
+        glLightfv(GL_LIGHT0, GL_AMBIENT, self.AMBIENT_COLOR)
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(45.0, 4 / 3, 0.1, 100.0)
+        gluPerspective(self.FOV, 4 / 3, self.LIMIT_NEAR, self.LIMIT_FAR)
         glMatrixMode(GL_MODELVIEW)
 
     def resizeGL(self, w: int, h: int):
         glViewport(0, 0, w, h)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(45.0, w / max(h, 1), 0.1, 100.0)
+        gluPerspective(self.FOV, w / max(h, 1), self.LIMIT_NEAR, self.LIMIT_FAR)
         glMatrixMode(GL_MODELVIEW)
