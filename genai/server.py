@@ -7,16 +7,16 @@ from pathlib import Path
 from flask import Flask, request, send_file, jsonify
 from dotenv import load_dotenv
 
-from .models import MVAdapaterModel
+from models import MVAdapaterModel
 
 load_dotenv()
 
 app = Flask(__name__)
 
-MV_ADAPTER_DIR = Path(os.environ.get("MV_ADAPTER_PATH",""))
+MV_ADAPTER_DIR = Path("/home/kevin.voisin/Duckify/genai/MV-Adapter" ) # Chemin vers le dossier MV-Adapter
 
 if not MV_ADAPTER_DIR.exists():
-    raise ValueError(f"Le dossier MV-Adapter est introuvable : {MV_ADAPTER_DIR}")
+        raise ValueError(f"Le dossier MV-Adapter est introuvable : {MV_ADAPTER_DIR}")
 
 JOBS_DIR = Path("jobs_temp")
 JOBS_DIR.mkdir(exist_ok=True)
