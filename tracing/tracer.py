@@ -31,6 +31,7 @@ class Tracer:
             config: TracerConfig,
             texture_path: Path,
             model_path: Path,
+            mask_path: Path,
             palette: tuple[Color, ...],
             ignored_color: Color
     ):
@@ -39,12 +40,14 @@ class Tracer:
 
         self.texture_path: Path = texture_path
         self.model_path: Path = model_path
+        self.mask_path: Path = mask_path
         self.palette: tuple[Color, ...] = palette
         self.ignored_color: Color = ignored_color
 
         self.texture: Optional[Image.Image] = None
         self.paletted_texture: Optional[Image.Image] = None
         self.model: Optional[Trimesh] = None
+        self.mask: Optional[Image.Image] = None
         self.layers: list[Image.Image] = []
 
         self.islands: list[Island] = []
@@ -67,6 +70,7 @@ class Tracer:
         # 1. Load assets
         self.texture = self.load_texture(self.texture_path)
         self.model = self.load_model(self.model_path)
+        self.mask = self.load_mask(self.mask_path)
 
         if not self.mesh_has_uv_map(self.model):
             self.logger.error("Missing mesh UV coordinates")
@@ -179,6 +183,24 @@ class Tracer:
             mesh.show(resolution = (800,600))
 
         return mesh
+
+    def load_mask(self, path: Path) -> Image.Image:
+        """Load mask from file path
+
+        Args:
+            path (Path): path of the mask file to load
+
+        Returns:
+            Image.Image: mask loaded
+        """
+        self.logger.info(f"Loading mask {path}")
+
+        if not os.path.exists(path):
+            self.logger.error(f"The file {path} does not exist")
+            raise FileNotFoundError(f"The file {path} does not exist")
+    
+        im = Image.open(path).convert("1")
+        return im.resize(self.config.image_size)
 
     # https://stackoverflow.com/questions/29433243/
     def palettize_texture(self, img: Image.Image, palette: tuple[Color, ...], ignored_color: Color) -> Image.Image:
