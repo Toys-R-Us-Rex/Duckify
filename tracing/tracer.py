@@ -78,6 +78,7 @@ class Tracer:
 
         # 2. Quantize and split colors
         self.texture = self.mask_outside_UV_texture(self.texture, self.model)
+        self.texture = self.mask_unreachable(self.texture, self.mask)
         self.paletted_texture = self.palettize_texture(self.texture, self.palette, self.ignored_color)
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
@@ -822,3 +823,18 @@ class Tracer:
             cv2.waitKey(-1)
         
         return Image.fromarray(masked_texture)
+
+    def mask_unreachable(self, texture: Image.Image, mask: Image.Image) -> Image.Image:
+        """Applies the binary mask to the given texture
+
+        Args:
+            texture (Image.Image): the texture to mask
+            mask (Image.Image): the binary mask to apply. White pixels are kept, black ones are set to black
+
+        Returns:
+            Image.Image: the masked texture
+        """
+        texture_arr: np.ndarray = np.array(texture)
+        mask_arr: np.ndarray = cv2.cvtColor(np.array(mask, dtype=np.uint8), cv2.COLOR_GRAY2RGB)
+        masked: np.ndarray = texture_arr * mask_arr
+        return Image.fromarray(masked)
