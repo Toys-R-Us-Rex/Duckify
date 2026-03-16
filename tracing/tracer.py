@@ -383,9 +383,9 @@ class Tracer:
                     traces.append(trace)
         return traces
     
-    def export_traces(self, output_path: Path):
+    def export_traces(self, output_path: Path, force: bool = False):
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        if output_path.exists():
+        if output_path.exists() and not force:
             choice = input(f"File {output_path} already exists. Overwrite ? N/y")
             if choice.lower().strip() != "y":
                 return
