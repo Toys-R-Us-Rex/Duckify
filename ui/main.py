@@ -25,11 +25,6 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
     MODELS_DIR: Path = ROOT_DIR / "assets" / "models"
     TEXTURES_DIR: Path = ROOT_DIR / "assets" / "textures"
     OUTPUT_DIR: Path = ROOT_DIR / "output"
-    PALETTE: tuple[Color, ...] = (
-        (0, 255, 0),
-        (255, 255, 0),
-        (255, 255, 255),
-    )
     IGNORED_COLOR: Color = (0, 0, 0)
 
     def __init__(self) -> None:
@@ -144,6 +139,8 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def start_tracing(self):
         print("Starting tracing")
+        
+        settings: Settings = self.settings_manager.load()
 
         model_path: Path = self.tracingModel.currentData()
         texture_path: Path = self.tracingTexture.currentData()
@@ -151,9 +148,11 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         config: TracerConfig = TracerConfig(
             enable_fill_slicing=self.tracingEnableFill.isChecked()
         )
+        
+        palette: list[Color] = settings.tracing.palette
 
         tracer: Tracer = Tracer(
-            config, texture_path, model_path, self.PALETTE, self.IGNORED_COLOR
+            config, texture_path, model_path, tuple(palette), self.IGNORED_COLOR
         )
         stats: TracingStats = tracer.compute_traces(
             progress_callback=self.update_tracing_progress
