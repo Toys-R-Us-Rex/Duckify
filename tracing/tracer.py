@@ -129,7 +129,8 @@ class Tracer:
                 cv2.polylines(img, [pts], True, col)
 
         if self.config.debug:
-            cv2.imshow("Segments", img)
+            cv2.imshow("Segments", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+            cv2.waitKey(-1)
             clouds = []
             segments = []
             for trace in self.traces_3d:
@@ -231,8 +232,8 @@ class Tracer:
         output_img = Image.fromarray(output_arr.astype(np.uint8), "RGB")
 
         if self.config.debug:
-            cv2.imshow("input texture image", c_img_arr[..., ::-1])
-            cv2.imshow("palettized texture image", output_arr[..., ::-1])
+            cv2.imshow("input texture image", cv2.cvtColor(c_img_arr, cv2.COLOR_RGB2BGR))
+            cv2.imshow("palettized texture image", cv2.cvtColor(output_arr, cv2.COLOR_RGB2BGR))
             
         return output_img
 
@@ -816,7 +817,7 @@ class Tracer:
             cv2.resizeWindow('Mask', 600, 600)
 
             cv2.namedWindow('Masked texture', cv2.WINDOW_KEEPRATIO)
-            cv2.imshow('Masked texture', masked_texture)
+            cv2.imshow('Masked texture', cv2.cvtColor(masked_texture, cv2.COLOR_RGB2BGR))
             cv2.resizeWindow('Masked texture', 600, 600)
             cv2.waitKey(-1)
         
