@@ -29,20 +29,18 @@ NEG_PROMPT="realistic, gradients, 3D shading, glossy,shiny, background, complex 
 
 PROMPT="A cartoon styled batman duck with a batman logo on the side"
 
-cd /home/kevin.voisin/MV-Adapter/ # Change to the directory where your MV-adapter folder is located
-mkdir -p logs
-mkdir -p "$OUTPUT_DIR"
+cd /home/kevin.voisin/genai/MV-Adapter/
+mkdir -p "$MV_OUTPUT_DIR"
 
-echo "--- Démarrage ---"
-SAVE_NAME="duckify_$(date '+%Y-%m-%d-%H-%M-%S')"
+echo "Lancement de MV-Adapter..."
 
+# On utilise les variables fournies par Python
 python -m scripts.texture_t2tex \
-            --mesh "$MESH_PATH" \
-            --text "$PROMPT" \
-            --negative_text "$NEG_PROMPT" \
-            --save_dir "$OUTPUT_DIR" \
-            --save_name "$SAVE_NAME" \
-            --num_inference_steps "30.0" \
-            --guidance_scale "6.0"
+    --mesh "$MV_MESH_PATH" \
+    --text "$MV_PROMPT" \
+    --save_dir "$MV_OUTPUT_DIR" \
+    --save_name "$MV_SAVE_NAME" \
+    --num_inference_steps "$MV_STEPS" \
+    --guidance_scale "$MV_GUIDANCE"
 
-echo "--- Processus terminé ---"
+echo "Terminé !"
