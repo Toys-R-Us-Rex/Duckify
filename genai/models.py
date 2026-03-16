@@ -53,7 +53,7 @@ class MVAdapaterModel:
                 text=True,
                 check=True
             )
-            print(f"✅ Job soumis : {result.stdout.strip()}")
+            print(f"Job soumis : {result.stdout.strip()}")
             
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Error : {e.stderr}")

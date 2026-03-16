@@ -8,6 +8,7 @@ SSH_HOST = 'disco.hevs.ch'
 SSH_USER = 'kevin.voisin'
 SSH_KEY_PATH = os.path.expanduser('~/.ssh/wireguard_key')
 
+
 def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt_wrapper=None,steps=30, guidance=6.0):
     print("Connexion SSH...")
     try:
@@ -40,8 +41,7 @@ def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(extract_path)
                 
-            mesh_dir = os.path.join(extract_path, 'experiment_api', 'mesh')
-            full_mesh_dir_path = os.path.abspath(mesh_dir)
+            full_mesh_dir_path = os.path.abspath(extract_path)
             
             abs_mesh_path = None
             files_in_mesh = []
