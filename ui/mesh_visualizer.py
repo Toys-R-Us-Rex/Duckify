@@ -1,17 +1,52 @@
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 import trimesh
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from PIL import Image
+from PyQt6.QtCore import QTimer
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+from PyQt6.QtWidgets import QWidget
 from trimesh import Trimesh
 from trimesh.visual import TextureVisuals
 
 GlColor = tuple[float, float, float, float]
+
+
+class Animation(QWidget):
+    COOLDOWN_MS: int = 3000
+    FRAME_RATE_MS: int = 50
+    
+    def __init__(self, callback: Callable[[int], None]) -> None:
+        super().__init__()
+        self.frame: int = 0
+        self.callback: Callable[[int], None] = callback
+        
+        self.cooldown_timer: QTimer = QTimer(self)
+        self.cooldown_timer.setSingleShot(True)
+        self.cooldown_timer.timeout.connect(self.on_cooldown_finished)
+        
+        self.animation_timer: QTimer = QTimer(self)
+        self.animation_timer.setInterval(self.FRAME_RATE_MS)
+        self.animation_timer.timeout.connect(self.update_animation)
+        
+        self.reset_cooldown()
+    
+    def on_cooldown_finished(self):
+        self.animation_timer.start()
+    
+    def update_animation(self):
+        self.callback(self.frame)
+        self.frame += 1
+    
+    def reset_cooldown(self):
+        self.animation_timer.stop()
+        self.frame = 0
+        self.cooldown_timer.start(self.COOLDOWN_MS)
+
 
 class MeshVisualizer(QOpenGLWidget):
     BACKGROUND_COLOR: GlColor = (0.12, 0.12, 0.14, 1.0)
@@ -47,14 +82,23 @@ class MeshVisualizer(QOpenGLWidget):
         self.vbo = None
         self.ebo = None
         self.num_indices: int = 0
+        
+        self.animation: Animation = Animation(self.rotate)
+    
+    def rotate(self, frame: int):
+        self.azimuth += 1
+        self.azimuth %= 360
+        self.update()
 
     def set_altitude(self, altitude: float):
         self.altitude = altitude
         self.update()
+        self.animation.reset_cooldown()
 
     def set_azimuth(self, azimuth: float):
         self.azimuth = azimuth
         self.update()
+        self.animation.reset_cooldown()
 
     def load_model(self, path: Path):
         if not self._initialized:
