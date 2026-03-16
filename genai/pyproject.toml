@@ -1,0 +1,16 @@
+[project]
+name = "genai"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.13"
+dependencies = [
+    "cryptography>=42.0.0",
+    "docker>=7.1.0",
+    "matplotlib>=3.10.8",
+    "paramiko<3.4.0", 
+    "pathlib>=1.0.1",
+    "sshtunnel>=0.4.0",
+    "python-dotenv>=1.2.1",
+    "dotenv>=0.9.9",
+    "flask>=3.1.3",
+]
