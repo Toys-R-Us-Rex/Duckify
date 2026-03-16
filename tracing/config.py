@@ -32,5 +32,5 @@ class TracerConfig:
     image_size: tuple[int,int] = (800,800)
     """Size format for the loaded texture image"""
 
-    surface_treshold :float = 0.005
+    surface_treshold :int = 100 # TODO valeur à adapter dynamiquement plus tard ?
     """Island's surface as treshold to block too small one's"""
