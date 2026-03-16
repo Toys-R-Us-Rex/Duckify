@@ -22,7 +22,7 @@
       </property>
       <widget class="QWidget" name="tabGenAI">
        <attribute name="title">
-        <string>GenAI</string>
+        <string>&amp;GenAI</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
@@ -188,7 +188,7 @@
       </widget>
       <widget class="QWidget" name="tabTracing">
        <attribute name="title">
-        <string>Tracing</string>
+        <string>&amp;Tracing</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
@@ -509,7 +509,7 @@
       </widget>
       <widget class="QWidget" name="tabRobot">
        <attribute name="title">
-        <string>Robot</string>
+        <string>&amp;Robot</string>
        </attribute>
       </widget>
      </widget>
@@ -527,7 +527,7 @@
    </property>
    <widget class="QMenu" name="menuSettings">
     <property name="title">
-     <string>File</string>
+     <string>&amp;File</string>
     </property>
     <addaction name="actionSettings"/>
     <addaction name="actionQuit"/>
@@ -537,12 +537,15 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionSettings">
    <property name="text">
-    <string>Settings</string>
+    <string>&amp;Settings</string>
    </property>
   </action>
   <action name="actionQuit">
    <property name="text">
-    <string>Quit</string>
+    <string>&amp;Quit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
  </widget>
