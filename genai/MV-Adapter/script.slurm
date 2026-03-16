@@ -22,13 +22,6 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export PYTORCH_CUDA_LIB=$CONDA_PREFIX/lib/python3.10/site-packages/nvidia/cuda_runtime/lib
 export HF_TOKEN="hf_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" # Your Hugging Face token here
 
-MESH_PATH="3d_models/official_model_1.glb"
-OUTPUT_DIR="outputs/model_output_$(date '+%Y-%m-%d-%H-%M-%S')"
-
-NEG_PROMPT="realistic, gradients, 3D shading, glossy,shiny, background, complex patterns, thin lines, messy, yellow, purple, orange, pink, gray, brown, ugly, deformed, blurry, bad anatomy"
-
-PROMPT="A cartoon styled batman duck with a batman logo on the side"
-
 cd /home/kevin.voisin/genai/MV-Adapter/ # Change to the directory where the script is located
 mkdir -p "$MV_OUTPUT_DIR"
 
