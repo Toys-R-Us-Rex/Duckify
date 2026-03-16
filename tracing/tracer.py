@@ -325,11 +325,18 @@ class Tracer:
                 hierarchies.append(hierarch)
         
         islands: list[Island] = []
+        surface_treshold = 0.005
 
         # border simple
         for h in hierarchies:
             if not h.has_parent and not h.has_child:
                 polygon_uv = self.texture_to_uv(h.polygon, (layer.shape[1], layer.shape[0]))
+                polygon = Polygon(polygon_uv)
+                if shapely.area(polygon) < surface_treshold:
+                    if self.config.debug:
+                        print(f"Le polygone {polygon} a été écarté, car sa surface est trop faible")
+                        print(f"La surface de cet îlot est :{shapely.area(polygon)}")
+                    continue
                 islands.append(Island(color=color, outer_border=polygon_uv))
 
        # multi-border (outer+inner)
@@ -343,11 +350,18 @@ class Tracer:
                 for h in hierarchies
                 if h.parent == parent.index
             ]
-            islands.append(Island(
-                color=color,
-                outer_border=outer,
-                inner_borders=inner_borders
-            ))
+            polygon = Polygon(outer, inner_borders)
+            if shapely.area(polygon) < surface_treshold:
+                if self.config.debug:
+                    print(f"Le polygone {polygon} a été écarté, car sa surface est trop faible")
+                    print(f"La surface de cet îlot est :{shapely.area(polygon)}")
+                continue
+            else :
+                islands.append(Island(
+                    color=color,
+                    outer_border=outer,
+                    inner_borders=inner_borders
+                ))
 
         return islands
     
@@ -399,6 +413,8 @@ class Tracer:
         ]  # type: ignore
 
         if self.config.debug:
+            print(f"L'îlot : {polygon} est en cours d'affichage")
+            print(f"La surface de cet îlot est :{shapely.area(polygon)}")
             fig, ax = plt.subplots()
             plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
             for fill_line in fill_lines:
