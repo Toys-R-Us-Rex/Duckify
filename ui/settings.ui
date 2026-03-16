@@ -155,7 +155,7 @@
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_6">
               <item>
-               <widget class="QListView" name="tracingPalette">
+               <widget class="QListWidget" name="tracingPalette">
                 <property name="dragDropMode">
                  <enum>QAbstractItemView::InternalMove</enum>
                 </property>
