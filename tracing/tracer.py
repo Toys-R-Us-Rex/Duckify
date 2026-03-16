@@ -235,6 +235,9 @@ class Tracer:
         if self.config.debug:
             cv2.imshow("input texture image", cv2.cvtColor(c_img_arr, cv2.COLOR_RGB2BGR))
             cv2.imshow("palettized texture image", cv2.cvtColor(output_arr, cv2.COLOR_RGB2BGR))
+            cv2.waitKey(-1)
+            cv2.destroyAllWindows()
+
             
         return output_img
 
@@ -263,6 +266,8 @@ class Tracer:
 
             if self.config.debug:
                 cv2.imshow(f"splitted color image {color}", np.array(mask_img))
+                cv2.waitKey(-1)
+                cv2.destroyAllWindows()
 
         return images
 
@@ -283,34 +288,35 @@ class Tracer:
         contours, hierarchy = cv2.findContours(layer, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
         self.logger.debug(f"Found {len(contours)} contours")
 
-        contours_cleaned: list[np.ndarray] = []
-        contours_too_small: list[np.ndarray] = []
+        pipo: list[tuple[np.ndarray, np.ndarray]] = list(zip(contours, hierarchy[0]))
+
+        contours_cleaned: list[tuple[np.ndarray, np.ndarray, int]] = []
+        contours_too_small: list[tuple[np.ndarray, np.ndarray]] = []
         # tri des contours "trop petits"
-        for contour in contours:
-            if cv2.contourArea(contour) < 200:
-                contours_too_small.append(contour)
+        for idx, (contour, hierarchy) in enumerate(pipo):
+            if cv2.contourArea(contour) < self.config.surface_treshold:
+                contours_too_small.append((contour, hierarchy))
             else:
-                contours_cleaned.append(contour)
+                contours_cleaned.append((contour, hierarchy, idx))
+        
+
 
         if self.config.debug:
-            print("\nLa hiérarchie de l'image :\n", hierarchy)
-            
             cv2.imshow('Islands in the layer', layer)
             with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
             cv2.drawContours(with_contours, contours, -1, (0, 255, 0), 2)
             cv2.imshow("All detected contour", with_contours)
             
-
             with_contours_cleaned = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
-            cv2.drawContours(with_contours_cleaned, contours_cleaned, -1, (0, 255, 0), 2)
-            cv2.drawContours(with_contours_cleaned, contours_too_small, -1, (0, 0, 255), 2)
+            cv2.drawContours(with_contours_cleaned, list(zip(*contours_cleaned))[0], -1, (0, 255, 0), 2)
+            cv2.drawContours(with_contours_cleaned, list(zip(*contours_too_small))[0], -1, (0, 0, 255), 2)
             cv2.imshow("Cleaned contours", with_contours_cleaned)
             cv2.waitKey(-1)
-
+            cv2.destroyAllWindows()
         # gérer la hierarchie : https://learnopencv.com/contour-detection-using-opencv-python-c/
         hierarchies: list[Hierarchy] = []
         if hierarchy is not None:
-            for idx, (contour, values) in enumerate(zip(contours_cleaned, hierarchy[0])):
+            for contour, values, idx in contours_cleaned:
                 if contour.shape[0] < 4:
                     if self.config.debug:
                         self.logger.debug(f"The island with contour : {contour} has been dismissed, because it's too small")
@@ -331,14 +337,7 @@ class Tracer:
         for h in hierarchies:
             if not h.has_parent and not h.has_child:
                 polygon_uv = self.texture_to_uv(h.polygon, (layer.shape[1], layer.shape[0]))
-                polygon = Polygon(polygon_uv)
-                if shapely.area(polygon) < self.config.surface_treshold:
-                    if self.config.debug:
-                        self.logger.debug(f"Polygon {polygon} has been dismissed because it's surface was too small")
-                        self.logger.debug(f"It's surface is :{shapely.area(polygon)}")
-                    continue
-                else:
-                    islands.append(Island(color=color, outer_border=polygon_uv))
+                islands.append(Island(color=color, outer_border=polygon_uv))
 
        # multi-border (outer+inner)
         parents = {h.index: h for h in hierarchies 
@@ -351,18 +350,11 @@ class Tracer:
                 for h in hierarchies
                 if h.parent == parent.index
             ]
-            polygon = Polygon(outer, inner_borders)
-            if shapely.area(polygon) < self.config.surface_treshold:
-                if self.config.debug:
-                    self.logger.debug(f"Polygon {polygon} has been dismissed because it's surface was too small")
-                    self.logger.debug(f"It's surface is :{shapely.area(polygon)}")
-                continue
-            else :
-                islands.append(Island(
-                    color=color,
-                    outer_border=outer,
-                    inner_borders=inner_borders
-                ))
+            islands.append(Island(
+                color=color,
+                outer_border=outer,
+                inner_borders=inner_borders
+            ))
 
         return islands
     
