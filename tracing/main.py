@@ -12,6 +12,7 @@ OUTPUT_DIR = PROJECT_DIR / "output"
 def main():
     texture_path: Path = ASSETS_DIR / "textures" / "duck_army.jpg"
     model_path: Path = ASSETS_DIR / "models" / "duck_uv.obj"
+    mask_path: Path = ASSETS_DIR / "textures" / "drawable_mask.png"
     texture_name: str = texture_path.stem
     model_name: str = model_path.stem
     output_path: Path = OUTPUT_DIR / f"{model_name}-{texture_name}-trace.json"
@@ -23,7 +24,7 @@ def main():
         enable_fill_slicing=False
     )
 
-    tracer: Tracer = Tracer(config, texture_path, model_path, palette, ignored_color)
+    tracer: Tracer = Tracer(config, texture_path, model_path, mask_path, palette, ignored_color)
     tracer.compute_traces()
     tracer.export_traces(output_path)
 
