@@ -42,7 +42,6 @@ def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt
                 
             mesh_dir = os.path.join(extract_path, 'experiment_api', 'mesh')
             full_mesh_dir_path = os.path.abspath(mesh_dir)
-            print(f"Chemin complet vers le dossier mesh : {full_mesh_dir_path}")
             
             abs_mesh_path = None
             files_in_mesh = []
@@ -57,5 +56,5 @@ def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt
         return abs_mesh_path, files_in_mesh
 
     except Exception as e:
-        print(f"Erreur globale SSH/Requête : {e}")
+        print(f"SSH Error : {e}")
         return None, []

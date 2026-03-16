@@ -29,7 +29,7 @@ NEG_PROMPT="realistic, gradients, 3D shading, glossy,shiny, background, complex 
 
 PROMPT="A cartoon styled batman duck with a batman logo on the side"
 
-cd /home/kevin.voisin/genai/MV-Adapter/
+cd /home/kevin.voisin/genai/MV-Adapter/ # Change to the directory where the script is located
 mkdir -p "$MV_OUTPUT_DIR"
 
 echo "Lancement de MV-Adapter..."
