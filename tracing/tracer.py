@@ -310,6 +310,10 @@ class Tracer:
         hierarchies: list[Hierarchy] = []
         if hierarchy is not None:
             for idx, (contour, values) in enumerate(zip(contours_cleaned, hierarchy[0])):
+                if contour.shape[0] < 4:
+                    if self.config.debug:
+                        print(f"L'îlot avec le contour : {contour} a été écarté, car trop petit")
+                    continue
                 hierarch: Hierarchy = Hierarchy (
                     index= idx,
                     next=int(values[0]),
@@ -703,6 +707,7 @@ class Tracer:
             np.ndarray: a polygon (Nx2)
         """
         return contour[:, 0, :]
+
 
     # https://stackoverflow.com/a/70664846/11109181
     def resample_polygon(self, xy: np.ndarray, n_points: int = 100, closed: bool = False) -> np.ndarray:
