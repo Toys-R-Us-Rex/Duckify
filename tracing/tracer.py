@@ -283,8 +283,8 @@ class Tracer:
         contours, hierarchy = cv2.findContours(layer, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
         self.logger.debug(f"Found {len(contours)} contours")
 
-        contours_cleaned: np.array = []
-        contours_too_small: np.array = []
+        contours_cleaned: list[np.ndarray] = []
+        contours_too_small: list[np.ndarray] = []
         # tri des contours "trop petits"
         for contour in contours:
             if cv2.contourArea(contour) < 200:
