@@ -15,7 +15,7 @@ class MVAdapaterModel:
         for d in ["3d_models", "outputs", "logs"]:
             (self.base_path / d).mkdir(parents=True, exist_ok=True)
 
-    def run(self, text_prompt: str, obj_file: Path, negative_prompt: str = "", prompt_wrapper: str = "", steps: int = 30, guidance: float = 6.0) -> Path:
+    def run(self, text_prompt: str, obj_file: Path, negative_prompt: str = "", prompt_wrapper: str = "", steps: int = 30, guidance: float = 6.0,HF_TOKEN="") -> Path:
         if not obj_file.exists():
             raise FileNotFoundError(f"Fichier 3D introuvable: {obj_file}")
 
@@ -41,6 +41,8 @@ class MVAdapaterModel:
         env["MV_SAVE_NAME"] = save_name
         env["MV_STEPS"] = str(steps)
         env["MV_GUIDANCE"] = str(guidance)
+        env["MV_NEGATIVE_PROMPT"] = negative_prompt
+        env["HF_TOKEN"] = HF_TOKEN
 
         print(f"Soumission du job SLURM pour la génération {run_id}...")
         

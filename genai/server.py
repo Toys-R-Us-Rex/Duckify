@@ -32,6 +32,7 @@ def generate_texture():
     prompt = request.form['prompt']
     negative_prompt = request.form.get('negative_prompt', '')
     prompt_wrapper = request.form.get('prompt_wrapper', '')
+    HF_TOKEN = request.form.get('HF_TOKEN', '')
     
     try:
         steps = int(request.form.get('steps', 30))
@@ -68,7 +69,8 @@ def generate_texture():
             negative_prompt=negative_prompt,
             prompt_wrapper=prompt_wrapper,
             steps=steps,
-            guidance=guidance
+            guidance=guidance,
+            HF_TOKEN=HF_TOKEN
         )
 
         print(f"[{job_id}] Génération SLURM terminée. Préparation du zip...")

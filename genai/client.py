@@ -9,7 +9,7 @@ SSH_USER = 'kevin.voisin'
 SSH_KEY_PATH = os.path.expanduser('~/.ssh/wireguard_key')
 
 
-def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt_wrapper=None,steps=30, guidance=6.0):
+def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt_wrapper=None,steps=30, guidance=6.0,HF_TOKEN=None):
     print("Connexion SSH...")
     try:
         with SSHTunnelForwarder(
@@ -24,7 +24,7 @@ def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt
 
             with open(fichier_obj, 'rb') as f:
                 files = {'file': f}
-                data = {'prompt': prompt, 'negative_prompt': negative_prompt, 'prompt_wrapper': prompt_wrapper, 'steps': steps, 'guidance': guidance}
+                data = {'prompt': prompt, 'negative_prompt': negative_prompt, 'prompt_wrapper': prompt_wrapper, 'steps': steps, 'guidance': guidance,"HF_TOKEN":HF_TOKEN}
                 response = requests.post(api_url, files=files, data=data)
 
             if response.status_code == 200:
