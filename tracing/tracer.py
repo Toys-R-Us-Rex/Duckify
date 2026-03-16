@@ -289,7 +289,8 @@ class Tracer:
         for contour in contours:
             if cv2.contourArea(contour) < 200:
                 contours_too_small.append(contour)
-            contours_cleaned.append(contour)
+            else:
+                contours_cleaned.append(contour)
 
         if self.config.debug:
             print("\nLa hiérarchie de l'image :\n", hierarchy)
@@ -312,7 +313,7 @@ class Tracer:
             for idx, (contour, values) in enumerate(zip(contours_cleaned, hierarchy[0])):
                 if contour.shape[0] < 4:
                     if self.config.debug:
-                        print(f"L'îlot avec le contour : {contour} a été écarté, car trop petit")
+                        self.logger.debug(f"The island with contour : {contour} has been dismissed, because it's too small")
                     continue
                 hierarch: Hierarchy = Hierarchy (
                     index= idx,
@@ -325,19 +326,19 @@ class Tracer:
                 hierarchies.append(hierarch)
         
         islands: list[Island] = []
-        surface_treshold = 0.005
 
         # border simple
         for h in hierarchies:
             if not h.has_parent and not h.has_child:
                 polygon_uv = self.texture_to_uv(h.polygon, (layer.shape[1], layer.shape[0]))
                 polygon = Polygon(polygon_uv)
-                if shapely.area(polygon) < surface_treshold:
+                if shapely.area(polygon) < self.config.surface_treshold:
                     if self.config.debug:
-                        print(f"Le polygone {polygon} a été écarté, car sa surface est trop faible")
-                        print(f"La surface de cet îlot est :{shapely.area(polygon)}")
+                        self.logger.debug(f"Polygon {polygon} has been dismissed because it's surface was too small")
+                        self.logger.debug(f"It's surface is :{shapely.area(polygon)}")
                     continue
-                islands.append(Island(color=color, outer_border=polygon_uv))
+                else:
+                    islands.append(Island(color=color, outer_border=polygon_uv))
 
        # multi-border (outer+inner)
         parents = {h.index: h for h in hierarchies 
@@ -351,10 +352,10 @@ class Tracer:
                 if h.parent == parent.index
             ]
             polygon = Polygon(outer, inner_borders)
-            if shapely.area(polygon) < surface_treshold:
+            if shapely.area(polygon) < self.config.surface_treshold:
                 if self.config.debug:
-                    print(f"Le polygone {polygon} a été écarté, car sa surface est trop faible")
-                    print(f"La surface de cet îlot est :{shapely.area(polygon)}")
+                    self.logger.debug(f"Polygon {polygon} has been dismissed because it's surface was too small")
+                    self.logger.debug(f"It's surface is :{shapely.area(polygon)}")
                 continue
             else :
                 islands.append(Island(
@@ -376,7 +377,6 @@ class Tracer:
             list[Trace2D]: List of 2D traces filling the island
         """
         self.logger.info(f"Computing fill slices for island : {island}")
-        self
         
         polygon = Polygon(island.outer_border, island.inner_borders)
 
