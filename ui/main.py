@@ -10,12 +10,13 @@ from PyQt6 import QtWidgets
 from PyQt6.QtCore import QModelIndex
 from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QFileDialog
+from settings import SettingsDialog
+from settings_manager import Settings, SettingsManager
 
 from tracing.color import Color
 from tracing.config import TracerConfig
 from tracing.stats import TracingStats
 from tracing.tracer import Tracer
-from settings import SettingsDialog
 
 ROOT_DIR: Path = Path(__file__).parent.parent
 
@@ -34,8 +35,11 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setupUi(self)
-        
+
         self.actionSettings.triggered.connect(self.open_settings)
+
+        self.settings_manager: SettingsManager = SettingsManager()
+        self.apply_settings(self.settings_manager.load())
 
         self.gen_ai_result_model: QStandardItemModel = QStandardItemModel(
             self.genAIResults
@@ -120,12 +124,16 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def list_textures(self) -> list[Path]:
         return list(self.TEXTURES_DIR.iterdir())
-    
+
+    def apply_settings(self, settings: Settings):
+        print(settings)
+        # TODO
+
     def open_settings(self):
-        dialog = SettingsDialog(self)
+        dialog = SettingsDialog(self.settings_manager.load(), parent=self)
         if dialog.exec() == dialog.DialogCode.Accepted:
-            print("Saving settings")
-            # TODO
+            self.settings_manager.save(dialog.get_settings())
+            self.apply_settings(self.settings_manager.load())
 
     def generate_texture(self):
         model_path: Path = self.genAIModel.currentData()
@@ -167,7 +175,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.genAIResults.setModel(model)
         self.genAIVisual.load_model(self.genAIModel.currentData())
-    
+
     def get_selected_genai_texture(self) -> Optional[Path]:
         index: QModelIndex = self.genAIResults.currentIndex()
         item: Optional[QStandardItem] = self.gen_ai_result_model.itemFromIndex(index)
@@ -201,14 +209,14 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         texture_path: Optional[Path] = self.get_selected_genai_texture()
         if texture_path is None:
             return
-        
+
         model_name: str = str(model_path.relative_to(self.MODELS_DIR))
         self.tracingModel.addItem(model_name, model_path)
         self.tracingModel.setCurrentIndex(self.tracingModel.count() - 1)
-        
+
         self.tracingTexture.addItem("Generated texture", texture_path)
         self.tracingTexture.setCurrentIndex(self.tracingTexture.count() - 1)
-        
+
         self.steps.setCurrentWidget(self.tabTracing)
 
     def update_tracing_progress(self, current: int, maximum: int, label: str):
