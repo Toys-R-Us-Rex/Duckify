@@ -73,11 +73,11 @@ Benchmark: Prompt respecté ?
   
 == Milestones
 
-- Correct the stability with skotch
+- Correct the stability with scotch
   - Pas réussi, car pas encore testé
 - Remove friction effect in pen support
   - Pas réussi, mais nouvelle solution imaginée
-  - Possibilité de skotcher les support des stylos
+  - Possibilité de scotcher les support des stylos
   - Ressort dans le support ?
 
   
@@ -87,7 +87,7 @@ Benchmark: Prompt respecté ?
 
 - Robot:
   - Meilleure planification de l'unification du code.
-  - Contrôle général: entre 2 trais ?
+  - Contrôle général: entre 2 traits ?
 - Optimisation vitesse de dessin
 
 == Chef de projet
