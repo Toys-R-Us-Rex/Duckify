@@ -219,6 +219,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracingVisualTexture.load_model(model_path)
         self.tracingVisualTexture.load_texture(texture_path)
         self.tracingVisualTraces.load_model(model_path)
+        self.tracingVisualTraces.load_traces(traces_path)
 
     def prompt_save_traces(self):
         save_path, _ = QFileDialog.getSaveFileName(

@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import numpy as np
@@ -23,10 +24,15 @@ class MeshVisualizer(QOpenGLWidget):
     def __init__(self, parent) -> None:
         QOpenGLWidget.__init__(self, parent)
 
+        self.offset: np.ndarray = np.array([0.0, 0.0, 0.0])
+        self.scale: float = 1.0
         self.mesh_loaded: bool = False
         self.has_texture: bool = False
         self.texture_loaded: bool = False
         self.texture_id: int = 0
+        self.traces_loaded: bool = False
+        self.trace_vbos: list[int] = []
+        self.trace_vertex_counts: list[int] = []
         self.altitude: float = 0.0
         self.azimuth: float = 0.0
         
@@ -52,10 +58,11 @@ class MeshVisualizer(QOpenGLWidget):
 
         mesh: Trimesh = trimesh.load_mesh(path)
 
-        mesh.vertices -= mesh.bounding_box.centroid
-        scale = np.max(np.linalg.norm(mesh.vertices, axis=1))
-        if scale > 0:
-            mesh.vertices /= scale
+        self.offset = mesh.bounding_box.centroid
+        mesh.vertices -= self.offset
+        self.scale = np.max(np.linalg.norm(mesh.vertices, axis=1))
+        if self.scale > 0:
+            mesh.vertices /= self.scale
 
         vertices = mesh.vertices.astype(np.float32)
         faces = mesh.faces.astype(np.uint32)
@@ -128,6 +135,35 @@ class MeshVisualizer(QOpenGLWidget):
         
         self.texture_loaded = True
         self.update()
+    
+    def load_traces(self, path: Path):
+        if self.mesh_loaded:
+            print("Loading traces but mesh is not loaded")
+
+        self.makeCurrent()
+        if self.traces_loaded:
+            glDeleteBuffers(len(self.trace_vbos), self.trace_vbos)
+
+        with open(path, "r") as f:
+            traces: list = json.load(f)["traces"]
+        
+        self.trace_vbos: list[int] = []
+        self.trace_vertex_counts: list[int] = []
+        for trace in traces:
+            pts: np.ndarray = np.array(trace["path"]).astype(np.float32)
+            pos = pts[:, 0]
+            pos -= self.offset
+            pos /= self.scale
+            vbo = glGenBuffers(1)
+            glBindBuffer(GL_ARRAY_BUFFER, vbo)
+            glBufferData(GL_ARRAY_BUFFER, pos.nbytes, pos, GL_STATIC_DRAW)
+            glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+            self.trace_vbos.append(vbo)
+            self.trace_vertex_counts.append(len(pos))
+
+        self.traces_loaded = True
+        self.update()
 
     def paintGL(self) -> None:
         glClearColor(*self.BACKGROUND_COLOR)
@@ -155,6 +191,8 @@ class MeshVisualizer(QOpenGLWidget):
         if self.has_texture and self.texture_loaded:
             glBindTexture(GL_TEXTURE_2D, 0)
             glDisable(GL_TEXTURE_2D)
+        
+        self._draw_paths()
 
     def initializeGL(self):
         glClearDepth(1.0)
@@ -184,3 +222,25 @@ class MeshVisualizer(QOpenGLWidget):
         glLoadIdentity()
         gluPerspective(self.FOV, w / max(h, 1), self.LIMIT_NEAR, self.LIMIT_FAR)
         glMatrixMode(GL_MODELVIEW)
+    
+    def _draw_paths(self):
+        if not self.traces_loaded:
+            return
+        glDisable(GL_LIGHTING)
+        glEnable(GL_LINE_SMOOTH)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glLineWidth(2.0)
+        glColor3f(1.0, 0.4, 0.0)
+
+        glEnableClientState(GL_VERTEX_ARRAY)
+        for vbo, count in zip(self.trace_vbos, self.trace_vertex_counts):
+            glBindBuffer(GL_ARRAY_BUFFER, vbo)
+            glVertexPointer(3, GL_FLOAT, 0, None)
+            glDrawArrays(GL_LINE_STRIP, 0, count)
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        glDisableClientState(GL_VERTEX_ARRAY)
+        glDisable(GL_LINE_SMOOTH)
+        glDisable(GL_BLEND)
+        glEnable(GL_LIGHTING)
