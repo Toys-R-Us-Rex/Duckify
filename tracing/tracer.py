@@ -13,7 +13,7 @@ import shapely
 import tqdm
 import trimesh
 from PIL import Image
-from shapely import LineString, MultiLineString, Polygon
+from shapely import LineString, MultiLineString, Polygon, GeometryCollection
 from shapely.plotting import plot_line, plot_points, plot_polygon
 from trimesh import Trimesh
 from trimesh.visual import TextureVisuals
@@ -402,7 +402,12 @@ class Tracer:
             fig, ax = plt.subplots()
             plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
             for fill_line in fill_lines:
-                plot_line(fill_line, ax=ax, color='green', linewidth=2)
+                if isinstance(fill_line, LineString):
+                    plot_line(fill_line, ax=ax, color='green', linewidth=1)
+                elif isinstance(fill_line, (MultiLineString, GeometryCollection)):
+                    for part in fill_line.geoms:
+                        if isinstance(part, LineString):
+                            plot_line(part, ax=ax, color='red', linewidth=1)
             plt.show()
         
         # Tri entre LineString et MultiLineString et ajout à la variable de retour
