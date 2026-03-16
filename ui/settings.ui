@@ -86,6 +86,12 @@
                 </item>
                 <item>
                  <widget class="QLabel" name="genAITestResult">
+                  <property name="font">
+                   <font>
+                    <pointsize>8</pointsize>
+                    <italic>true</italic>
+                   </font>
+                  </property>
                   <property name="text">
                    <string/>
                   </property>
@@ -205,11 +211,16 @@
       <layout class="QGridLayout" name="gridLayout">
        <item row="0" column="0">
         <widget class="QLabel" name="label_4">
+         <property name="font">
+          <font>
+           <italic>true</italic>
+          </font>
+         </property>
          <property name="text">
-          <string>_No settings_</string>
+          <string>No settings</string>
          </property>
          <property name="textFormat">
-          <enum>Qt::MarkdownText</enum>
+          <enum>Qt::PlainText</enum>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
