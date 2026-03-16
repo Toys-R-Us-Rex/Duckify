@@ -283,19 +283,33 @@ class Tracer:
         contours, hierarchy = cv2.findContours(layer, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
         self.logger.debug(f"Found {len(contours)} contours")
 
+        contours_cleaned: np.array = []
+        contours_too_small: np.array = []
+        # tri des contours "trop petits"
+        for contour in contours:
+            if cv2.contourArea(contour) < 200:
+                contours_too_small.append(contour)
+            contours_cleaned.append(contour)
+
         if self.config.debug:
             print("\nLa hiérarchie de l'image :\n", hierarchy)
             
-            cv2.imshow("Input", layer)
+            cv2.imshow('Islands in the layer', layer)
             with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
-            cv2.drawContours(with_contours, contours, -1, (0, 0, 255), 1)
-            cv2.imshow("Contours", with_contours)
+            cv2.drawContours(with_contours, contours, -1, (0, 255, 0), 2)
+            cv2.imshow("All detected contour", with_contours)
+            
+
+            with_contours_cleaned = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
+            cv2.drawContours(with_contours_cleaned, contours_cleaned, -1, (0, 255, 0), 2)
+            cv2.drawContours(with_contours_cleaned, contours_too_small, -1, (0, 0, 255), 2)
+            cv2.imshow("Cleaned contours", with_contours_cleaned)
             cv2.waitKey(-1)
 
         # gérer la hierarchie : https://learnopencv.com/contour-detection-using-opencv-python-c/
         hierarchies: list[Hierarchy] = []
         if hierarchy is not None:
-            for idx, (contour, values) in enumerate(zip(contours, hierarchy[0])):
+            for idx, (contour, values) in enumerate(zip(contours_cleaned, hierarchy[0])):
                 hierarch: Hierarchy = Hierarchy (
                     index= idx,
                     next=int(values[0]),
@@ -344,6 +358,7 @@ class Tracer:
             list[Trace2D]: List of 2D traces filling the island
         """
         self.logger.info(f"Computing fill slices for island : {island}")
+        self
         
         polygon = Polygon(island.outer_border, island.inner_borders)
 
