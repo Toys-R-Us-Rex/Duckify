@@ -15,6 +15,7 @@ from tracing.color import Color
 from tracing.config import TracerConfig
 from tracing.stats import TracingStats
 from tracing.tracer import Tracer
+from settings import SettingsDialog
 
 ROOT_DIR: Path = Path(__file__).parent.parent
 
@@ -33,6 +34,8 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setupUi(self)
+        
+        self.actionSettings.triggered.connect(self.open_settings)
 
         self.gen_ai_result_model: QStandardItemModel = QStandardItemModel(
             self.genAIResults
@@ -117,6 +120,12 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def list_textures(self) -> list[Path]:
         return list(self.TEXTURES_DIR.iterdir())
+    
+    def open_settings(self):
+        dialog = SettingsDialog(self)
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            print("Saving settings")
+            # TODO
 
     def generate_texture(self):
         model_path: Path = self.genAIModel.currentData()
