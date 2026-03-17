@@ -21,7 +21,7 @@ export LIBRARY_PATH=$CONDA_PREFIX/lib:$LIBRARY_PATH
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export PYTORCH_CUDA_LIB=$CONDA_PREFIX/lib/python3.10/site-packages/nvidia/cuda_runtime/lib
 
-cd /home/kevin.voisin/genai/MV-Adapter/ # Change to the directory where the script is located
+cd /home/kevin.voisin/Duckify/genai/MV-Adapter/ # Change to the directory where the script is located
 mkdir -p "$MV_OUTPUT_DIR"
 
 echo "Lancement de MV-Adapter..."
@@ -34,8 +34,3 @@ python -m scripts.texture_t2tex \
     --num_inference_steps "$MV_STEPS" \
     --guidance_scale "$MV_GUIDANCE"
 
-echo "Lancement du rendering..."
-
-python scripts.render.py \
-        --glb_path "$MV_SAVE_NAME" \
-        --output_dir "$MV_OUTPUT_DIR"
