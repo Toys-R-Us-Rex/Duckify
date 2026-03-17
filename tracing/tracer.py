@@ -295,7 +295,7 @@ class Tracer:
         contours_too_small: list[tuple[np.ndarray, np.ndarray]] = []
         # tri des contours "trop petits"
         for idx, (contour, hierarchy) in enumerate(zipped_contour_data):
-            if cv2.contourArea(contour) < self.config.min_siland_surface:
+            if cv2.contourArea(contour) < self.config.min_island_surface:
                 contours_too_small.append((contour, hierarchy))
             else:
                 contours_cleaned.append((contour, hierarchy, idx))
