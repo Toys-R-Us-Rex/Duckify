@@ -8,7 +8,10 @@ Duckify is a complete pipeline to decorate a 3D-printed plastic duck using a Uni
 
 ## Usage
 
-Open and run the main Jupyter notebook: [`main.ipynb`](main.ipynb)
+Simply run the following command to start the program:
+```bash
+uv run start
+```
 
 ## Requirements
 - Python 3.13+
@@ -24,6 +27,10 @@ Open and run the main Jupyter notebook: [`main.ipynb`](main.ipynb)
    ```bash
    cd Duckify
    uv sync
+   ```
+3. Build PyQt ui files
+   ```bash
+   uv run build-ui
    ```
 
 ## Authors

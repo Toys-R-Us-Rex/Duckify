@@ -4,19 +4,19 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from main_ui import Ui_MainWindow
-from mesh_visualizer import MeshVisualizer
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QModelIndex
 from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QApplication, QFileDialog
-from settings import SettingsDialog
-from settings_manager import Settings, SettingsManager
 
 from tracing.color import Color
 from tracing.config import TracerConfig
 from tracing.stats import TracingStats
 from tracing.tracer import Tracer
+from ui.main_ui import Ui_MainWindow
+from ui.mesh_visualizer import MeshVisualizer
+from ui.settings import SettingsDialog
+from ui.settings_manager import Settings, SettingsManager
 
 ROOT_DIR: Path = Path(__file__).parent.parent
 
@@ -86,18 +86,16 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracingTrace.clicked.connect(self.start_tracing)
 
         traces_visualizer: MeshVisualizer = MeshVisualizer(self)
-        self.tracingVisual.parentWidget().layout().replaceWidget(self.tracingVisual, traces_visualizer) # type: ignore
+        self.tracingVisual.parentWidget().layout().replaceWidget(self.tracingVisual, traces_visualizer)  # type: ignore
         self.tracingVisual.deleteLater()
         self.tracingVisual = traces_visualizer
-        self.tracingVisualAltitude.valueChanged.connect(
-            traces_visualizer.set_altitude
-        )
-        self.tracingVisualAzimuth.valueChanged.connect(
-            traces_visualizer.set_azimuth
-        )
+        self.tracingVisualAltitude.valueChanged.connect(traces_visualizer.set_altitude)
+        self.tracingVisualAzimuth.valueChanged.connect(traces_visualizer.set_azimuth)
         self.tracingVisualLayerMesh.toggled.connect(self.update_tracing_visual_layer)
         self.tracingVisualLayerTexture.toggled.connect(self.update_tracing_visual_layer)
-        self.tracingVisualLayerPalettized.toggled.connect(self.update_tracing_visual_layer)
+        self.tracingVisualLayerPalettized.toggled.connect(
+            self.update_tracing_visual_layer
+        )
 
         self.tracingSaveAs.clicked.connect(self.prompt_save_traces)
         self.tracingToRobot.clicked.connect(self.pass_traces_to_robot)
@@ -130,7 +128,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def start_tracing(self):
         print("Starting tracing")
-        
+
         settings: Settings = self.settings_manager.load()
 
         model_path: Path = self.tracingModel.currentData()
@@ -139,7 +137,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         config: TracerConfig = TracerConfig(
             enable_fill_slicing=self.tracingEnableFill.isChecked()
         )
-        
+
         palette: list[Color] = settings.tracing.palette
 
         tracer: Tracer = Tracer(
@@ -154,7 +152,9 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
             tracer.paletted_texture.save(paletted_texture_path)
 
         self.set_tracing_stats(stats)
-        self.show_tracing_result(model_path, texture_path, self.traces_path, paletted_texture_path)
+        self.show_tracing_result(
+            model_path, texture_path, self.traces_path, paletted_texture_path
+        )
 
     def set_texture_results(self, results: list[Path]):
         model: QStandardItemModel = self.gen_ai_result_model
@@ -226,7 +226,11 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracingStatPoints.setText(str(stats.n_points))
 
     def show_tracing_result(
-        self, model_path: Path, texture_path: Path, traces_path: Path, paletted_texture_path: Path
+        self,
+        model_path: Path,
+        texture_path: Path,
+        traces_path: Path,
+        paletted_texture_path: Path,
     ):
         self.tracingVisual.load_model(model_path)
         self.tracingVisual.clear_textures()
@@ -235,7 +239,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracingVisual.load_traces(traces_path)
 
         self.update_tracing_visual_layer()
-    
+
     def update_tracing_visual_layer(self):
         if self.tracingVisualLayerMesh.isChecked():
             self.tracingVisual.show_texture(None)
