@@ -69,8 +69,8 @@ class MeshVisualizer(QOpenGLWidget):
         self.scale: float = 1.0
         self.mesh_loaded: bool = False
         self.has_texture: bool = False
-        self.texture_loaded: bool = False
-        self.texture_id: int = 0
+        self.texture_ids: list[int] = []
+        self.current_texture: Optional[int] = None
         self.traces_loaded: bool = False
         self.trace_vbos: list[int] = []
         self.trace_vertex_counts: list[int] = []
@@ -199,21 +199,20 @@ class MeshVisualizer(QOpenGLWidget):
 
         self.update()
 
-    def load_texture(self, path: Path):
+    def add_texture(self, path: Path):
         if not self._initialized:
             self._pending_texture = path
             return
 
         self.makeCurrent()
-        if self.texture_loaded:
-            glDeleteTextures([self.texture_id])
 
         image: Image.Image = Image.open(path)
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
         img_data = np.array(image, dtype=np.uint8)
 
-        self.texture_id = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+        texture_id = glGenTextures(1)
+        self.texture_ids.append(texture_id)
+        glBindTexture(GL_TEXTURE_2D, texture_id)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
@@ -234,8 +233,14 @@ class MeshVisualizer(QOpenGLWidget):
         glGenerateMipmap(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, 0)
 
-        self.texture_loaded = True
+    def show_texture(self, i: Optional[int]):
+        self.current_texture = i
         self.update()
+    
+    def clear_textures(self):
+        self.current_texture = None
+        glDeleteTextures(self.texture_ids)
+        self.texture_ids = []
 
     def load_traces(self, path: Path):
         if not self._initialized:
@@ -285,15 +290,20 @@ class MeshVisualizer(QOpenGLWidget):
         glRotatef(self.altitude, 0.0, 1.0, 0.0)
         glRotatef(-self.azimuth, 0.0, 0.0, 1.0)
 
-        if self.has_texture and self.texture_loaded:
+        render_texture: bool = (
+            self.has_texture and
+            self.current_texture is not None and
+            self.current_texture < len(self.texture_ids)
+        )
+        if render_texture:
             glEnable(GL_TEXTURE_2D)
-            glBindTexture(GL_TEXTURE_2D, self.texture_id)
+            glBindTexture(GL_TEXTURE_2D, self.texture_ids[self.current_texture])
 
         glBindVertexArray(self.vao)
         glDrawElements(GL_TRIANGLES, self.num_indices, GL_UNSIGNED_INT, None)
         glBindVertexArray(0)
 
-        if self.has_texture and self.texture_loaded:
+        if render_texture:
             glBindTexture(GL_TEXTURE_2D, 0)
             glDisable(GL_TEXTURE_2D)
 

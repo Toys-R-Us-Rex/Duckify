@@ -389,7 +389,7 @@
           <item>
            <widget class="QGroupBox" name="groupBox_6">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -399,82 +399,67 @@
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_9">
              <item>
-              <widget class="QTabWidget" name="tabWidget_2">
-               <property name="currentIndex">
-                <number>0</number>
+              <layout class="QHBoxLayout" name="horizontalLayout_13">
+               <item>
+                <widget class="QRadioButton" name="tracingVisualLayerMesh">
+                 <property name="text">
+                  <string>Mesh</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="tracingVisualLayerTexture">
+                 <property name="text">
+                  <string>Texture</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="tracingVisualLayerPalettized">
+                 <property name="text">
+                  <string>Palettized</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <widget class="QWidget" name="tracingVisual" native="true">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
                </property>
-               <widget class="QWidget" name="tabTexture">
-                <attribute name="title">
-                 <string>Texture</string>
-                </attribute>
-                <layout class="QVBoxLayout" name="verticalLayout_10">
-                 <item>
-                  <widget class="QWidget" name="tracingVisualTexture" native="true"/>
-                 </item>
-                 <item>
-                  <widget class="QSlider" name="tracingVisualTextureAzimuth">
-                   <property name="minimum">
-                    <number>-180</number>
-                   </property>
-                   <property name="maximum">
-                    <number>180</number>
-                   </property>
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QSlider" name="tracingVisualTextureAltitude">
-                   <property name="minimum">
-                    <number>-90</number>
-                   </property>
-                   <property name="maximum">
-                    <number>90</number>
-                   </property>
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-               <widget class="QWidget" name="tabTraces">
-                <attribute name="title">
-                 <string>Traces</string>
-                </attribute>
-                <layout class="QVBoxLayout" name="verticalLayout_11">
-                 <item>
-                  <widget class="QWidget" name="tracingVisualTraces" native="true"/>
-                 </item>
-                 <item>
-                  <widget class="QSlider" name="tracingVisualTracesAzimuth">
-                   <property name="minimum">
-                    <number>-180</number>
-                   </property>
-                   <property name="maximum">
-                    <number>180</number>
-                   </property>
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QSlider" name="tracingVisualTracesAltitude">
-                   <property name="minimum">
-                    <number>-90</number>
-                   </property>
-                   <property name="maximum">
-                    <number>90</number>
-                   </property>
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSlider" name="tracingVisualAzimuth">
+               <property name="minimum">
+                <number>-180</number>
+               </property>
+               <property name="maximum">
+                <number>180</number>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSlider" name="tracingVisualAltitude">
+               <property name="minimum">
+                <number>-90</number>
+               </property>
+               <property name="maximum">
+                <number>90</number>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
               </widget>
              </item>
             </layout>
