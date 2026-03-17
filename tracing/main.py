@@ -21,7 +21,7 @@ def main():
 
     config: TracerConfig = TracerConfig(
         debug=True,
-        enable_fill_slicing=False
+        enable_fill_slicing=True
     )
 
     tracer: Tracer = Tracer(config, texture_path, model_path, mask_path, palette, ignored_color)
