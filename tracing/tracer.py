@@ -13,7 +13,7 @@ import shapely
 import tqdm
 import trimesh
 from PIL import Image
-from shapely import LineString, MultiLineString, Polygon
+from shapely import LineString, MultiLineString, Polygon, GeometryCollection
 from shapely.plotting import plot_line, plot_points, plot_polygon
 from trimesh import Trimesh
 from trimesh.visual import TextureVisuals
@@ -31,6 +31,7 @@ class Tracer:
             config: TracerConfig,
             texture_path: Path,
             model_path: Path,
+            mask_path: Path,
             palette: tuple[Color, ...],
             ignored_color: Color
     ):
@@ -39,12 +40,14 @@ class Tracer:
 
         self.texture_path: Path = texture_path
         self.model_path: Path = model_path
+        self.mask_path: Path = mask_path
         self.palette: tuple[Color, ...] = palette
         self.ignored_color: Color = ignored_color
 
         self.texture: Optional[Image.Image] = None
         self.paletted_texture: Optional[Image.Image] = None
         self.model: Optional[Trimesh] = None
+        self.mask: Optional[Image.Image] = None
         self.layers: list[Image.Image] = []
 
         self.islands: list[Island] = []
@@ -67,6 +70,7 @@ class Tracer:
         # 1. Load assets
         self.texture = self.load_texture(self.texture_path)
         self.model = self.load_model(self.model_path)
+        self.mask = self.load_mask(self.mask_path)
 
         if not self.mesh_has_uv_map(self.model):
             self.logger.error("Missing mesh UV coordinates")
@@ -74,6 +78,7 @@ class Tracer:
 
         # 2. Quantize and split colors
         self.texture = self.mask_outside_UV_texture(self.texture, self.model)
+        self.texture = self.mask_unreachable(self.texture, self.mask)
         self.paletted_texture = self.palettize_texture(self.texture, self.palette, self.ignored_color)
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
@@ -125,7 +130,9 @@ class Tracer:
                 cv2.polylines(img, [pts], True, col)
 
         if self.config.debug:
-            cv2.imshow("Segments", img)
+            cv2.imshow("Segments", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+            cv2.waitKey(-1)
+            cv2.destroyAllWindows()
             clouds = []
             segments = []
             for trace in self.traces_3d:
@@ -180,6 +187,24 @@ class Tracer:
 
         return mesh
 
+    def load_mask(self, path: Path) -> Image.Image:
+        """Load mask from file path
+
+        Args:
+            path (Path): path of the mask file to load
+
+        Returns:
+            Image.Image: mask loaded
+        """
+        self.logger.info(f"Loading mask {path}")
+
+        if not os.path.exists(path):
+            self.logger.error(f"The file {path} does not exist")
+            raise FileNotFoundError(f"The file {path} does not exist")
+    
+        im = Image.open(path).convert("1")
+        return im.resize(self.config.image_size)
+
     # https://stackoverflow.com/questions/29433243/
     def palettize_texture(self, img: Image.Image, palette: tuple[Color, ...], ignored_color: Color) -> Image.Image:
         """Force textures colors to nearest one based of a given palette
@@ -209,8 +234,11 @@ class Tracer:
         output_img = Image.fromarray(output_arr.astype(np.uint8), "RGB")
 
         if self.config.debug:
-            cv2.imshow("input texture image", c_img_arr[..., ::-1])
-            cv2.imshow("palettized texture image", output_arr[..., ::-1])
+            cv2.imshow("input texture image", cv2.cvtColor(c_img_arr, cv2.COLOR_RGB2BGR))
+            cv2.imshow("palettized texture image", cv2.cvtColor(output_arr, cv2.COLOR_RGB2BGR))
+            cv2.waitKey(-1)
+            cv2.destroyAllWindows()
+
             
         return output_img
 
@@ -239,6 +267,8 @@ class Tracer:
 
             if self.config.debug:
                 cv2.imshow(f"splitted color image {color}", np.array(mask_img))
+                cv2.waitKey(-1)
+                cv2.destroyAllWindows()
 
         return images
 
@@ -259,19 +289,39 @@ class Tracer:
         contours, hierarchy = cv2.findContours(layer, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
         self.logger.debug(f"Found {len(contours)} contours")
 
-        if self.config.debug:
-            print("\nLa hiérarchie de l'image :\n", hierarchy)
-            
-            cv2.imshow("Input", layer)
-            with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
-            cv2.drawContours(with_contours, contours, -1, (0, 0, 255), 1)
-            cv2.imshow("Contours", with_contours)
-            cv2.waitKey(-1)
+        zipped_contour_data: list[tuple[np.ndarray, np.ndarray]] = list(zip(contours, hierarchy[0]))
 
+        contours_cleaned: list[tuple[np.ndarray, np.ndarray, int]] = []
+        contours_too_small: list[tuple[np.ndarray, np.ndarray]] = []
+        # tri des contours "trop petits"
+        for idx, (contour, hierarchy) in enumerate(zipped_contour_data):
+            if cv2.contourArea(contour) < self.config.min_island_surface:
+                contours_too_small.append((contour, hierarchy))
+            else:
+                contours_cleaned.append((contour, hierarchy, idx))
+        
+
+
+        if self.config.debug:
+            cv2.imshow('Islands in the layer', layer)
+            with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
+            cv2.drawContours(with_contours, contours, -1, (0, 255, 0), 2)
+            cv2.imshow("All detected contour", with_contours)
+            
+            with_contours_cleaned = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
+            cv2.drawContours(with_contours_cleaned, list(zip(*contours_cleaned))[0], -1, (0, 255, 0), 2)
+            cv2.drawContours(with_contours_cleaned, list(zip(*contours_too_small))[0], -1, (0, 0, 255), 2)
+            cv2.imshow("Cleaned contours", with_contours_cleaned)
+            cv2.waitKey(-1)
+            cv2.destroyAllWindows()
         # gérer la hierarchie : https://learnopencv.com/contour-detection-using-opencv-python-c/
         hierarchies: list[Hierarchy] = []
         if hierarchy is not None:
-            for idx, (contour, values) in enumerate(zip(contours, hierarchy[0])):
+            for contour, values, idx in contours_cleaned:
+                if contour.shape[0] < 4:
+                    if self.config.debug:
+                        self.logger.debug(f"The island with contour : {contour} has been dismissed, because it's too small")
+                    continue
                 hierarch: Hierarchy = Hierarchy (
                     index= idx,
                     next=int(values[0]),
@@ -320,6 +370,8 @@ class Tracer:
             list[Trace2D]: List of 2D traces filling the island
         """
         self.logger.info(f"Computing fill slices for island : {island}")
+
+        island = self.clean_island(island)
         
         polygon = Polygon(island.outer_border, island.inner_borders)
 
@@ -356,10 +408,17 @@ class Tracer:
         ]  # type: ignore
 
         if self.config.debug:
+            print(f"L'îlot : {polygon} est en cours d'affichage")
+            print(f"La surface de cet îlot est :{shapely.area(polygon)}")
             fig, ax = plt.subplots()
             plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
             for fill_line in fill_lines:
-                plot_line(fill_line, ax=ax, color='green', linewidth=2)
+                if isinstance(fill_line, LineString):
+                    plot_line(fill_line, ax=ax, color='green', linewidth=1)
+                elif isinstance(fill_line, (MultiLineString, GeometryCollection)):
+                    for part in fill_line.geoms:
+                        if isinstance(part, LineString):
+                            plot_line(part, ax=ax, color='red', linewidth=1)
             plt.show()
         
         # Tri entre LineString et MultiLineString et ajout à la variable de retour
@@ -665,6 +724,7 @@ class Tracer:
         """
         return contour[:, 0, :]
 
+
     # https://stackoverflow.com/a/70664846/11109181
     def resample_polygon(self, xy: np.ndarray, n_points: int = 100, closed: bool = False) -> np.ndarray:
         n = n_points
@@ -794,8 +854,49 @@ class Tracer:
             cv2.resizeWindow('Mask', 600, 600)
 
             cv2.namedWindow('Masked texture', cv2.WINDOW_KEEPRATIO)
-            cv2.imshow('Masked texture', masked_texture)
+            cv2.imshow('Masked texture', cv2.cvtColor(masked_texture, cv2.COLOR_RGB2BGR))
             cv2.resizeWindow('Masked texture', 600, 600)
             cv2.waitKey(-1)
         
         return Image.fromarray(masked_texture)
+
+    def mask_unreachable(self, texture: Image.Image, mask: Image.Image) -> Image.Image:
+        """Applies the binary mask to the given texture
+
+        Args:
+            texture (Image.Image): the texture to mask
+            mask (Image.Image): the binary mask to apply. White pixels are kept, black ones are set to black
+
+        Returns:
+            Image.Image: the masked texture
+        """
+        texture_arr: np.ndarray = np.array(texture)
+        mask_arr: np.ndarray = cv2.cvtColor(np.array(mask, dtype=np.uint8), cv2.COLOR_GRAY2RGB)
+        masked: np.ndarray = texture_arr * mask_arr
+        return Image.fromarray(masked)
+    
+    def clean_island(self, island: Island) -> Island:
+        """Verify that not three consecutive points of a contour are colinear. Remove the middle one if so.
+        
+        `island` is modified in-place
+        Args:
+            island (Island): A island to be checked
+        Returns:
+            Island: cleaned island
+        """
+        indexes_to_keep: list[int] = []
+
+        for i in range(len(island.outer_border)):
+            a = island.outer_border[i]
+            b = island.outer_border[(i+1) % len(island.outer_border)]
+            c = island.outer_border[(i+2) % len(island.outer_border)]
+
+            v1 = (b[0] - a[0]) * (c[1] - a[1])
+            v2 = (b[1] - a[1]) * (c[0] - a[0])
+            
+            if not abs(v1 - v2) < self.config.contour_epsilon:
+                indexes_to_keep.append((i+1) % len(island.outer_border))
+
+        island.outer_border = island.outer_border[indexes_to_keep]
+
+        return island

@@ -36,6 +36,11 @@ Possible solutions to the islands extending out of the UV map are:
 - extrapolate projection outside of UV triangles
 - apply a shrinked mask to only get polygons inside the UV map or shrink the polygons after contour detection
 
+#figure(
+  image("assets/uv_boundary_cases_cropped.svg"),
+  caption: [UV boundary crossing cases]
+)
+
 === Color quantization
 
 To improve color quantization, multiple solutions are possible:
@@ -64,8 +69,9 @@ Filtering out very small islands should reduce mathematical errors
   breakable: false
 )[
   *Louis*
-  - [x] Out of bounds
-  - [ ] UV seams
+  - [/] Out of bounds
+  - [?] UV seams
+  - [ ] Unreachable areas
 ]
 
 #block(
@@ -76,17 +82,8 @@ Filtering out very small islands should reduce mathematical errors
 )[
   *Jeremy*
   - [x] Finalize color quantization
-  - [ ] Identify and solve fill slicing issues
-]
-
-#block(
-  width: 100%,
-  stroke: 1pt,
-  inset: 1em,
-  breakable: false
-)[
-  *TBD*
-  - [ ] Unreachable areas
+  - [ ] Small artefacts replacement
+  - [/] Identify and solve fill slicing issues
 ]
 
 == Is the current solution the right one ?
