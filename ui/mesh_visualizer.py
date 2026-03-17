@@ -1,17 +1,51 @@
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 import trimesh
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from PIL import Image
+from PyQt6.QtCore import QPoint, Qt, QTimer
+from PyQt6.QtGui import QMouseEvent
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+from PyQt6.QtWidgets import QWidget
 from trimesh import Trimesh
 from trimesh.visual import TextureVisuals
 
 GlColor = tuple[float, float, float, float]
+
+
+class Animation(QWidget):
+    COOLDOWN_MS: int = 3000
+    FRAME_RATE_MS: int = 50
+
+    def __init__(self, callback: Callable[[int], None]) -> None:
+        super().__init__()
+        self.frame: int = 0
+        self.callback: Callable[[int], None] = callback
+
+        self.cooldown_timer: QTimer = QTimer(self)
+        self.cooldown_timer.setSingleShot(True)
+        self.cooldown_timer.timeout.connect(self.on_cooldown_finished)
+
+        self.animation_timer: QTimer = QTimer(self)
+        self.animation_timer.setInterval(self.FRAME_RATE_MS)
+        self.animation_timer.timeout.connect(self.update_animation)
+
+    def on_cooldown_finished(self):
+        self.animation_timer.start()
+
+    def update_animation(self):
+        self.callback(self.frame)
+        self.frame += 1
+
+    def reset_cooldown(self):
+        self.animation_timer.stop()
+        self.frame = 0
+        self.cooldown_timer.start(self.COOLDOWN_MS)
+
 
 class MeshVisualizer(QOpenGLWidget):
     BACKGROUND_COLOR: GlColor = (0.12, 0.12, 0.14, 1.0)
@@ -21,7 +55,7 @@ class MeshVisualizer(QOpenGLWidget):
     LIMIT_NEAR: float = 0.1
     LIMIT_FAR: float = 10.0
     ZOOM: float = 3.0
-    
+
     def __init__(self, parent) -> None:
         QOpenGLWidget.__init__(self, parent)
 
@@ -35,26 +69,67 @@ class MeshVisualizer(QOpenGLWidget):
         self.scale: float = 1.0
         self.mesh_loaded: bool = False
         self.has_texture: bool = False
-        self.texture_loaded: bool = False
-        self.texture_id: int = 0
+        self.texture_ids: list[int] = []
+        self.current_texture: Optional[int] = None
         self.traces_loaded: bool = False
         self.trace_vbos: list[int] = []
         self.trace_vertex_counts: list[int] = []
         self.altitude: float = 0.0
         self.azimuth: float = 0.0
-        
+
         self.vao = None
         self.vbo = None
         self.ebo = None
         self.num_indices: int = 0
 
+        self.animation: Animation = Animation(self.rotate)
+
+        self.last_mouse_pos: Optional[QPoint] = None
+        self.setMouseTracking(True)
+
+    def rotate(self, frame: int):
+        self.azimuth += 1
+        self.azimuth %= 360
+        self.update()
+
     def set_altitude(self, altitude: float):
         self.altitude = altitude
         self.update()
+        self.animation.reset_cooldown()
 
     def set_azimuth(self, azimuth: float):
         self.azimuth = azimuth
         self.update()
+        self.animation.reset_cooldown()
+
+    def mousePressEvent(self, event: Optional[QMouseEvent]) -> None:  # type: ignore
+        if event is None:
+            return
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.last_mouse_pos = event.pos()
+            self.animation.reset_cooldown()
+
+    def mouseMoveEvent(self, event: Optional[QMouseEvent]) -> None:  # type: ignore
+        if event is None:
+            return
+        if event.buttons() & Qt.MouseButton.LeftButton:
+            if self.last_mouse_pos is not None:
+                dx: int = event.pos().x() - self.last_mouse_pos.x()
+                dy: int = event.pos().y() - self.last_mouse_pos.y()
+
+                self.azimuth -= dx / self.width() * 180
+                self.altitude += dy / self.height() * 180
+
+                self.last_mouse_pos = event.pos()
+                self.animation.reset_cooldown()
+                self.update()
+
+    def mouseReleaseEvent(self, event: Optional[QMouseEvent]) -> None:  # type: ignore
+        if event is None:
+            return
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.last_mouse_pos = None
+            self.animation.reset_cooldown()
 
     def load_model(self, path: Path):
         if not self._initialized:
@@ -78,20 +153,20 @@ class MeshVisualizer(QOpenGLWidget):
         vertices = mesh.vertices.astype(np.float32)
         faces = mesh.faces.astype(np.uint32)
         normals = mesh.vertex_normals.astype(np.float32)
-        
+
         self.has_texture = (
-            hasattr(mesh, "visual") and
-            hasattr(mesh.visual, "uv") and
-            isinstance(mesh.visual, TextureVisuals) and
-            mesh.visual.uv is not None
+            hasattr(mesh, "visual")
+            and hasattr(mesh.visual, "uv")
+            and isinstance(mesh.visual, TextureVisuals)
+            and mesh.visual.uv is not None
         )
-        
+
         if self.has_texture:
-            uvs = mesh.visual.uv.astype(np.float32) # type: ignore
+            uvs = mesh.visual.uv.astype(np.float32)  # type: ignore
             vertex_data = np.hstack([vertices, normals, uvs])
         else:
             vertex_data = np.hstack([vertices, normals])
-        
+
         vertex_data = vertex_data.astype(np.float32)
         stride = vertex_data.shape[1] * vertex_data.itemsize
 
@@ -111,7 +186,7 @@ class MeshVisualizer(QOpenGLWidget):
 
         glEnableClientState(GL_NORMAL_ARRAY)
         glNormalPointer(GL_FLOAT, stride, ctypes.c_void_p(12))
-        
+
         if self.has_texture:
             glEnableClientState(GL_TEXTURE_COORD_ARRAY)
             glTexCoordPointer(2, GL_FLOAT, stride, ctypes.c_void_p(24))
@@ -120,37 +195,53 @@ class MeshVisualizer(QOpenGLWidget):
 
         self.num_indices = faces.size
         self.mesh_loaded = True
+        self.animation.reset_cooldown()
 
         self.update()
-    
-    def load_texture(self, path: Path):
+
+    def add_texture(self, path: Path):
         if not self._initialized:
             self._pending_texture = path
             return
 
         self.makeCurrent()
-        if self.texture_loaded:
-            glDeleteTextures([self.texture_id])
-        
+
         image: Image.Image = Image.open(path)
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
         img_data = np.array(image, dtype=np.uint8)
-        
-        self.texture_id = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+
+        texture_id = glGenTextures(1)
+        self.texture_ids.append(texture_id)
+        glBindTexture(GL_TEXTURE_2D, texture_id)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-        
+
         fmt = GL_RGBA if img_data.shape[2] == 4 else GL_RGB
-        glTexImage2D(GL_TEXTURE_2D, 0, fmt, image.width, image.height, 0, fmt, GL_UNSIGNED_BYTE, img_data)
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            fmt,
+            image.width,
+            image.height,
+            0,
+            fmt,
+            GL_UNSIGNED_BYTE,
+            img_data,
+        )
         glGenerateMipmap(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, 0)
-        
-        self.texture_loaded = True
+
+    def show_texture(self, i: Optional[int]):
+        self.current_texture = i
         self.update()
     
+    def clear_textures(self):
+        self.current_texture = None
+        glDeleteTextures(self.texture_ids)
+        self.texture_ids = []
+
     def load_traces(self, path: Path):
         if not self._initialized:
             self._pending_traces = path
@@ -165,7 +256,7 @@ class MeshVisualizer(QOpenGLWidget):
 
         with open(path, "r") as f:
             traces: list = json.load(f)["traces"]
-        
+
         self.trace_vbos: list[int] = []
         self.trace_vertex_counts: list[int] = []
         for trace in traces:
@@ -198,19 +289,24 @@ class MeshVisualizer(QOpenGLWidget):
         glRotatef(-90.0, 1.0, 0.0, 0.0)
         glRotatef(self.altitude, 0.0, 1.0, 0.0)
         glRotatef(-self.azimuth, 0.0, 0.0, 1.0)
-        
-        if self.has_texture and self.texture_loaded:
+
+        render_texture: bool = (
+            self.has_texture and
+            self.current_texture is not None and
+            self.current_texture < len(self.texture_ids)
+        )
+        if render_texture:
             glEnable(GL_TEXTURE_2D)
-            glBindTexture(GL_TEXTURE_2D, self.texture_id)
+            glBindTexture(GL_TEXTURE_2D, self.texture_ids[self.current_texture])
 
         glBindVertexArray(self.vao)
         glDrawElements(GL_TRIANGLES, self.num_indices, GL_UNSIGNED_INT, None)
         glBindVertexArray(0)
-        
-        if self.has_texture and self.texture_loaded:
+
+        if render_texture:
             glBindTexture(GL_TEXTURE_2D, 0)
             glDisable(GL_TEXTURE_2D)
-        
+
         self._draw_paths()
 
     def initializeGL(self):
@@ -222,7 +318,7 @@ class MeshVisualizer(QOpenGLWidget):
         glEnable(GL_LIGHT0)
         glEnable(GL_NORMALIZE)
         glShadeModel(GL_SMOOTH)
-        
+
         glEnable(GL_TEXTURE_2D)
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
 
@@ -241,7 +337,7 @@ class MeshVisualizer(QOpenGLWidget):
             self.load_model(self._pending_model)
         
         if self._pending_texture:
-            self.load_texture(self._pending_texture)
+            self.add_texture(self._pending_texture)
         
         if self._pending_traces:
             self.load_traces(self._pending_traces)
@@ -252,7 +348,7 @@ class MeshVisualizer(QOpenGLWidget):
         glLoadIdentity()
         gluPerspective(self.FOV, w / max(h, 1), self.LIMIT_NEAR, self.LIMIT_FAR)
         glMatrixMode(GL_MODELVIEW)
-    
+
     def _draw_paths(self):
         if not self.traces_loaded:
             return
@@ -268,7 +364,7 @@ class MeshVisualizer(QOpenGLWidget):
             glBindBuffer(GL_ARRAY_BUFFER, vbo)
             glVertexPointer(3, GL_FLOAT, 0, None)
             glDrawArrays(GL_LINE_STRIP, 0, count)
-        
+
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glDisableClientState(GL_VERTEX_ARRAY)
         glDisable(GL_LINE_SMOOTH)
