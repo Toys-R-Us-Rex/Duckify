@@ -375,12 +375,14 @@ source = { virtual = "." }
 dependencies = [
     { name = "jupyter" },
     { name = "tracing" },
+    { name = "ui" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "tracing", editable = "tracing" },
+    { name = "ui", editable = "ui" },
 ]
 
 [[package]]
@@ -1983,11 +1985,12 @@ wheels = [
 [[package]]
 name = "ui"
 version = "0.1.0"
-source = { virtual = "ui" }
+source = { editable = "ui" }
 dependencies = [
     { name = "pillow" },
     { name = "pyopengl" },
     { name = "pyqt6" },
+    { name = "tracing" },
 ]
 
 [package.metadata]
@@ -1995,6 +1998,7 @@ requires-dist = [
     { name = "pillow", specifier = ">=12.1.1" },
     { name = "pyopengl", specifier = ">=3.1.10" },
     { name = "pyqt6", specifier = ">=6.10.2" },
+    { name = "tracing", editable = "tracing" },
 ]
 
 [[package]]

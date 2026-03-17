@@ -1,11 +1,12 @@
-from typing import Optional
 import urllib.request
+from typing import Optional
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QIcon, QPixmap
 from PyQt6.QtWidgets import QColorDialog, QDialog, QListWidgetItem
-from settings_manager import GenAISettings, Settings, TracingSettings
-from settings_ui import Ui_Dialog
+
+from ui.settings_manager import GenAISettings, Settings, TracingSettings
+from ui.settings_ui import Ui_Dialog
 
 
 class SettingsDialog(QDialog, Ui_Dialog):
@@ -40,11 +41,13 @@ class SettingsDialog(QDialog, Ui_Dialog):
             if item is None:
                 continue
             color: QColor = item.data(Qt.ItemDataRole.UserRole)
-            colors.append((
-                color.red(),
-                color.green(),
-                color.blue(),
-            ))
+            colors.append(
+                (
+                    color.red(),
+                    color.green(),
+                    color.blue(),
+                )
+            )
         return colors
 
     def set_palette(self, palette: list[tuple[int, int, int]]):
@@ -72,7 +75,7 @@ class SettingsDialog(QDialog, Ui_Dialog):
 
         color: QColor = dialog.currentColor()
         self.tracing_palette_add(color)
-    
+
     def tracing_palette_add(self, color: QColor):
         pixmap = QPixmap(16, 16)
         pixmap.fill(color)
@@ -85,13 +88,13 @@ class SettingsDialog(QDialog, Ui_Dialog):
         if current is not None:
             row: int = self.tracingPalette.row(current)
             self.tracingPalette.takeItem(row)
-    
+
     def tracing_palette_edit(self):
         current: Optional[QListWidgetItem] = self.tracingPalette.currentItem()
         if current is None:
             return
         color: QColor = current.data(Qt.ItemDataRole.UserRole)
-        
+
         dialog = QColorDialog(self)
         dialog.setCurrentColor(color)
         if not dialog.exec():
