@@ -4,7 +4,7 @@
 #SBATCH --error=logs/job_%j.err
 #SBATCH --gres=gpu:1
 #SBATCH --mem=80G
-#SBATCH --time=05:00:00  # Temps augmenté pour 105 générations
+#SBATCH --time=01:00:00
 
 echo "--- Démarrage de l'environnement ---"
 
@@ -20,7 +20,6 @@ export CUDA_VISIBLE_DEVICES=1
 export LIBRARY_PATH=$CONDA_PREFIX/lib:$LIBRARY_PATH
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export PYTORCH_CUDA_LIB=$CONDA_PREFIX/lib/python3.10/site-packages/nvidia/cuda_runtime/lib
-export HF_TOKEN="hf_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" # Your Hugging Face token here
 
 cd /home/kevin.voisin/genai/MV-Adapter/ # Change to the directory where the script is located
 mkdir -p "$MV_OUTPUT_DIR"
@@ -35,4 +34,8 @@ python -m scripts.texture_t2tex \
     --num_inference_steps "$MV_STEPS" \
     --guidance_scale "$MV_GUIDANCE"
 
-echo "Terminé !"
+echo "Lancement du rendering..."
+
+python scripts.render.py \
+        --glb_path "$MV_SAVE_NAME" \
+        --output_dir "$MV_OUTPUT_DIR"
