@@ -58,7 +58,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         return self.working_dir / "traces.json"
 
     def setup_gen_ai(self):
-        for model_path in self.list_models():
+        for model_path in self.list_models("obj"):
             name: str = str(model_path.relative_to(self.MODELS_DIR))
             self.genAIModel.addItem(name, model_path)
 
@@ -77,7 +77,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.genAIToTracing.clicked.connect(self.pass_texture_to_tracing)
 
     def setup_tracing(self):
-        for model_path in self.list_models():
+        for model_path in self.list_models("obj"):
             name: str = str(model_path.relative_to(self.MODELS_DIR))
             self.tracingModel.addItem(name, model_path)
 
@@ -103,14 +103,25 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracingToRobot.clicked.connect(self.pass_traces_to_robot)
 
     def setup_robot(self):
+        for model_path in self.list_models("stl"):
+            name: str = str(model_path.relative_to(self.MODELS_DIR))
+            self.robotModel.addItem(name, model_path)
+
+        for trace_path in self.list_traces():
+            name: str = str(trace_path.relative_to(self.OUTPUT_DIR))
+            self.robotTrace.addItem(name, trace_path)
+
         self.robotNewTCPCalibration.clicked.connect(self.new_tcp_calibration)
         self.robotNewPenCalibration.clicked.connect(self.new_pen_calibration)
 
-    def list_models(self) -> list[Path]:
-        return list(self.MODELS_DIR.iterdir())
+    def list_models(self, extension: str) -> list[Path]:
+        return list(self.MODELS_DIR.glob(f"*.{extension}"))
 
     def list_textures(self) -> list[Path]:
         return list(self.TEXTURES_DIR.iterdir())
+
+    def list_traces(self) -> list[Path]:
+        return list(self.OUTPUT_DIR.glob("*-trace.json"))
 
     def apply_settings(self, settings: Settings):
         print(settings)
