@@ -8,4 +8,13 @@ dependencies = [
     "pillow>=12.1.1",
     "pyopengl>=3.1.10",
     "pyqt6>=6.10.2",
+    "tracing"
 ]
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["ui"]
+package-dir = { "ui" = "." }
