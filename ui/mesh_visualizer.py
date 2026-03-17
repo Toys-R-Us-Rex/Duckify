@@ -1,3 +1,4 @@
+# ruff: noqa F403, F405
 import json
 from pathlib import Path
 from typing import Callable, Optional
