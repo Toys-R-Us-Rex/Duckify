@@ -13,8 +13,10 @@ from tracing.color import Color
 from tracing.config import TracerConfig
 from tracing.stats import TracingStats
 from tracing.tracer import Tracer
+from ui.calibration import CalibrationDialog
 from ui.main_ui import Ui_MainWindow
 from ui.mesh_visualizer import MeshVisualizer
+from ui.pen_calibration import PenCalibrationDialog
 from ui.settings import SettingsDialog
 from ui.settings_manager import Settings, SettingsManager
 
@@ -101,7 +103,8 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracingToRobot.clicked.connect(self.pass_traces_to_robot)
 
     def setup_robot(self):
-        pass
+        self.robotNewTCPCalibration.clicked.connect(self.new_tcp_calibration)
+        self.robotNewPenCalibration.clicked.connect(self.new_pen_calibration)
 
     def list_models(self) -> list[Path]:
         return list(self.MODELS_DIR.iterdir())
@@ -258,6 +261,14 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def pass_traces_to_robot(self):
         pass
+
+    def new_tcp_calibration(self):
+        dialog = CalibrationDialog(self)
+        dialog.exec()
+
+    def new_pen_calibration(self):
+        dialog = PenCalibrationDialog(self)
+        dialog.exec()
 
 
 def main():
