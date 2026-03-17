@@ -29,6 +29,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
     TEXTURES_DIR: Path = ROOT_DIR / "assets" / "textures"
     OUTPUT_DIR: Path = ROOT_DIR / "output"
     IGNORED_COLOR: Color = (0, 0, 0)
+    TRANSFORMATION_REFERENCE: Path = ROOT_DIR / "assets" / "transformation_reference.json"
 
     def __init__(self) -> None:
         super().__init__()
@@ -280,7 +281,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         dialog.exec()
 
     def new_transformation(self):
-        dialog = TransformationDialog(self)
+        dialog = TransformationDialog(self.TRANSFORMATION_REFERENCE, parent=self)
         dialog.exec()
 
     def new_pen_calibration(self):
