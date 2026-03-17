@@ -132,6 +132,7 @@ class Tracer:
         if self.config.debug:
             cv2.imshow("Segments", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
             cv2.waitKey(-1)
+            cv2.destroyAllWindows()
             clouds = []
             segments = []
             for trace in self.traces_3d:
@@ -288,12 +289,12 @@ class Tracer:
         contours, hierarchy = cv2.findContours(layer, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
         self.logger.debug(f"Found {len(contours)} contours")
 
-        pipo: list[tuple[np.ndarray, np.ndarray]] = list(zip(contours, hierarchy[0]))
+        zipped_contour_data: list[tuple[np.ndarray, np.ndarray]] = list(zip(contours, hierarchy[0]))
 
         contours_cleaned: list[tuple[np.ndarray, np.ndarray, int]] = []
         contours_too_small: list[tuple[np.ndarray, np.ndarray]] = []
         # tri des contours "trop petits"
-        for idx, (contour, hierarchy) in enumerate(pipo):
+        for idx, (contour, hierarchy) in enumerate(zipped_contour_data):
             if cv2.contourArea(contour) < self.config.surface_treshold:
                 contours_too_small.append((contour, hierarchy))
             else:
@@ -369,6 +370,8 @@ class Tracer:
             list[Trace2D]: List of 2D traces filling the island
         """
         self.logger.info(f"Computing fill slices for island : {island}")
+
+        island = self.clean_island(island)
         
         polygon = Polygon(island.outer_border, island.inner_borders)
 
@@ -871,3 +874,31 @@ class Tracer:
         mask_arr: np.ndarray = cv2.cvtColor(np.array(mask, dtype=np.uint8), cv2.COLOR_GRAY2RGB)
         masked: np.ndarray = texture_arr * mask_arr
         return Image.fromarray(masked)
+    
+    def clean_island(self, island: Island) -> Island:
+        """Verify that not three consecutive points of a contour are colinear. Remove the middle one if so.
+
+        Args:
+            island (Island): A island to be checked
+
+        Returns:
+            Island: Cleaned island if it was necessary
+        """
+        indexes_to_keep: list[int] = []
+
+        for i in range(len(island.outer_border)):
+            a = island.outer_border[i]
+            b = island.outer_border[(i+1) % len(island.outer_border)]
+            c = island.outer_border[(i+2) % len(island.outer_border)]
+
+            v1 = (b[0] - a[0]) * (c[1] - a[1])
+            v2 = (b[1] - a[1]) * (c[0] - a[0])
+            
+            if abs(v1 - v2) < self.config.contour_epsilon:
+                continue
+            else:
+                indexes_to_keep.append((i+1) % len(island.outer_border))
+
+        island.outer_border = island.outer_border[indexes_to_keep]
+
+        return island

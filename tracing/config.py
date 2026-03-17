@@ -34,3 +34,6 @@ class TracerConfig:
 
     surface_treshold :int = 100 # TODO valeur à adapter dynamiquement plus tard ?
     """Island's surface as treshold to block too small one's"""
+
+    contour_epsilon: float = 1e-8
+    """A small epsilon to account for colinearity check is island contour cleaning"""
