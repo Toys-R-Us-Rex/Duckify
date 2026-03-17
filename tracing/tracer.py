@@ -295,7 +295,7 @@ class Tracer:
         contours_too_small: list[tuple[np.ndarray, np.ndarray]] = []
         # tri des contours "trop petits"
         for idx, (contour, hierarchy) in enumerate(zipped_contour_data):
-            if cv2.contourArea(contour) < self.config.surface_treshold:
+            if cv2.contourArea(contour) < self.config.min_siland_surface:
                 contours_too_small.append((contour, hierarchy))
             else:
                 contours_cleaned.append((contour, hierarchy, idx))
@@ -877,12 +877,12 @@ class Tracer:
     
     def clean_island(self, island: Island) -> Island:
         """Verify that not three consecutive points of a contour are colinear. Remove the middle one if so.
-
+        
+        `island` is modified in-place
         Args:
             island (Island): A island to be checked
-
         Returns:
-            Island: Cleaned island if it was necessary
+            Island: cleaned island
         """
         indexes_to_keep: list[int] = []
 
@@ -894,9 +894,7 @@ class Tracer:
             v1 = (b[0] - a[0]) * (c[1] - a[1])
             v2 = (b[1] - a[1]) * (c[0] - a[0])
             
-            if abs(v1 - v2) < self.config.contour_epsilon:
-                continue
-            else:
+            if not abs(v1 - v2) < self.config.contour_epsilon:
                 indexes_to_keep.append((i+1) % len(island.outer_border))
 
         island.outer_border = island.outer_border[indexes_to_keep]

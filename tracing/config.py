@@ -32,8 +32,8 @@ class TracerConfig:
     image_size: tuple[int,int] = (800,800)
     """Size format for the loaded texture image"""
 
-    surface_treshold :int = 100 # TODO valeur à adapter dynamiquement plus tard ?
+    min_siland_surface :int = 100 # TODO valeur à adapter dynamiquement plus tard ?
     """Island's surface as treshold to block too small one's"""
 
     contour_epsilon: float = 1e-8
-    """A small epsilon to account for colinearity check is island contour cleaning"""
+    """A small epsilon to account for colinearity check in island contour cleaning"""
