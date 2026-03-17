@@ -13,6 +13,7 @@ dependencies = [
 
 [project.scripts]
 start = "ui.main:main"
+build-ui = "ui.build_ui_files:build_ui"
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
