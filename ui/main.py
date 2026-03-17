@@ -9,7 +9,7 @@ from mesh_visualizer import MeshVisualizer
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QModelIndex
 from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
-from PyQt6.QtWidgets import QFileDialog
+from PyQt6.QtWidgets import QApplication, QFileDialog
 from settings import SettingsDialog
 from settings_manager import Settings, SettingsManager
 
@@ -32,6 +32,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         self.actionSettings.triggered.connect(self.open_settings)
+        self.actionQuit.triggered.connect(QApplication.quit)
 
         self.settings_manager: SettingsManager = SettingsManager()
         self.apply_settings(self.settings_manager.load())

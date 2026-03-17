@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import trimesh
@@ -23,6 +24,12 @@ class MeshVisualizer(QOpenGLWidget):
     
     def __init__(self, parent) -> None:
         QOpenGLWidget.__init__(self, parent)
+
+        self._pending_model: Optional[Path] = None
+        self._pending_texture: Optional[Path] = None
+        self._pending_traces: Optional[Path] = None
+        
+        self._initialized: bool = False
 
         self.offset: np.ndarray = np.array([0.0, 0.0, 0.0])
         self.scale: float = 1.0
@@ -50,6 +57,10 @@ class MeshVisualizer(QOpenGLWidget):
         self.update()
 
     def load_model(self, path: Path):
+        if not self._initialized:
+            self._pending_model = path
+            return
+
         self.makeCurrent()
         if self.mesh_loaded:
             glDeleteVertexArrays(1, [self.vao])
@@ -113,6 +124,10 @@ class MeshVisualizer(QOpenGLWidget):
         self.update()
     
     def load_texture(self, path: Path):
+        if not self._initialized:
+            self._pending_texture = path
+            return
+
         self.makeCurrent()
         if self.texture_loaded:
             glDeleteTextures([self.texture_id])
@@ -137,7 +152,11 @@ class MeshVisualizer(QOpenGLWidget):
         self.update()
     
     def load_traces(self, path: Path):
-        if self.mesh_loaded:
+        if not self._initialized:
+            self._pending_traces = path
+            return
+
+        if not self.mesh_loaded:
             print("Loading traces but mesh is not loaded")
 
         self.makeCurrent()
@@ -215,6 +234,17 @@ class MeshVisualizer(QOpenGLWidget):
         glLoadIdentity()
         gluPerspective(self.FOV, 4 / 3, self.LIMIT_NEAR, self.LIMIT_FAR)
         glMatrixMode(GL_MODELVIEW)
+        
+        self._initialized = True
+        
+        if self._pending_model:
+            self.load_model(self._pending_model)
+        
+        if self._pending_texture:
+            self.load_texture(self._pending_texture)
+        
+        if self._pending_traces:
+            self.load_traces(self._pending_traces)
 
     def resizeGL(self, w: int, h: int):
         glViewport(0, 0, w, h)
