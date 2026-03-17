@@ -19,6 +19,7 @@ from ui.mesh_visualizer import MeshVisualizer
 from ui.pen_calibration import PenCalibrationDialog
 from ui.settings import SettingsDialog
 from ui.settings_manager import Settings, SettingsManager
+from ui.transformation import TransformationDialog
 
 ROOT_DIR: Path = Path(__file__).parent.parent
 
@@ -112,6 +113,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
             self.robotTrace.addItem(name, trace_path)
 
         self.robotNewTCPCalibration.clicked.connect(self.new_tcp_calibration)
+        self.robotNewTransformation.clicked.connect(self.new_transformation)
         self.robotNewPenCalibration.clicked.connect(self.new_pen_calibration)
 
     def list_models(self, extension: str) -> list[Path]:
@@ -275,6 +277,10 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def new_tcp_calibration(self):
         dialog = CalibrationDialog(self)
+        dialog.exec()
+
+    def new_transformation(self):
+        dialog = TransformationDialog(self)
         dialog.exec()
 
     def new_pen_calibration(self):
