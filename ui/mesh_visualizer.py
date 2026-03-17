@@ -337,7 +337,7 @@ class MeshVisualizer(QOpenGLWidget):
             self.load_model(self._pending_model)
         
         if self._pending_texture:
-            self.load_texture(self._pending_texture)
+            self.add_texture(self._pending_texture)
         
         if self._pending_traces:
             self.load_traces(self._pending_traces)
