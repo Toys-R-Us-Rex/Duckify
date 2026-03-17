@@ -11,6 +11,9 @@ dependencies = [
     "tracing"
 ]
 
+[project.scripts]
+start = "ui.main:main"
+
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
