@@ -11,9 +11,6 @@ dependencies = [
     "ui",
 ]
 
-[project.scripts]
-start = "ui.main:main"
-
 [tool.uv.workspace]
 members = [
     "genai",
