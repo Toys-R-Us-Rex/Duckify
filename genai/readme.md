@@ -42,13 +42,17 @@ GenAI uses a split architecture:
    uv sync
    ```
 
-2. **Set SSH credentials in `genai/client.py` for disco**
-   ```python 
-   # example
-   SSH_HOST = 'disco.hevs.ch'
-   SSH_USER = 'kevin.voisin'
-   SSH_KEY_PATH = os.path.expanduser('~/.ssh/wireguard_key')
+2. **Configure environment variables**
+   ```bash
+   cp genai/.env.example .env
    ```
+
+   Then fill `.env` with your values:
+   - `MV_ADAPTER_PATH`
+   - `SSH_HOST`
+   - `SSH_USER`
+   - `SSH_KEY_PATH`
+   - `HF_TOKEN`
 
 ## 3) Run from `main.ipynb`
 
@@ -80,6 +84,6 @@ print(f"Files: {extracted_files}")
 
 ## 4) Values to verify
 
-- `genai/client.py`: `SSH_HOST`, `SSH_USER`, `SSH_KEY_PATH`
+- `.env`: `MV_ADAPTER_PATH`, `SSH_HOST`, `SSH_USER`, `SSH_KEY_PATH`, `HF_TOKEN`
 - `genai/models/MV-Adapter/script.slurm`: absolute `cd` MV-Adapter path
 - `genai/server.py`: host/port must match client expectations
