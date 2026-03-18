@@ -7,6 +7,10 @@ from PyQt6.QtCore import QSettings
 class GenAISettings:
     host: str = "localhost"
     port: int = 8000
+    negative_prompt: str = ""
+    prompt_wrapper: str = ""
+    steps: int = 30
+    guidance: float = 6.0
 
 
 @dataclass
@@ -36,6 +40,10 @@ class SettingsManager:
             genAI=GenAISettings(
                 host=self._prefs.value("genAI.host", GenAISettings.host),
                 port=self._prefs.value("genAI.port", GenAISettings.port, type=int),
+                negative_prompt=self._prefs.value("genAI.negative_prompt", GenAISettings.negative_prompt),
+                prompt_wrapper=self._prefs.value("genAI.prompt_wrapper", GenAISettings.prompt_wrapper),
+                steps=self._prefs.value("genAI.steps", GenAISettings.steps, type=int),
+                guidance=self._prefs.value("genAI.guidance", GenAISettings.guidance, type=float)
             ),
             tracing=TracingSettings(
                 palette=list(map(tuple, colors)) # type: ignore
@@ -48,5 +56,9 @@ class SettingsManager:
     def save(self, settings: Settings):
         self._prefs.setValue("genAI.host", settings.genAI.host)
         self._prefs.setValue("genAI.port", settings.genAI.port)
+        self._prefs.setValue("genAI.negative_prompt", settings.genAI.negative_prompt)
+        self._prefs.setValue("genAI.prompt_wrapper", settings.genAI.prompt_wrapper)
+        self._prefs.setValue("genAI.steps", settings.genAI.steps)
+        self._prefs.setValue("genAI.guidance", settings.genAI.guidance)
         self._prefs.setValue("tracing.palette", json.dumps(settings.tracing.palette))
         self._prefs.setValue("robot.ip", settings.robot.ip_address)

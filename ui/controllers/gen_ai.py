@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import QFileDialog
 
 from ui.assets import AssetRegistry
 from ui.mesh_visualizer import MeshVisualizer
+from ui.services.gen_ai import GenAIRequest, GenAIResult, GenAIService
 from ui.settings_manager import Settings, SettingsManager
 from ui.utils import populate_combobox
 from ui.workspace import WorkspaceManager
@@ -35,7 +36,11 @@ class GenAIController(QObject):
         self.settings_manager: SettingsManager = settings_manager
 
         self.result_model: QStandardItemModel = QStandardItemModel(self.ui.genAIResults)
-        
+        settings: Settings = self.settings_manager.load()
+        self.service: GenAIService = GenAIService(
+            host=settings.genAI.host, port=settings.genAI.port
+        )
+
         self.setup()
 
     def setup(self):
@@ -57,15 +62,17 @@ class GenAIController(QObject):
         self.ui.genAISaveAs.clicked.connect(self.prompt_save)
 
     def generate_texture(self):
-        model_path: Path = self.ui.genAIModel.currentData()
-        prompt: str = self.ui.genAIPrompt.toPlainText()
         settings: Settings = self.settings_manager.load()
-        # TODO: Call GenAI endpoint
-        print("Generating texture")
-        print(f" - host: {settings.genAI.host}")
-        print(f" - port: {settings.genAI.port}")
-        print(f" - model: {model_path}")
-        print(f" - prompt: {prompt}")
+        request: GenAIRequest = GenAIRequest(
+            model_path=self.ui.genAIModel.currentData(),
+            prompt=self.ui.genAIPrompt.toPlainText(),
+            negative_prompt=settings.genAI.negative_prompt,
+            prompt_wrapper=settings.genAI.prompt_wrapper,
+            steps=settings.genAI.steps,
+            guidance=settings.genAI.guidance,
+            output_dir=self.assets.output_dir,
+        )
+        result: GenAIResult = self.service.run(request)
         self.set_results(self.assets.list_textures())
 
     def set_results(self, results: list[Path]):
