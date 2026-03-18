@@ -5,12 +5,17 @@ from pathlib import Path
 import time
 
 class MVAdapaterModel:
-    def __init__(self, base_path: Path):
+    def __init__(self, base_path: Path, slurm_script: Path):
         self.base_path = base_path.resolve()
-        self.slurm_script = self.base_path / "script.slurm"
-        
+        script_path = Path(slurm_script)
+        if script_path.is_absolute():
+            self.slurm_script = script_path
+        else:
+            self.slurm_script = (Path(__file__).resolve().parent / script_path).resolve()
+
         if not self.slurm_script.exists():
-            raise FileNotFoundError(f"Le script {self.slurm_script} est introuvable.")
+            raise FileNotFoundError(f"Le script SLURM est introuvable: {self.slurm_script}")
+        
 
         for d in ["3d_models", "outputs", "logs"]:
             (self.base_path / d).mkdir(parents=True, exist_ok=True)
@@ -48,7 +53,7 @@ class MVAdapaterModel:
         
         try:
             result = subprocess.run(
-                ["sbatch", "--wait", str(self.slurm_script)], 
+                ["sbatch", "--wait", str(self.slurm_script)],
                 env=env,
                 cwd=str(self.base_path),
                 capture_output=True,

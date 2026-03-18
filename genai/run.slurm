@@ -32,5 +32,6 @@ python -m scripts.texture_t2tex \
     --save_dir "$MV_OUTPUT_DIR" \
     --save_name "$MV_SAVE_NAME" \
     --num_inference_steps "$MV_STEPS" \
-    --guidance_scale "$MV_GUIDANCE"
+    --guidance_scale "$MV_GUIDANCE" \
+    --negative_text "$MV_NEGATIVE_PROMPT" \
 

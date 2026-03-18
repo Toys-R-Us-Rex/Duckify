@@ -5,7 +5,7 @@ import zipfile
 import datetime
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv("genai/.env")
 
 try:
     SSH_HOST = os.getenv("SSH_HOST",None)

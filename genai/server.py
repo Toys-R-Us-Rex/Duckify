@@ -9,11 +9,14 @@ from dotenv import load_dotenv
 
 from models import MVAdapaterModel
 
-load_dotenv()
+load_dotenv("genai/.env")
 
 app = Flask(__name__)
 
-MV_ADAPTER_DIR = Path("/home/kevin.voisin/Duckify/genai/MV-Adapter" ) # Chemin vers le dossier MV-Adapter
+try:
+    MV_ADAPTER_DIR = Path(os.getenv("MV_ADAPTER_PATH",None))
+except Exception as e:
+    raise e
 
 if not MV_ADAPTER_DIR.exists():
         raise ValueError(f"Le dossier MV-Adapter est introuvable : {MV_ADAPTER_DIR}")
@@ -61,7 +64,7 @@ def generate_texture():
 
         print(f"[{job_id}] Démarrage du job SLURM | Steps: {steps} | Guidance: {guidance}")
         
-        texture_model = MVAdapaterModel(base_path=MV_ADAPTER_DIR)
+        texture_model = MVAdapaterModel(base_path=MV_ADAPTER_DIR,slurm_script=Path("run.slurm"))
 
         experiment_path = texture_model.run(
             text_prompt=prompt, 
