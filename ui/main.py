@@ -1,18 +1,18 @@
 import shutil
 import sys
-import tempfile
 from pathlib import Path
 from typing import Optional
 
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QModelIndex
-from PyQt6.QtGui import QCloseEvent, QIcon, QStandardItem, QStandardItemModel
+from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QApplication, QFileDialog
 
 from tracing.color import Color
 from tracing.config import TracerConfig
 from tracing.stats import TracingStats
 from tracing.tracer import Tracer
+from ui.assets import AssetRegistry
 from ui.calibration import CalibrationDialog
 from ui.mesh_visualizer import MeshVisualizer
 from ui.pen_calibration import PenCalibrationDialog
@@ -20,19 +20,14 @@ from ui.settings import SettingsDialog
 from ui.settings_manager import Settings, SettingsManager
 from ui.transformation import TransformationDialog
 from ui.ui.main_ui import Ui_MainWindow
+from ui.utils import populate_combobox
 from ui.workspace import WorkspaceManager
 
 ROOT_DIR: Path = Path(__file__).parent.parent
 
 
 class App(QtWidgets.QMainWindow, Ui_MainWindow):
-    MODELS_DIR: Path = ROOT_DIR / "assets" / "models"
-    TEXTURES_DIR: Path = ROOT_DIR / "assets" / "textures"
-    OUTPUT_DIR: Path = ROOT_DIR / "output"
     IGNORED_COLOR: Color = (0, 0, 0)
-    TRANSFORMATION_REFERENCE: Path = (
-        ROOT_DIR / "assets" / "transformation_reference.json"
-    )
 
     def __init__(self) -> None:
         super().__init__()
@@ -50,6 +45,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
             self.genAIResults
         )
 
+        self.assets: AssetRegistry = AssetRegistry(ROOT_DIR)
         self.workspace: WorkspaceManager = WorkspaceManager()
 
         self.setup_gen_ai()
@@ -61,9 +57,9 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         super().closeEvent(event)
 
     def setup_gen_ai(self):
-        for model_path in self.list_models("obj"):
-            name: str = str(model_path.relative_to(self.MODELS_DIR))
-            self.genAIModel.addItem(name, model_path)
+        populate_combobox(
+            self.genAIModel, self.assets.list_models("obj"), self.assets.models_dir
+        )
 
         # Result visualizer
         result_visualizer: MeshVisualizer = MeshVisualizer(self)
@@ -80,13 +76,12 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.genAIToTracing.clicked.connect(self.pass_texture_to_tracing)
 
     def setup_tracing(self):
-        for model_path in self.list_models("obj"):
-            name: str = str(model_path.relative_to(self.MODELS_DIR))
-            self.tracingModel.addItem(name, model_path)
-
-        for texture_path in self.list_textures():
-            name: str = str(texture_path.relative_to(self.TEXTURES_DIR))
-            self.tracingTexture.addItem(name, texture_path)
+        populate_combobox(
+            self.tracingModel, self.assets.list_models("obj"), self.assets.models_dir
+        )
+        populate_combobox(
+            self.tracingTexture, self.assets.list_textures(), self.assets.textures_dir
+        )
 
         self.tracingTrace.clicked.connect(self.start_tracing)
 
@@ -106,28 +101,18 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracingToRobot.clicked.connect(self.pass_traces_to_robot)
 
     def setup_robot(self):
-        for model_path in self.list_models("stl"):
-            name: str = str(model_path.relative_to(self.MODELS_DIR))
-            self.robotModel.addItem(name, model_path)
-
-        for trace_path in self.list_traces():
-            name: str = str(trace_path.relative_to(self.OUTPUT_DIR))
-            self.robotTrace.addItem(name, trace_path)
+        populate_combobox(
+            self.robotModel, self.assets.list_models("stl"), self.assets.models_dir
+        )
+        populate_combobox(
+            self.robotTrace, self.assets.list_traces(), self.assets.output_dir
+        )
 
         self.robotNewTCPCalibration.clicked.connect(self.new_tcp_calibration)
         self.robotNewTransformation.clicked.connect(self.new_transformation)
         self.robotNewPenCalibration.clicked.connect(self.new_pen_calibration)
 
         self.robotRun.clicked.connect(self.robot_run)
-
-    def list_models(self, extension: str) -> list[Path]:
-        return list(self.MODELS_DIR.glob(f"*.{extension}"))
-
-    def list_textures(self) -> list[Path]:
-        return list(self.TEXTURES_DIR.iterdir())
-
-    def list_traces(self) -> list[Path]:
-        return list(self.OUTPUT_DIR.glob("*-trace.json"))
 
     def apply_settings(self, settings: Settings):
         print(settings)
@@ -149,7 +134,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         print(f" - port: {settings.genAI.port}")
         print(f" - model: {model_path}")
         print(f" - prompt: {prompt}")
-        self.set_texture_results(list(self.TEXTURES_DIR.iterdir()))
+        self.set_texture_results(self.assets.list_textures())
 
     def start_tracing(self):
         print("Starting tracing")
@@ -173,21 +158,19 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         stats: TracingStats = tracer.compute_traces(
             progress_callback=self.update_tracing_progress
         )
-        
+
         tracer.export_traces(traces_path, force=True)
         if tracer.paletted_texture is not None:
             tracer.paletted_texture.save(paletted_path)
 
         self.set_tracing_stats(stats)
-        self.show_tracing_result(
-            model_path, texture_path, traces_path, paletted_path
-        )
+        self.show_tracing_result(model_path, texture_path, traces_path, paletted_path)
 
     def set_texture_results(self, results: list[Path]):
         model: QStandardItemModel = self.gen_ai_result_model
         for result in results:
             item = QStandardItem(
-                QIcon(str(result)), str(result.relative_to(self.TEXTURES_DIR))
+                QIcon(str(result)), str(result.relative_to(self.assets.textures_dir))
             )
             item.setData(result)
             item.setEditable(False)
@@ -219,7 +202,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         save_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save generated texture",
-            str(self.TEXTURES_DIR),
+            str(self.assets.textures_dir),
             "Images (*.png *.jpg)",
         )
         if save_path.strip() == "":
@@ -232,7 +215,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         if texture_path is None:
             return
 
-        model_name: str = str(model_path.relative_to(self.MODELS_DIR))
+        model_name: str = str(model_path.relative_to(self.assets.models_dir))
         self.tracingModel.addItem(model_name, model_path)
         self.tracingModel.setCurrentIndex(self.tracingModel.count() - 1)
 
@@ -277,7 +260,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def prompt_save_traces(self):
         save_path, _ = QFileDialog.getSaveFileName(
-            self, "Save traces", str(self.OUTPUT_DIR), "Traces (*.json)"
+            self, "Save traces", str(self.assets.output_dir), "Traces (*.json)"
         )
         if save_path.strip() == "":
             return
@@ -295,7 +278,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.robot_check_ready()
 
     def new_transformation(self):
-        dialog = TransformationDialog(self.TRANSFORMATION_REFERENCE, parent=self)
+        dialog = TransformationDialog(self.assets.transformation_reference, parent=self)
         dialog.exec()
         self.robot_check_ready()
 
