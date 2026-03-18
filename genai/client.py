@@ -3,13 +3,21 @@ import requests
 from sshtunnel import SSHTunnelForwarder
 import zipfile
 import datetime
+from dotenv import load_dotenv
 
-SSH_HOST = 'disco.hevs.ch'
-SSH_USER = 'kevin.voisin'
-SSH_KEY_PATH = os.path.expanduser('~/.ssh/wireguard_key')
+load_dotenv()
 
-
-def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt_wrapper=None,steps=30, guidance=6.0,HF_TOKEN=None):
+try:
+    SSH_HOST = os.getenv("SSH_HOST",None)
+    SSH_USER = os.getenv("SSH_USER",None)
+    SSH_KEY_PATH = os.path.expanduser(os.getenv("SSH_KEY_PATH", None))
+    HF_TOKEN = os.getenv("HF_TOKEN", None)
+    
+    if not all([SSH_HOST, SSH_USER, SSH_KEY_PATH]):
+        raise ValueError("SSH_HOST, SSH_USER, SSH_KEY_PATH et HF_TOKEN doivent être définis dans le fichier .env")
+except Exception as e:
+    raise e
+def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt_wrapper=None,steps=30, guidance=6.0):
     print("Connexion SSH...")
     try:
         with SSHTunnelForwarder(

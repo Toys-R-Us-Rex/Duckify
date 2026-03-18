@@ -21,7 +21,7 @@ export LIBRARY_PATH=$CONDA_PREFIX/lib:$LIBRARY_PATH
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export PYTORCH_CUDA_LIB=$CONDA_PREFIX/lib/python3.10/site-packages/nvidia/cuda_runtime/lib
 
-cd /home/kevin.voisin/Duckify/genai/MV-Adapter/ # Change to the directory where the script is located
+cd "$MV_ADAPTER_PATH"
 mkdir -p "$MV_OUTPUT_DIR"
 
 echo "Lancement de MV-Adapter..."
