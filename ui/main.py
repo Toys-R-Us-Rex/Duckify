@@ -14,6 +14,7 @@ from tracing.tracer import Tracer
 from ui.assets import AssetRegistry
 from ui.calibration import CalibrationDialog
 from ui.controllers.gen_ai import GenAIController
+from ui.controllers.tracing import TracingController
 from ui.mesh_visualizer import MeshVisualizer
 from ui.pen_calibration import PenCalibrationDialog
 from ui.settings import SettingsDialog
@@ -27,8 +28,6 @@ ROOT_DIR: Path = Path(__file__).parent.parent
 
 
 class App(QMainWindow, Ui_MainWindow):
-    IGNORED_COLOR: Color = (0, 0, 0)
-
     def __init__(self) -> None:
         super().__init__()
         self.setupUi(self)
@@ -47,40 +46,17 @@ class App(QMainWindow, Ui_MainWindow):
         self.gen_ai: GenAIController = GenAIController(
             self, self.assets, self.workspace, self.settings_manager
         )
-
-        self.setup_tracing()
+        self.tracing: TracingController = TracingController(
+            self, self.assets, self.workspace, self.settings_manager
+        )
         self.setup_robot()
 
         self.genAIToTracing.clicked.connect(self.pass_texture_to_tracing)
+        self.tracingToRobot.clicked.connect(self.pass_traces_to_robot)
 
     def closeEvent(self, event):  # pyright: ignore[reportIncompatibleMethodOverride]
         self.workspace.cleanup()
         super().closeEvent(event)
-
-    def setup_tracing(self):
-        populate_combobox(
-            self.tracingModel, self.assets.list_models("obj"), self.assets.models_dir
-        )
-        populate_combobox(
-            self.tracingTexture, self.assets.list_textures(), self.assets.textures_dir
-        )
-
-        self.tracingTrace.clicked.connect(self.start_tracing)
-
-        traces_visualizer: MeshVisualizer = MeshVisualizer(self)
-        self.tracingVisual.parentWidget().layout().replaceWidget(self.tracingVisual, traces_visualizer)  # type: ignore
-        self.tracingVisual.deleteLater()
-        self.tracingVisual = traces_visualizer
-        self.tracingVisualAltitude.valueChanged.connect(traces_visualizer.set_altitude)
-        self.tracingVisualAzimuth.valueChanged.connect(traces_visualizer.set_azimuth)
-        self.tracingVisualLayerMesh.toggled.connect(self.update_tracing_visual_layer)
-        self.tracingVisualLayerTexture.toggled.connect(self.update_tracing_visual_layer)
-        self.tracingVisualLayerPalettized.toggled.connect(
-            self.update_tracing_visual_layer
-        )
-
-        self.tracingSaveAs.clicked.connect(self.prompt_save_traces)
-        self.tracingToRobot.clicked.connect(self.pass_traces_to_robot)
 
     def setup_robot(self):
         populate_combobox(
@@ -106,36 +82,6 @@ class App(QMainWindow, Ui_MainWindow):
             self.settings_manager.save(dialog.get_settings())
             self.apply_settings(self.settings_manager.load())
 
-    def start_tracing(self):
-        print("Starting tracing")
-
-        settings: Settings = self.settings_manager.load()
-
-        model_path: Path = self.tracingModel.currentData()
-        texture_path: Path = self.tracingTexture.currentData()
-        traces_path: Path = self.workspace.traces_path
-        paletted_path: Path = self.workspace.paletted_texture_path
-
-        config: TracerConfig = TracerConfig(
-            enable_fill_slicing=self.tracingEnableFill.isChecked()
-        )
-
-        palette: list[Color] = settings.tracing.palette
-
-        tracer: Tracer = Tracer(
-            config, texture_path, model_path, tuple(palette), self.IGNORED_COLOR
-        )
-        stats: TracingStats = tracer.compute_traces(
-            progress_callback=self.update_tracing_progress
-        )
-
-        tracer.export_traces(traces_path, force=True)
-        if tracer.paletted_texture is not None:
-            tracer.paletted_texture.save(paletted_path)
-
-        self.set_tracing_stats(stats)
-        self.show_tracing_result(model_path, texture_path, traces_path, paletted_path)
-
     def pass_texture_to_tracing(self):
         model_path: Path = self.genAIModel.currentData()
         texture_path: Optional[Path] = self.gen_ai.get_selected()
@@ -150,48 +96,6 @@ class App(QMainWindow, Ui_MainWindow):
         self.tracingTexture.setCurrentIndex(self.tracingTexture.count() - 1)
 
         self.steps.setCurrentWidget(self.tabTracing)
-
-    def update_tracing_progress(self, current: int, maximum: int, label: str):
-        self.tracingProgressLabel.setText(label)
-        self.tracingProgress.setMaximum(maximum)
-        self.tracingProgress.setValue(current)
-
-    def set_tracing_stats(self, stats: TracingStats):
-        self.tracingStatIslands.setText(str(stats.n_islands))
-        self.tracingStat2DTraces.setText(str(stats.n_2d_traces))
-        self.tracingStat3DTraces.setText(str(stats.n_3d_traces))
-        self.tracingStatPoints.setText(str(stats.n_points))
-
-    def show_tracing_result(
-        self,
-        model_path: Path,
-        texture_path: Path,
-        traces_path: Path,
-        paletted_texture_path: Path,
-    ):
-        self.tracingVisual.load_model(model_path)
-        self.tracingVisual.clear_textures()
-        self.tracingVisual.add_texture(texture_path)
-        self.tracingVisual.add_texture(paletted_texture_path)
-        self.tracingVisual.load_traces(traces_path)
-
-        self.update_tracing_visual_layer()
-
-    def update_tracing_visual_layer(self):
-        if self.tracingVisualLayerMesh.isChecked():
-            self.tracingVisual.show_texture(None)
-        elif self.tracingVisualLayerTexture.isChecked():
-            self.tracingVisual.show_texture(0)
-        elif self.tracingVisualLayerPalettized.isChecked():
-            self.tracingVisual.show_texture(1)
-
-    def prompt_save_traces(self):
-        save_path, _ = QFileDialog.getSaveFileName(
-            self, "Save traces", str(self.assets.output_dir), "Traces (*.json)"
-        )
-        if save_path.strip() == "":
-            return
-        shutil.copy(self.workspace.traces_path, save_path)
 
     def pass_traces_to_robot(self):
         self.robotTrace.addItem("Generated traces", self.workspace.traces_path)
