@@ -289,6 +289,9 @@ class Tracer:
         contours, hierarchy = cv2.findContours(layer, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
         self.logger.debug(f"Found {len(contours)} contours")
 
+        if len(contours) == 0:
+            return []
+
         zipped_contour_data: list[tuple[np.ndarray, np.ndarray]] = list(zip(contours, hierarchy[0]))
 
         contours_cleaned: list[tuple[np.ndarray, np.ndarray, int]] = []
@@ -299,8 +302,6 @@ class Tracer:
                 contours_too_small.append((contour, hierarchy))
             else:
                 contours_cleaned.append((contour, hierarchy, idx))
-        
-
 
         if self.config.debug:
             cv2.imshow('Islands in the layer', layer)
@@ -309,8 +310,10 @@ class Tracer:
             cv2.imshow("All detected contour", with_contours)
             
             with_contours_cleaned = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
-            cv2.drawContours(with_contours_cleaned, list(zip(*contours_cleaned))[0], -1, (0, 255, 0), 2)
-            cv2.drawContours(with_contours_cleaned, list(zip(*contours_too_small))[0], -1, (0, 0, 255), 2)
+            if len(contours_cleaned) != 0:
+                cv2.drawContours(with_contours_cleaned, list(zip(*contours_cleaned))[0], -1, (0, 255, 0), 2)
+            if len(contours_too_small) != 0:
+                cv2.drawContours(with_contours_cleaned, list(zip(*contours_too_small))[0], -1, (0, 0, 255), 2)
             cv2.imshow("Cleaned contours", with_contours_cleaned)
             cv2.waitKey(-1)
             cv2.destroyAllWindows()
