@@ -14,12 +14,12 @@ from tracing.config import TracerConfig
 from tracing.stats import TracingStats
 from tracing.tracer import Tracer
 from ui.calibration import CalibrationDialog
-from ui.main_ui import Ui_MainWindow
 from ui.mesh_visualizer import MeshVisualizer
 from ui.pen_calibration import PenCalibrationDialog
 from ui.settings import SettingsDialog
 from ui.settings_manager import Settings, SettingsManager
 from ui.transformation import TransformationDialog
+from ui.ui.main_ui import Ui_MainWindow
 
 ROOT_DIR: Path = Path(__file__).parent.parent
 

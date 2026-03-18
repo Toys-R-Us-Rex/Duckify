@@ -6,7 +6,7 @@ from PyQt6.QtCore import QModelIndex
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QDialog
 
-from ui.transformation_ui import Ui_Dialog
+from ui.ui.transformation_ui import Ui_Dialog
 
 
 class TransformationDialog(QDialog, Ui_Dialog):

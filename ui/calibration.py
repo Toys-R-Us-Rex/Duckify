@@ -4,7 +4,7 @@ from typing import Optional
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QDialog, QPushButton
 
-from ui.calibration_ui import Ui_Dialog
+from ui.ui.calibration_ui import Ui_Dialog
 
 
 class CalibrationDialog(QDialog, Ui_Dialog):
