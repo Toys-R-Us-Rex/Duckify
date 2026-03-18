@@ -7,7 +7,21 @@ GenAI uses a split architecture:
 - **Client (local)**: `main.ipynb` calls `generate_texture` from `genai/client.py`.
 - **Server (remote)**: `genai/server.py` hosts the Flask API and runs generation via `genai/models.py` + `MV-Adapter`.
 
-## 1) Server setup (Disco.hevs.ch)
+
+## 1) Credentials Setup (global)
+
+**Configure environment variables**
+   ```bash
+   cp genai/.env.example .env
+   ```
+   Then fill `.env` with your values:
+   - `MV_ADAPTER_PATH`
+   - `SSH_HOST`
+   - `SSH_USER`
+   - `SSH_KEY_PATH`
+   - `HF_TOKEN`
+
+## 2) Server setup (Disco.hevs.ch)
 
 
 1. **Clone the repository**
@@ -22,37 +36,19 @@ GenAI uses a split architecture:
    ```
    uv sync
    ```
-3. **Update SLURM path**
-   - File: `genai/models/MV-Adapter/script.slurm`
-   - Ensure `cd` uses the correct absolute path:
-   ```bash
-   cd /home/kevin.voisin/Duckify/genai/MV-Adapter/
-   ```
 
-4. **Start API server**
+3. **Start API server**
    ```bash
    uv run genai/server.py
    ```
    Use `screen` if needed to maintain the api open while leaving the connection.
 
-## 2) Client setup (local machine)
+## 3) Client setup (local machine)
 
 1. **Install dependencies**
    ```bash
    uv sync
    ```
-
-2. **Configure environment variables**
-   ```bash
-   cp genai/.env.example .env
-   ```
-
-   Then fill `.env` with your values:
-   - `MV_ADAPTER_PATH`
-   - `SSH_HOST`
-   - `SSH_USER`
-   - `SSH_KEY_PATH`
-   - `HF_TOKEN`
 
 ## 3) Run from `main.ipynb`
 
@@ -81,9 +77,3 @@ mesh_path, extracted_files = generate_texture(
 
 print(f"Files: {extracted_files}")
 ```
-
-## 4) Values to verify
-
-- `.env`: `MV_ADAPTER_PATH`, `SSH_HOST`, `SSH_USER`, `SSH_KEY_PATH`, `HF_TOKEN`
-- `genai/models/MV-Adapter/script.slurm`: absolute `cd` MV-Adapter path
-- `genai/server.py`: host/port must match client expectations
