@@ -6,7 +6,7 @@ from PyQt6.QtGui import QColor, QIcon, QPixmap
 from PyQt6.QtWidgets import QColorDialog, QDialog, QListWidgetItem
 
 from ui.settings_manager import GenAISettings, Settings, TracingSettings
-from ui.settings_ui import Ui_Dialog
+from ui.ui.settings_ui import Ui_Dialog
 from ui.utils import ping
 
 
