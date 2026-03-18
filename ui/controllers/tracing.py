@@ -5,15 +5,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QObject, pyqtSignal
-from PyQt6.QtGui import QStandardItemModel
 from PyQt6.QtWidgets import QFileDialog
 
 from tracing.color import Color
-from tracing.config import TracerConfig
 from tracing.stats import TracingStats
-from tracing.tracer import Tracer
 from ui.assets import AssetRegistry
 from ui.mesh_visualizer import MeshVisualizer
+from ui.services.tracing import TracingRequest, TracingResult, TracingService
 from ui.settings_manager import Settings, SettingsManager
 from ui.utils import populate_combobox
 from ui.workspace import WorkspaceManager
@@ -23,8 +21,6 @@ if TYPE_CHECKING:
 
 
 class TracingController(QObject):
-    IGNORED_COLOR: Color = (0, 0, 0)
-
     to_robot: pyqtSignal = pyqtSignal(Path, Path)
 
     def __init__(
@@ -39,6 +35,11 @@ class TracingController(QObject):
         self.assets: AssetRegistry = assets
         self.workspace: WorkspaceManager = workspace
         self.settings_manager: SettingsManager = settings_manager
+
+        self.service: TracingService = TracingService(
+            traces_path=self.workspace.traces_path,
+            paletted_texture_path=self.workspace.paletted_texture_path,
+        )
 
         self.setup()
 
@@ -71,30 +72,17 @@ class TracingController(QObject):
 
         settings: Settings = self.settings_manager.load()
 
-        model_path: Path = self.ui.tracingModel.currentData()
-        texture_path: Path = self.ui.tracingTexture.currentData()
-        traces_path: Path = self.workspace.traces_path
-        paletted_path: Path = self.workspace.paletted_texture_path
-
-        config: TracerConfig = TracerConfig(
-            enable_fill_slicing=self.ui.tracingEnableFill.isChecked()
+        request: TracingRequest = TracingRequest(
+            model_path=self.ui.tracingModel.currentData(),
+            texture_path=self.ui.tracingTexture.currentData(),
+            palette=settings.tracing.palette,
+            enable_fill_slicing=self.ui.tracingEnableFill.isChecked(),
         )
 
-        palette: list[Color] = settings.tracing.palette
-
-        tracer: Tracer = Tracer(
-            config, texture_path, model_path, tuple(palette), self.IGNORED_COLOR
+        result: TracingResult = self.service.run(
+            request, on_progress=self.update_progress
         )
-        stats: TracingStats = tracer.compute_traces(
-            progress_callback=self.update_progress
-        )
-
-        tracer.export_traces(traces_path, force=True)
-        if tracer.paletted_texture is not None:
-            tracer.paletted_texture.save(paletted_path)
-
-        self.set_stats(stats)
-        self.show_result(model_path, texture_path, traces_path, paletted_path)
+        self.show_result(request, result)
 
     def update_progress(self, current: int, maximum: int, label: str):
         self.ui.tracingProgressLabel.setText(label)
@@ -109,16 +97,16 @@ class TracingController(QObject):
 
     def show_result(
         self,
-        model_path: Path,
-        texture_path: Path,
-        traces_path: Path,
-        paletted_texture_path: Path,
+        request: TracingRequest,
+        result: TracingResult,
     ):
-        self.visualizer.load_model(model_path)
+        self.set_stats(result.stats)
+        self.visualizer.load_model(request.model_path)
         self.visualizer.clear_textures()
-        self.visualizer.add_texture(texture_path)
-        self.visualizer.add_texture(paletted_texture_path)
-        self.visualizer.load_traces(traces_path)
+        self.visualizer.add_texture(request.texture_path)
+        if result.paletted_texture_path is not None:
+            self.visualizer.add_texture(result.paletted_texture_path)
+        self.visualizer.load_traces(result.traces_path)
 
         self.update_visual_layer()
 
