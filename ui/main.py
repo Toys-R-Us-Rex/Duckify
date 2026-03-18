@@ -4,9 +4,8 @@ from pathlib import Path
 from typing import Optional
 
 from PyQt6 import QtWidgets
-from PyQt6.QtCore import QModelIndex
-from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
-from PyQt6.QtWidgets import QApplication, QFileDialog
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow
 
 from tracing.color import Color
 from tracing.config import TracerConfig
@@ -14,6 +13,7 @@ from tracing.stats import TracingStats
 from tracing.tracer import Tracer
 from ui.assets import AssetRegistry
 from ui.calibration import CalibrationDialog
+from ui.controllers.gen_ai import GenAIController
 from ui.mesh_visualizer import MeshVisualizer
 from ui.pen_calibration import PenCalibrationDialog
 from ui.settings import SettingsDialog
@@ -26,7 +26,7 @@ from ui.workspace import WorkspaceManager
 ROOT_DIR: Path = Path(__file__).parent.parent
 
 
-class App(QtWidgets.QMainWindow, Ui_MainWindow):
+class App(QMainWindow, Ui_MainWindow):
     IGNORED_COLOR: Color = (0, 0, 0)
 
     def __init__(self) -> None:
@@ -41,39 +41,21 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.settings_manager: SettingsManager = SettingsManager()
         self.apply_settings(self.settings_manager.load())
 
-        self.gen_ai_result_model: QStandardItemModel = QStandardItemModel(
-            self.genAIResults
-        )
-
         self.assets: AssetRegistry = AssetRegistry(ROOT_DIR)
         self.workspace: WorkspaceManager = WorkspaceManager()
 
-        self.setup_gen_ai()
+        self.gen_ai: GenAIController = GenAIController(
+            self, self.assets, self.workspace, self.settings_manager
+        )
+
         self.setup_tracing()
         self.setup_robot()
+
+        self.genAIToTracing.clicked.connect(self.pass_texture_to_tracing)
 
     def closeEvent(self, event):  # pyright: ignore[reportIncompatibleMethodOverride]
         self.workspace.cleanup()
         super().closeEvent(event)
-
-    def setup_gen_ai(self):
-        populate_combobox(
-            self.genAIModel, self.assets.list_models("obj"), self.assets.models_dir
-        )
-
-        # Result visualizer
-        result_visualizer: MeshVisualizer = MeshVisualizer(self)
-        self.genAIVisualizerGroup.layout().replaceWidget(self.genAIVisual, result_visualizer)  # type: ignore
-        self.genAIVisual.deleteLater()
-        self.genAIVisual = result_visualizer
-        self.genAIVisualAltitude.valueChanged.connect(result_visualizer.set_altitude)
-        self.genAIVisualAzimuth.valueChanged.connect(result_visualizer.set_azimuth)
-
-        self.genAIGenerate.clicked.connect(self.generate_texture)
-        self.genAIResults.clicked.connect(self.select_gen_ai_result)
-
-        self.genAISaveAs.clicked.connect(self.prompt_save_texture)
-        self.genAIToTracing.clicked.connect(self.pass_texture_to_tracing)
 
     def setup_tracing(self):
         populate_combobox(
@@ -124,18 +106,6 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
             self.settings_manager.save(dialog.get_settings())
             self.apply_settings(self.settings_manager.load())
 
-    def generate_texture(self):
-        model_path: Path = self.genAIModel.currentData()
-        prompt: str = self.genAIPrompt.toPlainText()
-        settings: Settings = self.settings_manager.load()
-        # TODO: Call GenAI endpoint
-        print("Generating texture")
-        print(f" - host: {settings.genAI.host}")
-        print(f" - port: {settings.genAI.port}")
-        print(f" - model: {model_path}")
-        print(f" - prompt: {prompt}")
-        self.set_texture_results(self.assets.list_textures())
-
     def start_tracing(self):
         print("Starting tracing")
 
@@ -166,52 +136,9 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.set_tracing_stats(stats)
         self.show_tracing_result(model_path, texture_path, traces_path, paletted_path)
 
-    def set_texture_results(self, results: list[Path]):
-        model: QStandardItemModel = self.gen_ai_result_model
-        for result in results:
-            item = QStandardItem(
-                QIcon(str(result)), str(result.relative_to(self.assets.textures_dir))
-            )
-            item.setData(result)
-            item.setEditable(False)
-            model.appendRow(item)
-
-        self.genAIResults.setModel(model)
-        self.genAIVisual.load_model(self.genAIModel.currentData())
-
-    def get_selected_genai_texture(self) -> Optional[Path]:
-        index: QModelIndex = self.genAIResults.currentIndex()
-        item: Optional[QStandardItem] = self.gen_ai_result_model.itemFromIndex(index)
-        if item is None:
-            return None
-        return item.data()
-
-    def select_gen_ai_result(self):
-        path: Optional[Path] = self.get_selected_genai_texture()
-        if path is None:
-            return
-        print(f"Selected {path}")
-        self.genAIVisual.clear_textures()
-        self.genAIVisual.add_texture(path)
-        self.genAIVisual.show_texture(0)
-
-    def prompt_save_texture(self):
-        texture_path: Optional[Path] = self.get_selected_genai_texture()
-        if texture_path is None:
-            return
-        save_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save generated texture",
-            str(self.assets.textures_dir),
-            "Images (*.png *.jpg)",
-        )
-        if save_path.strip() == "":
-            return
-        shutil.copy(texture_path, save_path)
-
     def pass_texture_to_tracing(self):
         model_path: Path = self.genAIModel.currentData()
-        texture_path: Optional[Path] = self.get_selected_genai_texture()
+        texture_path: Optional[Path] = self.gen_ai.get_selected()
         if texture_path is None:
             return
 
