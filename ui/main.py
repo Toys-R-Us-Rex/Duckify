@@ -29,11 +29,15 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
     TEXTURES_DIR: Path = ROOT_DIR / "assets" / "textures"
     OUTPUT_DIR: Path = ROOT_DIR / "output"
     IGNORED_COLOR: Color = (0, 0, 0)
-    TRANSFORMATION_REFERENCE: Path = ROOT_DIR / "assets" / "transformation_reference.json"
+    TRANSFORMATION_REFERENCE: Path = (
+        ROOT_DIR / "assets" / "transformation_reference.json"
+    )
 
     def __init__(self) -> None:
         super().__init__()
         self.setupUi(self)
+
+        self.setWindowIcon(QIcon(str(ROOT_DIR / "assets" / "icon.png")))
 
         self.actionSettings.triggered.connect(self.open_settings)
         self.actionQuit.triggered.connect(QApplication.quit)
@@ -117,6 +121,8 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.robotNewTransformation.clicked.connect(self.new_transformation)
         self.robotNewPenCalibration.clicked.connect(self.new_pen_calibration)
 
+        self.robotRun.clicked.connect(self.robot_run)
+
     def list_models(self, extension: str) -> list[Path]:
         return list(self.MODELS_DIR.glob(f"*.{extension}"))
 
@@ -139,8 +145,13 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
     def generate_texture(self):
         model_path: Path = self.genAIModel.currentData()
         prompt: str = self.genAIPrompt.toPlainText()
+        settings: Settings = self.settings_manager.load()
         # TODO: Call GenAI endpoint
         print("Generating texture")
+        print(f" - host: {settings.genAI.host}")
+        print(f" - port: {settings.genAI.port}")
+        print(f" - model: {model_path}")
+        print(f" - prompt: {prompt}")
         self.set_texture_results(list(self.TEXTURES_DIR.iterdir()))
 
     def start_tracing(self):
@@ -274,19 +285,50 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         shutil.copy(self.traces_path, save_path)
 
     def pass_traces_to_robot(self):
-        pass
+        self.robotTrace.addItem("Generated traces", self.traces_path)
+        self.robotTrace.setCurrentIndex(self.robotTrace.count() - 1)
+
+        self.steps.setCurrentWidget(self.tabRobot)
 
     def new_tcp_calibration(self):
         dialog = CalibrationDialog(self)
         dialog.exec()
+        self.robot_check_ready()
 
     def new_transformation(self):
         dialog = TransformationDialog(self.TRANSFORMATION_REFERENCE, parent=self)
         dialog.exec()
+        self.robot_check_ready()
 
     def new_pen_calibration(self):
         dialog = PenCalibrationDialog(self)
         dialog.exec()
+        self.robot_check_ready()
+
+    def robot_check_ready(self):
+        ready: bool = True
+        self.robotRun.setDisabled(not ready)
+
+    def robot_run(self):
+        model_path: Path = self.robotModel.currentData()
+        trace_path: Path = self.robotTrace.currentData()
+        filter_mode: str = self.robotFilter.currentData()  # TODO: improve with enum ?
+
+        tcp_calibration: str = self.robotTCPCalibration.currentText()
+        transformation: str = self.robotTransformation.currentText()
+
+        enable_gazebo: bool = self.robotEnableGazebo.isChecked()
+
+        settings: Settings = self.settings_manager.load()
+
+        print("Running robot")
+        print(f" - ip: {settings.robot.ip_address}")
+        print(f" - model: {model_path}")
+        print(f" - trace: {trace_path}")
+        print(f" - filter: {filter_mode}")
+        print(f" - TCP calibration: {tcp_calibration}")
+        print(f" - transformation: {transformation}")
+        print(f" - enable Gazebo: {enable_gazebo}")
 
 
 def main():
