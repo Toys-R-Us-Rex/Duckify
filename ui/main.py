@@ -6,7 +6,7 @@ from typing import Optional
 
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QModelIndex
-from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
+from PyQt6.QtGui import QCloseEvent, QIcon, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QApplication, QFileDialog
 
 from tracing.color import Color
@@ -20,6 +20,7 @@ from ui.settings import SettingsDialog
 from ui.settings_manager import Settings, SettingsManager
 from ui.transformation import TransformationDialog
 from ui.ui.main_ui import Ui_MainWindow
+from ui.workspace import WorkspaceManager
 
 ROOT_DIR: Path = Path(__file__).parent.parent
 
@@ -48,20 +49,16 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.gen_ai_result_model: QStandardItemModel = QStandardItemModel(
             self.genAIResults
         )
-        working_dir = tempfile.TemporaryDirectory(prefix="duckify_")
-        self.working_dir: Path = Path(working_dir.name)
+
+        self.workspace: WorkspaceManager = WorkspaceManager()
 
         self.setup_gen_ai()
         self.setup_tracing()
         self.setup_robot()
 
-    @property
-    def texture_path(self) -> Path:
-        return self.working_dir / "texture.png"
-
-    @property
-    def traces_path(self) -> Path:
-        return self.working_dir / "traces.json"
+    def closeEvent(self, event):  # pyright: ignore[reportIncompatibleMethodOverride]
+        self.workspace.cleanup()
+        super().closeEvent(event)
 
     def setup_gen_ai(self):
         for model_path in self.list_models("obj"):
@@ -161,6 +158,8 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
 
         model_path: Path = self.tracingModel.currentData()
         texture_path: Path = self.tracingTexture.currentData()
+        traces_path: Path = self.workspace.traces_path
+        paletted_path: Path = self.workspace.paletted_texture_path
 
         config: TracerConfig = TracerConfig(
             enable_fill_slicing=self.tracingEnableFill.isChecked()
@@ -174,14 +173,14 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         stats: TracingStats = tracer.compute_traces(
             progress_callback=self.update_tracing_progress
         )
-        tracer.export_traces(self.traces_path, force=True)
-        paletted_texture_path: Path = self.working_dir / "paletted.png"
+        
+        tracer.export_traces(traces_path, force=True)
         if tracer.paletted_texture is not None:
-            tracer.paletted_texture.save(paletted_texture_path)
+            tracer.paletted_texture.save(paletted_path)
 
         self.set_tracing_stats(stats)
         self.show_tracing_result(
-            model_path, texture_path, self.traces_path, paletted_texture_path
+            model_path, texture_path, traces_path, paletted_path
         )
 
     def set_texture_results(self, results: list[Path]):
@@ -282,10 +281,10 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         )
         if save_path.strip() == "":
             return
-        shutil.copy(self.traces_path, save_path)
+        shutil.copy(self.workspace.traces_path, save_path)
 
     def pass_traces_to_robot(self):
-        self.robotTrace.addItem("Generated traces", self.traces_path)
+        self.robotTrace.addItem("Generated traces", self.workspace.traces_path)
         self.robotTrace.setCurrentIndex(self.robotTrace.count() - 1)
 
         self.steps.setCurrentWidget(self.tabRobot)
