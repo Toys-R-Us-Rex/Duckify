@@ -13,10 +13,13 @@ from tracing.color import Color
 from tracing.config import TracerConfig
 from tracing.stats import TracingStats
 from tracing.tracer import Tracer
+from ui.calibration import CalibrationDialog
 from ui.main_ui import Ui_MainWindow
 from ui.mesh_visualizer import MeshVisualizer
+from ui.pen_calibration import PenCalibrationDialog
 from ui.settings import SettingsDialog
 from ui.settings_manager import Settings, SettingsManager
+from ui.transformation import TransformationDialog
 
 ROOT_DIR: Path = Path(__file__).parent.parent
 
@@ -26,10 +29,15 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
     TEXTURES_DIR: Path = ROOT_DIR / "assets" / "textures"
     OUTPUT_DIR: Path = ROOT_DIR / "output"
     IGNORED_COLOR: Color = (0, 0, 0)
+    TRANSFORMATION_REFERENCE: Path = (
+        ROOT_DIR / "assets" / "transformation_reference.json"
+    )
 
     def __init__(self) -> None:
         super().__init__()
         self.setupUi(self)
+
+        self.setWindowIcon(QIcon(str(ROOT_DIR / "assets" / "icon.png")))
 
         self.actionSettings.triggered.connect(self.open_settings)
         self.actionQuit.triggered.connect(QApplication.quit)
@@ -56,7 +64,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         return self.working_dir / "traces.json"
 
     def setup_gen_ai(self):
-        for model_path in self.list_models():
+        for model_path in self.list_models("obj"):
             name: str = str(model_path.relative_to(self.MODELS_DIR))
             self.genAIModel.addItem(name, model_path)
 
@@ -75,7 +83,7 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.genAIToTracing.clicked.connect(self.pass_texture_to_tracing)
 
     def setup_tracing(self):
-        for model_path in self.list_models():
+        for model_path in self.list_models("obj"):
             name: str = str(model_path.relative_to(self.MODELS_DIR))
             self.tracingModel.addItem(name, model_path)
 
@@ -101,13 +109,28 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracingToRobot.clicked.connect(self.pass_traces_to_robot)
 
     def setup_robot(self):
-        pass
+        for model_path in self.list_models("stl"):
+            name: str = str(model_path.relative_to(self.MODELS_DIR))
+            self.robotModel.addItem(name, model_path)
 
-    def list_models(self) -> list[Path]:
-        return list(self.MODELS_DIR.iterdir())
+        for trace_path in self.list_traces():
+            name: str = str(trace_path.relative_to(self.OUTPUT_DIR))
+            self.robotTrace.addItem(name, trace_path)
+
+        self.robotNewTCPCalibration.clicked.connect(self.new_tcp_calibration)
+        self.robotNewTransformation.clicked.connect(self.new_transformation)
+        self.robotNewPenCalibration.clicked.connect(self.new_pen_calibration)
+
+        self.robotRun.clicked.connect(self.robot_run)
+
+    def list_models(self, extension: str) -> list[Path]:
+        return list(self.MODELS_DIR.glob(f"*.{extension}"))
 
     def list_textures(self) -> list[Path]:
         return list(self.TEXTURES_DIR.iterdir())
+
+    def list_traces(self) -> list[Path]:
+        return list(self.OUTPUT_DIR.glob("*-trace.json"))
 
     def apply_settings(self, settings: Settings):
         print(settings)
@@ -122,8 +145,13 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
     def generate_texture(self):
         model_path: Path = self.genAIModel.currentData()
         prompt: str = self.genAIPrompt.toPlainText()
+        settings: Settings = self.settings_manager.load()
         # TODO: Call GenAI endpoint
         print("Generating texture")
+        print(f" - host: {settings.genAI.host}")
+        print(f" - port: {settings.genAI.port}")
+        print(f" - model: {model_path}")
+        print(f" - prompt: {prompt}")
         self.set_texture_results(list(self.TEXTURES_DIR.iterdir()))
 
     def start_tracing(self):
@@ -257,7 +285,50 @@ class App(QtWidgets.QMainWindow, Ui_MainWindow):
         shutil.copy(self.traces_path, save_path)
 
     def pass_traces_to_robot(self):
-        pass
+        self.robotTrace.addItem("Generated traces", self.traces_path)
+        self.robotTrace.setCurrentIndex(self.robotTrace.count() - 1)
+
+        self.steps.setCurrentWidget(self.tabRobot)
+
+    def new_tcp_calibration(self):
+        dialog = CalibrationDialog(self)
+        dialog.exec()
+        self.robot_check_ready()
+
+    def new_transformation(self):
+        dialog = TransformationDialog(self.TRANSFORMATION_REFERENCE, parent=self)
+        dialog.exec()
+        self.robot_check_ready()
+
+    def new_pen_calibration(self):
+        dialog = PenCalibrationDialog(self)
+        dialog.exec()
+        self.robot_check_ready()
+
+    def robot_check_ready(self):
+        ready: bool = True
+        self.robotRun.setDisabled(not ready)
+
+    def robot_run(self):
+        model_path: Path = self.robotModel.currentData()
+        trace_path: Path = self.robotTrace.currentData()
+        filter_mode: str = self.robotFilter.currentData()  # TODO: improve with enum ?
+
+        tcp_calibration: str = self.robotTCPCalibration.currentText()
+        transformation: str = self.robotTransformation.currentText()
+
+        enable_gazebo: bool = self.robotEnableGazebo.isChecked()
+
+        settings: Settings = self.settings_manager.load()
+
+        print("Running robot")
+        print(f" - ip: {settings.robot.ip_address}")
+        print(f" - model: {model_path}")
+        print(f" - trace: {trace_path}")
+        print(f" - filter: {filter_mode}")
+        print(f" - TCP calibration: {tcp_calibration}")
+        print(f" - transformation: {transformation}")
+        print(f" - enable Gazebo: {enable_gazebo}")
 
 
 def main():

@@ -16,7 +16,7 @@ class TracingSettings:
 
 @dataclass
 class RobotSettings:
-    pass
+    ip_address: str = "127.0.0.1"
 
 
 @dataclass
@@ -39,6 +39,9 @@ class SettingsManager:
             ),
             tracing=TracingSettings(
                 palette=list(map(tuple, colors)) # type: ignore
+            ),
+            robot=RobotSettings(
+                ip_address=self._prefs.value("robot.ip", RobotSettings.ip_address)
             )
         )
     
@@ -46,3 +49,4 @@ class SettingsManager:
         self._prefs.setValue("genAI.host", settings.genAI.host)
         self._prefs.setValue("genAI.port", settings.genAI.port)
         self._prefs.setValue("tracing.palette", json.dumps(settings.tracing.palette))
+        self._prefs.setValue("robot.ip", settings.robot.ip_address)
