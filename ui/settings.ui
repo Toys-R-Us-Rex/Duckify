@@ -256,6 +256,13 @@
                  </spacer>
                 </item>
                 <item>
+                 <widget class="QLabel" name="robotTestResult">
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item>
                  <widget class="QPushButton" name="robotTest">
                   <property name="text">
                    <string>Test</string>

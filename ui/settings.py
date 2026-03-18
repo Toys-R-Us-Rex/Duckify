@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QColorDialog, QDialog, QListWidgetItem
 
 from ui.settings_manager import GenAISettings, Settings, TracingSettings
 from ui.settings_ui import Ui_Dialog
+from ui.utils import ping
 
 
 class SettingsDialog(QDialog, Ui_Dialog):
@@ -19,6 +20,7 @@ class SettingsDialog(QDialog, Ui_Dialog):
         self.tracingPalette.doubleClicked.connect(self.tracing_palette_edit)
         self.tracingPaletteAdd.clicked.connect(self.tracing_palette_prompt_add)
         self.tracingPaletteRemove.clicked.connect(self.tracing_palette_remove)
+        self.robotTest.clicked.connect(self.test_robot_connection)
 
     def get_settings(self) -> Settings:
         return Settings(
@@ -59,6 +61,7 @@ class SettingsDialog(QDialog, Ui_Dialog):
     def test_genai_connection(self):
         host: str = self.genAIHost.text()
         port: int = self.genAIPort.value()
+        self.genAITestResult.setText("Testing connection...")
         try:
             urllib.request.urlopen(f"http://{host}:{port}").read()
             self.set_genai_connection_status("Connection successful")
@@ -106,3 +109,14 @@ class SettingsDialog(QDialog, Ui_Dialog):
         current.setData(Qt.ItemDataRole.UserRole, color)
         current.setText(color.name())
         current.setIcon(QIcon(pixmap))
+    
+    def test_robot_connection(self):
+        host: str = self.robotIP.text()
+        ports: list[int] = [29999, 30003, 30004]
+        self.robotTestResult.setText("Testing connection...")
+        for port in ports:
+            if ping(host, port):
+                self.robotTestResult.setText("Connection successful")
+                break
+        else:
+            self.robotTestResult.setText("Connection failed")
