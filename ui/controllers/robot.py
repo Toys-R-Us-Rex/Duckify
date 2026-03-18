@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QObject
@@ -8,6 +7,7 @@ from PyQt6.QtCore import QObject
 from ui.assets import AssetRegistry
 from ui.calibration import CalibrationDialog
 from ui.pen_calibration import PenCalibrationDialog
+from ui.services.robot import RobotRequest, RobotResult, RobotService
 from ui.settings_manager import Settings, SettingsManager
 from ui.transformation import TransformationDialog
 from ui.utils import populate_combobox
@@ -30,6 +30,9 @@ class RobotController(QObject):
         self.assets: AssetRegistry = assets
         self.workspace: WorkspaceManager = workspace
         self.settings_manager: SettingsManager = settings_manager
+
+        settings: Settings = self.settings_manager.load()
+        self.service: RobotService = RobotService(ip_address=settings.robot.ip_address)
 
         self.setup()
 
@@ -67,24 +70,12 @@ class RobotController(QObject):
         self.ui.robotRun.setDisabled(not ready)
 
     def robot_run(self):
-        model_path: Path = self.ui.robotModel.currentData()
-        trace_path: Path = self.ui.robotTrace.currentData()
-        filter_mode: str = (
-            self.ui.robotFilter.currentData()
-        )  # TODO: improve with enum ?
-
-        tcp_calibration: str = self.ui.robotTCPCalibration.currentText()
-        transformation: str = self.ui.robotTransformation.currentText()
-
-        enable_gazebo: bool = self.ui.robotEnableGazebo.isChecked()
-
-        settings: Settings = self.settings_manager.load()
-
-        print("Running robot")
-        print(f" - ip: {settings.robot.ip_address}")
-        print(f" - model: {model_path}")
-        print(f" - trace: {trace_path}")
-        print(f" - filter: {filter_mode}")
-        print(f" - TCP calibration: {tcp_calibration}")
-        print(f" - transformation: {transformation}")
-        print(f" - enable Gazebo: {enable_gazebo}")
+        request: RobotRequest = RobotRequest(
+            model_path=self.ui.robotModel.currentData(),
+            trace_path=self.ui.robotTrace.currentData(),
+            filter_mode=self.ui.robotFilter.currentData(),  # TODO: improve with enum ?
+            tcp_calibration=self.ui.robotTCPCalibration.currentText(),
+            transformation=self.ui.robotTransformation.currentText(),
+            enable_gazebo=self.ui.robotEnableGazebo.isChecked(),
+        )
+        result: RobotResult = self.service.run(request)
