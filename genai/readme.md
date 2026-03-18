@@ -1,7 +1,7 @@
 # GenAI Texture Pipeline
 
 
-![GenAI - Pipeline](./pipeline.png)
+![GenAI - Pipeline](../docs/architecture/genai/pipeline.svg)
 
 GenAI uses a split architecture:
 - **Client (local)**: `main.ipynb` calls `generate_texture` from `genai/client.py`.
