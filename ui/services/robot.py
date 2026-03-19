@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -20,7 +21,7 @@ class RobotResult:
 class RobotService:
     def __init__(self, ip_address: str) -> None:
         self.ip_address: str = ip_address
-    
+
     def run(self, request: RobotRequest) -> RobotResult:
         print("Running robot")
         print(f" - ip: {self.ip_address}")
@@ -31,3 +32,13 @@ class RobotService:
         print(f" - transformation: {request.transformation}")
         print(f" - enable Gazebo: {request.enable_gazebo}")
         return RobotResult()
+
+    def read_tcp(self) -> tuple[float, float, float, float, float, float]:
+        return (
+            random.random(),
+            random.random(),
+            random.random(),
+            random.random(),
+            random.random(),
+            random.random(),
+        )
