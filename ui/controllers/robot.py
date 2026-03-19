@@ -51,17 +51,17 @@ class RobotController(QObject):
         self.ui.robotRun.clicked.connect(self.robot_run)
 
     def new_tcp_calibration(self):
-        dialog = CalibrationDialog(self)
+        dialog = CalibrationDialog(parent=self.ui)
         dialog.exec()
         self.robot_check_ready()
 
     def new_transformation(self):
-        dialog = TransformationDialog(self.assets.transformation_reference, parent=self)
+        dialog = TransformationDialog(self.assets.transformation_reference, parent=self.ui)
         dialog.exec()
         self.robot_check_ready()
 
     def new_pen_calibration(self):
-        dialog = PenCalibrationDialog(self)
+        dialog = PenCalibrationDialog(parent=self.ui)
         dialog.exec()
         self.robot_check_ready()
 
