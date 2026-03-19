@@ -59,14 +59,18 @@ class RobotController(QObject):
 
     def new_transformation(self):
         dialog = TransformationDialog(
-            self.assets.transformation_reference, parent=self.ui
+            self.assets.transformation_reference, self.service.read_tcp, parent=self.ui
         )
-        dialog.exec()
+        if dialog.exec():
+            points: list = dialog.get_points()
+            print(f"Reference points: {points}")
         self.robot_check_ready()
 
     def new_pen_calibration(self):
         dialog = PenCalibrationDialog(parent=self.ui)
-        dialog.exec()
+        if dialog.exec():
+            calibration: tuple = self.service.read_tcp()
+            print(f"Pen 0 position: {calibration}")
         self.robot_check_ready()
 
     def robot_check_ready(self):
