@@ -28,6 +28,9 @@ class CalibrationDialog(QDialog, Ui_Dialog):
 
         self.set_count(0)
 
+    def update_count(self, *args):
+        self.set_count(self.point_model.rowCount())
+
     def set_count(self, count: int):
         self.progressBar.setMaximum(max(6, count))
         self.progressBar.setValue(count)
@@ -51,9 +54,6 @@ class CalibrationDialog(QDialog, Ui_Dialog):
     def remove_point(self):
         row: int = self.pointsList.currentIndex().row()
         self.point_model.takeRow(row)
-
-    def update_count(self, *args):
-        self.set_count(self.point_model.rowCount())
 
     def get_points(self) -> list[TCPPoint]:
         points: list[TCPPoint] = []
