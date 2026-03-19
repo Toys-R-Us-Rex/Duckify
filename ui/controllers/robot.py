@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING
 from PyQt6.QtCore import QObject
 
 from ui.assets import AssetRegistry
-from ui.calibration import CalibrationDialog
-from ui.pen_calibration import PenCalibrationDialog
+from ui.dialogs.calibration import CalibrationDialog
+from ui.dialogs.pen_calibration import PenCalibrationDialog
+from ui.dialogs.transformation import TransformationDialog
 from ui.services.robot import RobotRequest, RobotResult, RobotService
 from ui.settings_manager import Settings, SettingsManager
-from ui.transformation import TransformationDialog
 from ui.utils import populate_combobox
 from ui.workspace import WorkspaceManager
 
@@ -51,12 +51,16 @@ class RobotController(QObject):
         self.ui.robotRun.clicked.connect(self.robot_run)
 
     def new_tcp_calibration(self):
-        dialog = CalibrationDialog(parent=self.ui)
-        dialog.exec()
+        dialog = CalibrationDialog(self.service.read_tcp, parent=self.ui)
+        if dialog.exec():
+            calibration: list = dialog.get_points()
+            print(f"Calibration: {calibration}")
         self.robot_check_ready()
 
     def new_transformation(self):
-        dialog = TransformationDialog(self.assets.transformation_reference, parent=self.ui)
+        dialog = TransformationDialog(
+            self.assets.transformation_reference, parent=self.ui
+        )
         dialog.exec()
         self.robot_check_ready()
 

@@ -10,7 +10,7 @@ from ui.assets import AssetRegistry
 from ui.controllers.gen_ai import GenAIController
 from ui.controllers.robot import RobotController
 from ui.controllers.tracing import TracingController
-from ui.settings import SettingsDialog
+from ui.dialogs.settings import SettingsDialog
 from ui.settings_manager import Settings, SettingsManager
 from ui.ui.main_ui import Ui_MainWindow
 from ui.workspace import WorkspaceManager
