@@ -1,5 +1,6 @@
 #import "@preview/cheq:0.3.0": checklist
 #let date = datetime(year: 2026, month: 3, day: 11)
+#show link: it => text(fill: blue, it)
 
 #set document(
   author: ("Louis Heredero", "Jeremy Duc"),
@@ -41,12 +42,13 @@ Possible solutions to the islands extending out of the UV map are:
   caption: [UV boundary crossing cases]
 )
 
-=== Color quantization
+=== Color quantization (palettization)
 
-To improve color quantization, multiple solutions are possible:
-- find a better method than median cut
-- "ignore" background color (i.e. regions outside the UV map)
-- improve color contrast (e.g. remove reflections)
+==== Issue
+ The default color quantization method (MEDIANCUT) is heavily biased by the primary color, which "floods" the other colors. This bias is inherent of the method — as a bucket-based algorithm, it splits color space at the statistical median of pixel count, allocating palette entries proportionally to color frequency. In our pipeline this translate in the black color, beeing the one replacing elements not in the UV mask applied on the texture, thus having heavy weight.
+
+==== Solution
+Using a KNN-based approach #footnote[#link("https://stackoverflow.com/questions/73666119/open-cv-python-quantize-to-a-given-color-palette")[StackOverflow KNN solution]] solves this issue: instead of building the palette from pixel frequency, the model is trained on a fixed, predefined palette and assigns each pixel to its nearest color in that space — regardless of how dominant that color is in the image. This eliminates the frequency bias introduced by MEDIANCUT. This approach also allows specific colors (e.g. the background black) to be explicitly excluded from the palettization process.
 
 === UV seams
 
@@ -71,7 +73,7 @@ Filtering out very small islands should reduce mathematical errors
   *Louis*
   - [/] Out of bounds
   - [?] UV seams
-  - [ ] Unreachable areas
+  - [?] Unreachable areas
 ]
 
 #block(
@@ -82,8 +84,8 @@ Filtering out very small islands should reduce mathematical errors
 )[
   *Jeremy*
   - [x] Finalize color quantization
-  - [ ] Small artefacts replacement
-  - [/] Identify and solve fill slicing issues
+  - [x] Small artefacts replacement
+  - [x] Identify and solve fill slicing issues
 ]
 
 == Is the current solution the right one ?
