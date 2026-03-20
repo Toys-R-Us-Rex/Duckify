@@ -12,7 +12,7 @@
 )
 #show: checklist
 
-= Tracing Algorithm Improvements (#date.display("[day].[month].[year]"))
+= Robot pipeline audit (#date.display("[day].[month].[year]"))
 
 == Introduction
 Ce document contient les  observations de mon audit du pipeline ur3e-control, réalisé à la demande de Cédric Mariéthoz.
@@ -44,8 +44,8 @@ En m'appuyant sur mon regard neuf de personne n'ayant pas encore travaillé dans
 - [ ] `TraceSegment` est instancié avec les arguments dans un ordre différent que celui attendu : `TraceSegment(waypoints, color, SideType.LEFT)`, alors que le constructeur attend `(color, side, waypoints=None)`.
 
 === General
-- [ ] Avoir des dockstring d'explications dans toutes les méthodes aiderait à la compréhension de ces dernières.
+- [ ] Avoir des docstrings d'explication dans toutes les méthodes aiderait à la compréhension de ces dernières.
 - [ ] Rajouter au maximum les types
-- [ ] Mettre les stages dans une classe Stage, qui aurait aussi des méthodes fallback, stop...
+- [ ] Ajouter une classe (interface) parente (par exemple : `Stage`) pour définir les signatures des méthodes et améliorer les indications de type des paramètres et des variables
 
 #align(right)[Jeremy Duc]
