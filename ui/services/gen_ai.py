@@ -16,19 +16,30 @@ class GenAIRequest:
 
 @dataclass
 class GenAIResult:
-    files: list[Path]
+    texture_path: Optional[Path]
 
 
 class GenAIService:
-    def __init__(self, host: str, port: int) -> None:
+    def __init__(
+        self,
+        ssh_host: str,
+        ssh_port: int,
+        ssh_user: str,
+        ssh_key_path: str,
+        host: str,
+        port: int,
+        hf_token: str
+    ) -> None:
+        self.ssh_host: str = ssh_host
+        self.ssh_port: int = ssh_port
+        self.ssh_user: str = ssh_user
+        self.ssh_key_path: str = ssh_key_path
         self.host: str = host
         self.port: int = port
+        self.hf_token: str = hf_token
 
     def run(self, request: GenAIRequest) -> GenAIResult:
-        # TODO: Call GenAI endpoint
-        print("Generating texture")
-        print(f" - host: {self.host}")
-        print(f" - port: {self.port}")
-        print(f" - model: {request.model_path}")
-        print(f" - prompt: {request.prompt}")
-        return GenAIResult(files=[])
+        import random
+        dir = Path(__file__).parent.parent.parent / "assets" / "textures"
+        files = list(filter(lambda p: p.is_file(), dir.iterdir()))
+        return GenAIResult(random.choice(files).absolute())

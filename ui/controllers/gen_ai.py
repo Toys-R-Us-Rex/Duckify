@@ -38,7 +38,13 @@ class GenAIController(QObject):
         self.result_model: QStandardItemModel = QStandardItemModel(self.ui.genAIResults)
         settings: Settings = self.settings_manager.load()
         self.service: GenAIService = GenAIService(
-            host=settings.genAI.host, port=settings.genAI.port
+            ssh_host=settings.genAI.ssh_host,
+            ssh_port=settings.genAI.ssh_port,
+            ssh_user=settings.genAI.ssh_user,
+            ssh_key_path=settings.genAI.ssh_key,
+            host=settings.genAI.host,
+            port=settings.genAI.port,
+            hf_token=settings.genAI.hf_token
         )
 
         self.setup()
@@ -58,8 +64,15 @@ class GenAIController(QObject):
 
         self.ui.genAIGenerate.clicked.connect(self.generate_texture)
         self.ui.genAIResults.clicked.connect(self.select_result)
+        self.ui.genAIResults.setModel(self.result_model)
 
         self.ui.genAISaveAs.clicked.connect(self.prompt_save)
+
+        self.visualizer.load_model(self.ui.genAIModel.currentData())
+        self.ui.genAIModel.currentIndexChanged.connect(self.reload_model)
+
+    def reload_model(self):
+        self.visualizer.load_model(self.ui.genAIModel.currentData())
 
     def generate_texture(self):
         settings: Settings = self.settings_manager.load()
@@ -73,20 +86,20 @@ class GenAIController(QObject):
             output_dir=self.assets.output_dir,
         )
         result: GenAIResult = self.service.run(request)
-        self.set_results(self.assets.list_textures())
+        if result.texture_path is not None:
+            self.add_result(result.texture_path)
 
     def set_results(self, results: list[Path]):
-        model: QStandardItemModel = self.result_model
         for result in results:
-            item = QStandardItem(
-                QIcon(str(result)), str(result.relative_to(self.assets.textures_dir))
-            )
-            item.setData(result)
-            item.setEditable(False)
-            model.appendRow(item)
+            self.add_result(result)
 
-        self.ui.genAIResults.setModel(model)
-        self.visualizer.load_model(self.ui.genAIModel.currentData())
+    def add_result(self, result: Path):
+        item = QStandardItem(
+            QIcon(str(result)), str(result.relative_to(self.assets.textures_dir))
+        )
+        item.setData(result)
+        item.setEditable(False)
+        self.result_model.appendRow(item)
 
     def get_selected(self) -> Optional[Path]:
         index: QModelIndex = self.ui.genAIResults.currentIndex()
