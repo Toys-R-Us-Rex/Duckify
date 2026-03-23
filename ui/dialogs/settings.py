@@ -1,3 +1,4 @@
+from pathlib import Path
 import urllib.request
 from typing import Optional
 
@@ -16,7 +17,8 @@ class SettingsDialog(QDialog, Ui_Dialog):
         self.setupUi(self)
         self.set_settings(current_settings)
 
-        self.genAITest.clicked.connect(self.test_genai_connection)
+        self.genAISSHTest.clicked.connect(self.test_genai_ssh_connection)
+        self.genAITest.clicked.connect(self.test_genai_server_connection)
         self.tracingPalette.doubleClicked.connect(self.tracing_palette_edit)
         self.tracingPaletteAdd.clicked.connect(self.tracing_palette_prompt_add)
         self.tracingPaletteRemove.clicked.connect(self.tracing_palette_remove)
@@ -78,7 +80,16 @@ class SettingsDialog(QDialog, Ui_Dialog):
             color: QColor = QColor(r, g, b)
             self.tracing_palette_add(color)
 
-    def test_genai_connection(self):
+    def test_genai_ssh_connection(self):
+        host: str = self.genAISSHHost.text()
+        port: int = self.genAISSHPort.value()
+        user: str = self.genAISSHUser.text()
+        key_path: Path = Path(self.genAISSHKey.text())
+
+        # TODO test ssh connection
+
+    def test_genai_server_connection(self):
+        # TODO wrap in ssh tunnel
         host: str = self.genAIHost.text()
         port: int = self.genAIPort.value()
         self.genAITestResult.setText("Testing connection...")
