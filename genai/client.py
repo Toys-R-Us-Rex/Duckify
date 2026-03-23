@@ -1,10 +1,11 @@
-import os
+import datetime
+import zipfile
+from pathlib import Path
 from typing import Optional
+
 import requests
 from sshtunnel import SSHTunnelForwarder
-import zipfile
-import datetime
-from pathlib import Path
+
 
 def generate_texture(obj_path: Path, prompt: str, output_dir: Path, negative_prompt: Optional[str] = None, prompt_wrapper: Optional[str] = None, steps: int = 30, guidance: float = 6.0, SSH_HOST: str = None, SSH_USER: str = None, SSH_KEY_PATH: str = None, HF_TOKEN: str = None) -> tuple[Optional[Path], list[Path]]:
     print("Connexion SSH...")
