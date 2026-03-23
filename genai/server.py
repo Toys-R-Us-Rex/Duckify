@@ -10,7 +10,6 @@ from pyparsing import Optional
 
 from models import MVAdapaterModel
 
-load_dotenv("genai/.env")
 
 app = Flask(__name__)
 

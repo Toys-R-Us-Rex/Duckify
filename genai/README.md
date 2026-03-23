@@ -47,6 +47,19 @@ GenAI uses a split architecture:
 
 4. Set up environment variables (see [Credentials Setup](#credentials-setup-client--server))
 
+5. Don't forget to load the environnment file either in python code
+   ```python
+   load_dotenv("genai/.env")
+   ```
+   or loading directly into the terminal
+   ```bash
+   export $(cat .env | xargs)
+   ``` 
+   or while starting the server.py file
+   ```bash
+   uv run --env-file <path_to_.env> genai/server.py
+   ``` 
+
 5. Download all dependencies
    ```bash
    uv sync
