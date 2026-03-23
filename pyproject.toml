@@ -8,12 +8,17 @@ dependencies = [
     "jupyter>=1.1.1",
     "tracing",
     "genai",
+    "ui",
 ]
 
 [tool.uv.workspace]
-members = ["tracing","genai"]
+members = [
+    "genai",
+    "tracing",
+    "ui",
+]
 
 [tool.uv.sources]
-tracing = { workspace = true }
-
 genai = { workspace = true }
+tracing = { workspace = true }
+ui = { workspace = true }
