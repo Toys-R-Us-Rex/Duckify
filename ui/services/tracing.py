@@ -13,6 +13,7 @@ IGNORED_COLOR: Color = (0, 0, 0)
 @dataclass
 class TracingRequest:
     model_path: Path
+    mask_path: Path
     texture_path: Path
     palette: list[Color]
     enable_fill_slicing: bool
@@ -40,11 +41,12 @@ class TracingService:
             enable_fill_slicing=request.enable_fill_slicing
         )
         tracer: Tracer = Tracer(
-            config,
-            request.texture_path,
-            request.model_path,
-            tuple(request.palette),
-            IGNORED_COLOR,
+            config=config,
+            texture_path=request.texture_path,
+            model_path=request.model_path,
+            mask_path=request.mask_path,
+            palette=tuple(request.palette),
+            ignored_color=IGNORED_COLOR,
         )
 
         stats: TracingStats = tracer.compute_traces(progress_callback=on_progress)

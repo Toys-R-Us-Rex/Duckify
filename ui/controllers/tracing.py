@@ -45,7 +45,14 @@ class TracingController(QObject):
 
     def setup(self):
         populate_combobox(
-            self.ui.tracingModel, self.assets.list_models("obj"), self.assets.models_dir
+            self.ui.tracingModel,
+            self.assets.list_models("obj"),
+            self.assets.models_dir,
+        )
+        populate_combobox(
+            self.ui.tracingMask,
+            self.assets.list_masks(),
+            self.assets.masks_dir,
         )
         populate_combobox(
             self.ui.tracingTexture,
@@ -74,6 +81,7 @@ class TracingController(QObject):
 
         request: TracingRequest = TracingRequest(
             model_path=self.ui.tracingModel.currentData(),
+            mask_path=self.ui.tracingMask.currentData(),
             texture_path=self.ui.tracingTexture.currentData(),
             palette=settings.tracing.palette,
             enable_fill_slicing=self.ui.tracingEnableFill.isChecked(),

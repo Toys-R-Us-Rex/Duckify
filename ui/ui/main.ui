@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="steps">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tabGenAI">
        <attribute name="title">
@@ -216,6 +216,20 @@
                </item>
                <item>
                 <widget class="QComboBox" name="tracingModel"/>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_22">
+               <item>
+                <widget class="QLabel" name="label_15">
+                 <property name="text">
+                  <string>Drawable Mask</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="tracingMask"/>
                </item>
               </layout>
              </item>
