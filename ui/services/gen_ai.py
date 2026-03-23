@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from genai.client import generate_texture
+
 
 @dataclass
 class GenAIRequest:
@@ -39,7 +41,23 @@ class GenAIService:
         self.hf_token: str = hf_token
 
     def run(self, request: GenAIRequest) -> GenAIResult:
-        import random
-        dir = Path(__file__).parent.parent.parent / "assets" / "textures"
-        files = list(filter(lambda p: p.is_file(), dir.iterdir()))
-        return GenAIResult(random.choice(files).absolute())
+        outdir, _ = generate_texture(
+            obj_path=request.model_path,
+            prompt=request.prompt,
+            output_dir=request.output_dir,
+            negative_prompt=request.negative_prompt,
+            prompt_wrapper=request.prompt_wrapper,
+            steps=request.steps,
+            guidance=request.guidance,
+            SSH_HOST=self.ssh_host,
+            SSH_USER=self.ssh_user,
+            SSH_KEY_PATH=self.ssh_key_path,
+            HF_TOKEN=self.hf_token,
+        )
+
+        if outdir is None:
+            return GenAIResult(None)
+        
+        model_name: str = request.model_path.stem
+        texture_filename: str = f"textured_{model_name}.png"
+        return GenAIResult(outdir / texture_filename)
