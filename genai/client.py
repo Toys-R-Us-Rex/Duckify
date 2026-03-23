@@ -1,11 +1,12 @@
 import os
+from typing import Optional
 import requests
 from sshtunnel import SSHTunnelForwarder
 import zipfile
 import datetime
 from pathlib import Path
 
-def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt_wrapper=None,steps=30, guidance=6.0,SSH_HOST=None, SSH_USER=None, SSH_KEY_PATH=None, HF_TOKEN=None):
+def generate_texture(obj_path: Path, prompt: str, output_dir: Path, negative_prompt: Optional[str] = None, prompt_wrapper: Optional[str] = None, steps: int = 30, guidance: float = 6.0, SSH_HOST: str = None, SSH_USER: str = None, SSH_KEY_PATH: str = None, HF_TOKEN: str = None) -> tuple[Optional[Path], list[Path]]:
     print("Connexion SSH...")
     try:
         with SSHTunnelForwarder(
@@ -18,7 +19,7 @@ def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt
             api_url = f"http://127.0.0.1:{tunnel.local_bind_port}/generate"
             print(f"Tunnel SSH ouvert")
 
-            with open(fichier_obj, "rb") as f:
+            with open(obj_path, "rb") as f:
                 files = {"file": f}
                 data = {"prompt": prompt, "negative_prompt": negative_prompt, "prompt_wrapper": prompt_wrapper, "steps": steps, "guidance": guidance,"HF_TOKEN":HF_TOKEN}
                 response = requests.post(api_url, files=files, data=data)

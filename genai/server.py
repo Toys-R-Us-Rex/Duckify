@@ -24,31 +24,25 @@ JOBS_DIR = Path("jobs_temp")
 JOBS_DIR.mkdir(exist_ok=True)
 
 @app.route("/generate", methods=["POST"])
-def generate_texture(obj_path: Path, prompt: str, output_dir: Path, negative_prompt: Optional[str] = None, prompt_wrapper: Optional[str] = None, steps: int = 30, guidance: float = 6.0) -> tuple[Optional[Path], list[Path]]:
-    if "file" not in request.files:
-        return jsonify({"error": "Aucun fichier envoyé"}), 400
-    if "prompt" not in request.form:
-        return jsonify({"error": "Aucun prompt envoyé"}), 400
-
-    file = request.files["file"]
-    prompt = request.form["prompt"]
-    negative_prompt = request.form.get("negative_prompt", "")
-    prompt_wrapper = request.form.get("prompt_wrapper", "")
-    HF_TOKEN = request.form.get("HF_TOKEN", "")
-    
-    steps = int(request.form.get("steps", 30))
-    guidance = float(request.form.get("guidance", 6.0))
-
-    if file.filename == "":
-        return jsonify({"error": "Nom de fichier vide"}), 400
-
-    job_id = str(uuid.uuid4())
-    current_job_path = JOBS_DIR / job_id
-    current_job_path.mkdir(parents=True, exist_ok=True)
-    
-    experiment_path = None 
-
+def generate_texture():
     try:
+        file = request.files.get("file",None)
+        prompt = request.form.get("prompt",None)
+        negative_prompt = request.form.get("negative_prompt","")
+        prompt_wrapper = request.form.get("prompt_wrapper","")
+        HF_TOKEN = request.form.get("HF_TOKEN","")
+        
+        steps = int(request.form.get("steps", 30))
+        guidance = float(request.form.get("guidance", 6.0))
+
+        if not all([file, prompt]):
+            return jsonify({"Error":"File and prompt are required"}), 400
+
+        job_id = str(uuid.uuid4())
+        current_job_path = JOBS_DIR / job_id
+        current_job_path.mkdir(parents=True, exist_ok=True)
+        
+        experiment_path = None 
         input_filename = file.filename
         safe_filename = Path(input_filename).name
         input_path = current_job_path / safe_filename
