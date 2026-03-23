@@ -21,31 +21,30 @@ JOBS_DIR.mkdir(exist_ok=True)
 
 @app.route("/generate", methods=["POST"])
 def generate_texture():
+    file = request.files.get("file",None)
+    prompt = request.form.get("prompt",None)
+    negative_prompt = request.form.get("negative_prompt","")
+    prompt_wrapper = request.form.get("prompt_wrapper","")
+    HF_TOKEN = request.form.get("HF_TOKEN","")
+    
+    steps = int(request.form.get("steps", 30))
+    guidance = float(request.form.get("guidance", 6.0))
+
+    if not all([file, prompt]):
+        return jsonify({"Error":"File and prompt are required"}), 400
+
+    job_id = str(uuid.uuid4())
+    current_job_path = JOBS_DIR / job_id
+    current_job_path.mkdir(parents=True, exist_ok=True)
+    
+    experiment_path = None 
+    input_filename = file.filename
+    safe_filename = Path(input_filename).name
+    input_path = current_job_path / safe_filename
+    file.save(input_path)
+
+    print(f"[{job_id}] Démarrage du job SLURM | Steps: {steps} | Guidance: {guidance}")
     try:
-        file = request.files.get("file",None)
-        prompt = request.form.get("prompt",None)
-        negative_prompt = request.form.get("negative_prompt","")
-        prompt_wrapper = request.form.get("prompt_wrapper","")
-        HF_TOKEN = request.form.get("HF_TOKEN","")
-        
-        steps = int(request.form.get("steps", 30))
-        guidance = float(request.form.get("guidance", 6.0))
-
-        if not all([file, prompt]):
-            return jsonify({"Error":"File and prompt are required"}), 400
-
-        job_id = str(uuid.uuid4())
-        current_job_path = JOBS_DIR / job_id
-        current_job_path.mkdir(parents=True, exist_ok=True)
-        
-        experiment_path = None 
-        input_filename = file.filename
-        safe_filename = Path(input_filename).name
-        input_path = current_job_path / safe_filename
-        file.save(input_path)
-
-        print(f"[{job_id}] Démarrage du job SLURM | Steps: {steps} | Guidance: {guidance}")
-        
         texture_model = MVAdapaterModel(base_path=MV_ADAPTER_DIR,slurm_script=Path("run.slurm"))
 
         experiment_path = texture_model.run(

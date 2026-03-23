@@ -60,7 +60,7 @@ GenAI uses a split architecture:
    uv run --env-file <path_to_.env> genai/server.py
    ``` 
 
-5. Download all dependencies
+6. Download all dependencies
    ```bash
    uv sync
    ```
