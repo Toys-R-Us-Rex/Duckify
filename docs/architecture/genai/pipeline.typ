@@ -7,7 +7,7 @@
   fill: luma(0%).transparentize(100%)
 )
 
-#set text(font: "Source Sans 20", size: 12pt)
+#set text(font: ("Source Sans 3", "Source Sans Pro"), size: 12pt)
 
 #let actor(tl, size, id, name) = {
   draw.rect(
