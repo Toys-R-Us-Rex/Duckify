@@ -44,7 +44,7 @@ def generate_texture(fichier_obj, prompt, output_dir,negative_prompt=None,prompt
             
             if full_mesh_dir_path.exists():
                 abs_mesh_path = full_mesh_dir_path
-                files_in_mesh = [full_mesh_dir_path / f for f in os.listdir(full_mesh_dir_path)]
+                files_in_mesh = list(full_mesh_dir_path.iterdir())
                 print("Fichiers extraits (Chemins complets) :", files_in_mesh)
             else:
                 print(f"Le dossier n'existe pas : {full_mesh_dir_path}")
