@@ -23,7 +23,7 @@ def move_simple(robot: SimRobotControl | UrScript, motion, ds: DataStore = None)
             print(s, i, m)
             if isinstance(m, TCP6D):
                 if not robot.movel(m, wait=True) and ds:
-                    ds.log("TCP not reached: ", str(m))
+                    ds.log("TCP not reached: " + str(m))
 
             elif isinstance(m, Joint6D):
                 # Collect joint values
@@ -35,7 +35,7 @@ def move_simple(robot: SimRobotControl | UrScript, motion, ds: DataStore = None)
                 j6.append(m.j6)
 
                 if not robot.movej(m, wait=True) and ds:
-                    ds.log("JOINT not reached: ", str(m))
+                    ds.log("JOINT not reached: " + str(m))
 
             else:
                 raise NotImplementedError("Only TCP6D or JOINT6D points allowed.")
