@@ -7,7 +7,7 @@
   fill: luma(0%).transparentize(100%)
 )
 
-#set text(font: "Source Sans 3")
+#set text(font: "Source Sans 20", size: 12pt)
 
 #let actor(tl, size, id, name) = {
   draw.rect(
@@ -32,7 +32,7 @@
   ]
   
   actor(
-    (rel: (6, 0), to: "client.north-east"),
+    (rel: (10, 0), to: "client.north-east"),
     (3, -2),
     "server"
   )[
@@ -77,7 +77,7 @@
   draw.content("step4.mid", anchor: "north", padding: 3pt, align(center)[Texture + metadata\ (.zip)])
 
   draw.content(
-    (rel: (0, 2), to: "step1.mid"),
+    (rel: (-0.5, 2), to: "step1.mid"),
     text(fill: green.desaturate(20%).darken(20%))[*SSH Tunnel*],
     padding: 3pt,
     name: "ssh"
@@ -94,4 +94,17 @@
     stroke: gray,
     mark: (end: "|", scale: 3)
   )
+  draw.rect(
+    (rel:(-2, 1), to: "server.north-west"), 
+    (rel:(2, -1), to: "mv-adapter.south-east"), 
+    stroke: orange,name: "disco"
+  )
+  draw.content(("disco.north"), anchor: "south", padding: 3pt, align(center)[*Disco.hevs.ch*])
+
+  draw.rect(
+    (rel:(-1, 1), to: "client.north-west"), 
+    (rel:(1, -1), to: "client.south-east"), 
+    stroke: orange,name: "local-pc"
+  )
+  draw.content(("local-pc.north"), anchor: "south", padding: 3pt, align(center)[*Local PC*])
 })
