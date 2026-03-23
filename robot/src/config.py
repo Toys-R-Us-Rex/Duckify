@@ -97,6 +97,8 @@ OBJ2ROBOT_RZ_DEG       = 180.0
 OBJ2ROBOT_TRANSLATION  = (0.32, -0.4, 0.155)
 OBJ2ROBOT_SCALE        = 0.001          # mm → meters
 
+TEST_TRANSFORMATION = [0, 0, 2, 0, 0, -1]  # x, y, z, n1, n2, n3
+
 # Scene for pybullet collision testing
 OBSTACLE_STLS = [
     {
