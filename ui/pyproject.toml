@@ -1,0 +1,24 @@
+[project]
+name = "ui"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pillow>=12.1.1",
+    "pyopengl>=3.1.10",
+    "pyqt6>=6.10.2",
+    "tracing"
+]
+
+[project.scripts]
+start = "ui.main:main"
+build-ui = "ui.build_ui_files:build_ui"
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["ui"]
+package-dir = { "ui" = "." }
