@@ -17,13 +17,6 @@ members = ["tracing",
     "ui",
 ]
 
-[tool.uv.workspace]
-members = [
-    "genai",
-    "tracing",
-    "ui",
-]
-
 [tool.uv.sources]
 genai = { workspace = true }
 tracing = { workspace = true }
