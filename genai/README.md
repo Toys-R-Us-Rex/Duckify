@@ -89,23 +89,23 @@ GenAI uses a split architecture:
    ```python
    import os
    from genai.client import generate_texture
-
-   input_mesh = "3dmodel/duck/duck_model_3.obj"
-   output_directory = "output/"
-
-   prompt = "A cartoon styled batman duck with a batman logo on the side"
-   negative_prompt = "realistic, ugly, deformed, blurry, bad anatomy"
-   prompt_wrapper = None # additional instructions appended after the prompt
-
-   mesh_path, extracted_files = generate_texture(
-      fichier_obj=input_mesh,
-      prompt=prompt,
-      output_dir=output_directory,
-      negative_prompt=negative_prompt,
-      prompt_wrapper=prompt_wrapper,
-      steps=30,
-      guidance=6.0,
-   )
-
-   print(f"Files: {extracted_files}")
+   from dotenv import load_dotenv
+   glb_path = ASSETS_DIR / "models" / "official_model_1.glb"
+   prompt = "A superman duck"
+   NEGATIVE_PROMPT = "Yellow , bad quality, low resolution, blurry, deformed, ugly, disfigured, extra limbs, close up, b&w, weird colors"
+   PROMPT_WRAPPER = None
+   STEPS = 30
+   GUIDANCE = 6.0
+   OUTPUT_DIR = PROJECT_DIR / "output"
+   
+   load_dotenv("genai/.env")
+   
+   SSH_HOST = os.getenv("SSH_HOST",None)
+   SSH_USER = os.getenv("SSH_USER",None)
+   SSH_KEY_PATH = Path.home() / ".ssh" / "wireguard_key"
+   HF_TOKEN = os.getenv("HF_TOKEN", None)
+       
+   files = generate_texture(str(glb_path), prompt, str(OUTPUT_DIR),NEGATIVE_PROMPT, PROMPT_WRAPPER,steps=STEPS, guidance=GUIDANCE,SSH_HOST=SSH_HOST, SSH_USER=SSH_USER, SSH_KEY_PATH=SSH_KEY_PATH, HF_TOKEN=HF_TOKEN)
+   
+   print(files)
    ```
