@@ -11,6 +11,7 @@ class GenAISettings:
     ssh_key: str = ""
     host: str = "localhost"
     port: int = 5000
+    hf_token: str = ""
     negative_prompt: str = ""
     prompt_wrapper: str = ""
     steps: int = 30
@@ -48,6 +49,7 @@ class SettingsManager:
                 ssh_key=self._prefs.value("genAI.ssh_key", GenAISettings.ssh_key),
                 host=self._prefs.value("genAI.host", GenAISettings.host),
                 port=self._prefs.value("genAI.port", GenAISettings.port, type=int),
+                hf_token=self._prefs.value("genAI.hf_token", GenAISettings.hf_token),
                 negative_prompt=self._prefs.value("genAI.negative_prompt", GenAISettings.negative_prompt),
                 prompt_wrapper=self._prefs.value("genAI.prompt_wrapper", GenAISettings.prompt_wrapper),
                 steps=self._prefs.value("genAI.steps", GenAISettings.steps, type=int),
@@ -68,6 +70,7 @@ class SettingsManager:
         self._prefs.setValue("genAI.ssh_key", settings.genAI.ssh_key)
         self._prefs.setValue("genAI.host", settings.genAI.host)
         self._prefs.setValue("genAI.port", settings.genAI.port)
+        self._prefs.setValue("genAI.hf_token", settings.genAI.hf_token)
         self._prefs.setValue("genAI.negative_prompt", settings.genAI.negative_prompt)
         self._prefs.setValue("genAI.prompt_wrapper", settings.genAI.prompt_wrapper)
         self._prefs.setValue("genAI.steps", settings.genAI.steps)

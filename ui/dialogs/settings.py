@@ -31,6 +31,7 @@ class SettingsDialog(QDialog, Ui_Dialog):
                 ssh_key=self.genAISSHKey.text(),
                 host=self.genAIHost.text(),
                 port=self.genAIPort.value(),
+                hf_token=self.genAIHFToken.text(),
                 negative_prompt=self.genAINegativePrompt.toPlainText(),
                 prompt_wrapper=self.genAIPromptWrapper.toPlainText(),
                 steps=self.genAISteps.value(),
@@ -47,6 +48,7 @@ class SettingsDialog(QDialog, Ui_Dialog):
         self.genAISSHKey.setText(settings.genAI.ssh_key)
         self.genAIHost.setText(settings.genAI.host)
         self.genAIPort.setValue(settings.genAI.port)
+        self.genAIHFToken.setText(settings.genAI.hf_token)
         self.genAINegativePrompt.setText(settings.genAI.negative_prompt)
         self.genAIPromptWrapper.setText(settings.genAI.prompt_wrapper)
         self.genAISteps.setValue(settings.genAI.steps)
