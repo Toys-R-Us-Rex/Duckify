@@ -336,7 +336,7 @@ class Calibration(Stage):
 
             if ask_yes_no("Do you want to use the default? y/n\n"):
                 self.ds.log("Load default calibration.")
-                tcps, tcp_offset = self.ds.load_calibration(DEFAULT_CALIBRATION)
+                tcps, tcp_offset = self.ds.load_calibration(DEFAULT_CALIBRATION_PATH)
                 self.ds.save_calibration(tcps, tcp_offset)
                 self.ds.log_calibration(tcps, tcp_offset)
                 return
@@ -356,6 +356,6 @@ class Calibration(Stage):
         Fallback method for the calibration stage.
         """
         self.ds.log("Fall back: load default calibration.")
-        tcps, tcp_offset = self.ds.load_calibration(DEFAULT_CALIBRATION)
+        tcps, tcp_offset = self.ds.load_calibration(DEFAULT_CALIBRATION_PATH)
         self.ds.save_calibration(tcps, tcp_offset)
         self.ds.log_calibration(tcps, tcp_offset)

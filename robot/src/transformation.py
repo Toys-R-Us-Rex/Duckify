@@ -248,7 +248,7 @@ def load_obj2robot(record: DataStore, rz_deg: float = OBJ2ROBOT_RZ_DEG):
     AtoB
         The loaded transformation matrix.
     """
-    a = record.load_transformation("save_data_test/20260317/transformation_0.pkl")
+    a = record.load_transformation(DEFAULT_TRANSFORMATION_PATH)
     T_loaded = a.T_position
     if T_loaded is not None:
         translation = tuple(T_loaded[:3, 3])
@@ -364,7 +364,7 @@ class Transformation(Stage):
         self.robot_ip = robot_ip
         self.json_calibration = json_calibration
 
-    def run(self, p: TCP6D):
+    def run(self):
         """
         Run the transformation stage.
         """
@@ -395,7 +395,7 @@ class Transformation(Stage):
 
         if ask_yes_no("Use default transformation (test only)? y/n \n"):
             self.ds.log("WARNING: Loading default transformation (test only).")
-            obj_to_robot = self.ds.load_transformation("save_data/transformation_default.pkl")
+            obj_to_robot = self.ds.load_transformation(DEFAULT_TRANSFORMATION_PATH)
             self.ds.save_transformation(obj_to_robot)
             self.ds.log_transformation(obj_to_robot)
             return

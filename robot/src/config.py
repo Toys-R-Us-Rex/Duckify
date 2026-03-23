@@ -12,7 +12,10 @@ from urbasic.URBasic.waypoint6d import Joint6D
 PROJECT_DIR = Path(__file__).parent.parent.parent
 ASSETS_DIR = PROJECT_DIR / "assets"
 OUTPUT_DIR = PROJECT_DIR / "output"
-DEFAULT_CALIBRATION = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_default.pkl"
+DEFAULT_CALIBRATION_PATH = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_default.pkl"
+DEFAULT_TRANSFORMATION_PATH = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "transformation_test.pkl"
+DEFAULT_FORCE_PATH = OUTPUT_DIR / "force_log.csv"
+DEFAULT_DATA_DIR = OUTPUT_DIR / "data"
 
 VERBOSE = True
 

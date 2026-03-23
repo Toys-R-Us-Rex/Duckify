@@ -3,7 +3,7 @@
 import time
 from pathlib import Path
 
-from src.config import OUTPUT_DIR
+from src.config import ASSETS_DIR, OUTPUT_DIR
 from src.logger import DataStore
 from src.segment import SideType
 from src.stage import run_stage
@@ -21,8 +21,8 @@ from src.gazebo import Gazebo
 # UR3e2 IP: 10.30.5.159
 ROBOT_IP = "10.30.5.158"
 
-JSON_OBJECT = OUTPUT_DIR / "paths/duck_uv-dot-trace.json"
-JSON_CALIBRATION = OUTPUT_DIR / "paths/calibration_socle.json"
+JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
+JSON_CALIBRATION = ASSETS_DIR / "tests" / "calibration_socle.json"
 
 def main():
     day = time.strftime("%Y%m%d")
@@ -33,7 +33,7 @@ def main():
     run_stage(Transformation(ds, ROBOT_IP, JSON_CALIBRATION), on_error="fallback")
     run_stage(Filter(ds, JSON_OBJECT), on_error="stop")
     run_stage(Conversion(ds), on_error="stop")
-    run_stage(Pathfinding(ds, side=SideType.RIGHT), on_error="stop")
+    run_stage(Pathfinding(ds), on_error="stop")
     run_stage(Gazebo(ds), on_error="stop")
     run_stage(Robot(ds,ROBOT_IP), on_error="continue")
 
