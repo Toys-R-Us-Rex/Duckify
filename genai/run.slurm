@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=Duckify_GridSearch
+#SBATCH --job-name=Duckify_TextureGen
 #SBATCH --output=logs/job_%j.out
 #SBATCH --error=logs/job_%j.err
 #SBATCH --gres=gpu:1
 #SBATCH --mem=80G
-#SBATCH --time=01:00:00
+#SBATCH --time=00:30:00
 
 echo "--- Démarrage de l'environnement ---"
 

@@ -6,6 +6,7 @@ import io
 from pathlib import Path
 from flask import Flask, request, send_file, jsonify
 from dotenv import load_dotenv
+from pyparsing import Optional
 
 from models import MVAdapaterModel
 
@@ -13,10 +14,8 @@ load_dotenv("genai/.env")
 
 app = Flask(__name__)
 
-try:
-    MV_ADAPTER_DIR = Path(os.getenv("MV_ADAPTER_PATH",None))
-except Exception as e:
-    raise e
+
+MV_ADAPTER_DIR = Path(os.getenv("MV_ADAPTER_PATH",None))
 
 if not MV_ADAPTER_DIR.exists():
         raise ValueError(f"Le dossier MV-Adapter est introuvable : {MV_ADAPTER_DIR}")
@@ -24,30 +23,23 @@ if not MV_ADAPTER_DIR.exists():
 JOBS_DIR = Path("jobs_temp")
 JOBS_DIR.mkdir(exist_ok=True)
 
-@app.route('/generate', methods=['POST'])
-def generate_texture():
-    if 'file' not in request.files:
+@app.route("/generate", methods=["POST"])
+def generate_texture(obj_path: Path, prompt: str, output_dir: Path, negative_prompt: Optional[str] = None, prompt_wrapper: Optional[str] = None, steps: int = 30, guidance: float = 6.0) -> tuple[Optional[Path], list[Path]]:
+    if "file" not in request.files:
         return jsonify({"error": "Aucun fichier envoyé"}), 400
-    if 'prompt' not in request.form:
+    if "prompt" not in request.form:
         return jsonify({"error": "Aucun prompt envoyé"}), 400
 
-    file = request.files['file']
-    prompt = request.form['prompt']
-    negative_prompt = request.form.get('negative_prompt', '')
-    prompt_wrapper = request.form.get('prompt_wrapper', '')
-    HF_TOKEN = request.form.get('HF_TOKEN', '')
+    file = request.files["file"]
+    prompt = request.form["prompt"]
+    negative_prompt = request.form.get("negative_prompt", "")
+    prompt_wrapper = request.form.get("prompt_wrapper", "")
+    HF_TOKEN = request.form.get("HF_TOKEN", "")
     
-    try:
-        steps = int(request.form.get('steps', 30))
-    except ValueError:
-        steps = 30
-        
-    try:
-        guidance = float(request.form.get('guidance', 6.0))
-    except ValueError:
-        guidance = 6.0
+    steps = int(request.form.get("steps", 30))
+    guidance = float(request.form.get("guidance", 6.0))
 
-    if file.filename == '':
+    if file.filename == "":
         return jsonify({"error": "Nom de fichier vide"}), 400
 
     job_id = str(uuid.uuid4())
@@ -58,7 +50,7 @@ def generate_texture():
 
     try:
         input_filename = file.filename
-        safe_filename = os.path.basename(input_filename)
+        safe_filename = Path(input_filename).name
         input_path = current_job_path / safe_filename
         file.save(input_path)
 
@@ -79,11 +71,11 @@ def generate_texture():
         print(f"[{job_id}] Génération SLURM terminée. Préparation du zip...")
 
         memory_file = io.BytesIO()
-        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_DEFLATED) as zf:
             for root, dirs, files in os.walk(experiment_path):
                 for filename in files:
-                    file_path = os.path.join(root, filename)
-                    arcname = os.path.relpath(file_path, start=experiment_path)
+                    file_path = Path(root) / filename
+                    arcname = file_path.relative_to(experiment_path)
                     zf.write(file_path, arcname=arcname)
         
         memory_file.seek(0)
@@ -92,9 +84,9 @@ def generate_texture():
         
         return send_file(
             memory_file,
-            mimetype='application/zip',
+            mimetype="application/zip",
             as_attachment=True,
-            download_name=f'texture_result_{job_id}.zip'
+            download_name=f"texture_result_{job_id}.zip"
         )
 
     except Exception as e:
@@ -102,23 +94,18 @@ def generate_texture():
         return jsonify({"error": str(e)}), 500
 
     finally:
-        def remove_readonly(func, path, excinfo):
-            import stat
-            os.chmod(path, stat.S_IWRITE)
-            func(path)
-
         if current_job_path.exists():
             try:
-                shutil.rmtree(current_job_path, onerror=remove_readonly)
+                shutil.rmtree(current_job_path)
             except Exception as cleanup_error:
                 print(f"[{job_id}] Erreur nettoyage upload : {cleanup_error}")
 
         if experiment_path and experiment_path.exists():
             try:
-                shutil.rmtree(experiment_path, onerror=remove_readonly)
+                shutil.rmtree(experiment_path)
                 print(f"[{job_id}] Nettoyage des résultats MV-Adapter terminé.")
             except Exception as cleanup_error:
                 print(f"[{job_id}] Erreur nettoyage résultats : {cleanup_error}")
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
