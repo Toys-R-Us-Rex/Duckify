@@ -5,8 +5,12 @@ from PyQt6.QtCore import QSettings
 
 @dataclass
 class GenAISettings:
+    ssh_host: str = ""
+    ssh_port: int = 22
+    ssh_user: str = ""
+    ssh_key: str = ""
     host: str = "localhost"
-    port: int = 8000
+    port: int = 5000
     negative_prompt: str = ""
     prompt_wrapper: str = ""
     steps: int = 30
@@ -38,6 +42,10 @@ class SettingsManager:
         colors: list[list[int]] = json.loads(self._prefs.value("tracing.palette", "[]"))
         return Settings(
             genAI=GenAISettings(
+                ssh_host=self._prefs.value("genAI.ssh_host", GenAISettings.ssh_host),
+                ssh_port=self._prefs.value("genAI.ssh_port", GenAISettings.ssh_port, type=int),
+                ssh_user=self._prefs.value("genAI.ssh_user", GenAISettings.ssh_user),
+                ssh_key=self._prefs.value("genAI.ssh_key", GenAISettings.ssh_key),
                 host=self._prefs.value("genAI.host", GenAISettings.host),
                 port=self._prefs.value("genAI.port", GenAISettings.port, type=int),
                 negative_prompt=self._prefs.value("genAI.negative_prompt", GenAISettings.negative_prompt),
@@ -54,6 +62,10 @@ class SettingsManager:
         )
     
     def save(self, settings: Settings):
+        self._prefs.setValue("genAI.ssh_host", settings.genAI.ssh_host)
+        self._prefs.setValue("genAI.ssh_port", settings.genAI.ssh_port)
+        self._prefs.setValue("genAI.ssh_user", settings.genAI.ssh_user)
+        self._prefs.setValue("genAI.ssh_key", settings.genAI.ssh_key)
         self._prefs.setValue("genAI.host", settings.genAI.host)
         self._prefs.setValue("genAI.port", settings.genAI.port)
         self._prefs.setValue("genAI.negative_prompt", settings.genAI.negative_prompt)

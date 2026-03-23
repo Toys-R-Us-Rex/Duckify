@@ -25,6 +25,10 @@ class SettingsDialog(QDialog, Ui_Dialog):
     def get_settings(self) -> Settings:
         return Settings(
             genAI=GenAISettings(
+                ssh_host=self.genAISSHHost.text(),
+                ssh_port=self.genAISSHPort.value(),
+                ssh_user=self.genAISSHUser.text(),
+                ssh_key=self.genAISSHKey.text(),
                 host=self.genAIHost.text(),
                 port=self.genAIPort.value(),
                 negative_prompt=self.genAINegativePrompt.toPlainText(),
@@ -37,6 +41,10 @@ class SettingsDialog(QDialog, Ui_Dialog):
         )
 
     def set_settings(self, settings: Settings):
+        self.genAISSHHost.setText(settings.genAI.ssh_host)
+        self.genAISSHPort.setValue(settings.genAI.ssh_port)
+        self.genAISSHUser.setText(settings.genAI.ssh_user)
+        self.genAISSHKey.setText(settings.genAI.ssh_key)
         self.genAIHost.setText(settings.genAI.host)
         self.genAIPort.setValue(settings.genAI.port)
         self.genAINegativePrompt.setText(settings.genAI.negative_prompt)
