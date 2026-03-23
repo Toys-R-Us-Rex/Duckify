@@ -1,10 +1,10 @@
-from pathlib import Path
 import urllib.request
+from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QIcon, QPixmap
-from PyQt6.QtWidgets import QColorDialog, QDialog, QListWidgetItem
+from PyQt6.QtWidgets import QColorDialog, QDialog, QFileDialog, QListWidgetItem
 
 from ui.settings_manager import GenAISettings, RobotSettings, Settings, TracingSettings
 from ui.ui.settings_ui import Ui_Dialog
@@ -17,6 +17,7 @@ class SettingsDialog(QDialog, Ui_Dialog):
         self.setupUi(self)
         self.set_settings(current_settings)
 
+        self.genAISSHKeyBrowse.clicked.connect(self.browse_ssh_key)
         self.genAISSHTest.clicked.connect(self.test_genai_ssh_connection)
         self.genAITest.clicked.connect(self.test_genai_server_connection)
         self.tracingPalette.doubleClicked.connect(self.tracing_palette_edit)
@@ -37,10 +38,10 @@ class SettingsDialog(QDialog, Ui_Dialog):
                 negative_prompt=self.genAINegativePrompt.toPlainText(),
                 prompt_wrapper=self.genAIPromptWrapper.toPlainText(),
                 steps=self.genAISteps.value(),
-                guidance=self.genAIGuidance.value()
+                guidance=self.genAIGuidance.value(),
             ),
             tracing=TracingSettings(palette=self.get_palette()),
-            robot=RobotSettings(ip_address=self.robotIP.text())
+            robot=RobotSettings(ip_address=self.robotIP.text()),
         )
 
     def set_settings(self, settings: Settings):
@@ -79,6 +80,14 @@ class SettingsDialog(QDialog, Ui_Dialog):
         for r, g, b in palette:
             color: QColor = QColor(r, g, b)
             self.tracing_palette_add(color)
+
+    def browse_ssh_key(self):
+        key_path, _ = QFileDialog.getOpenFileName(
+            self, "Select an SSH key", str(Path.home() / ".ssh")
+        )
+        if key_path.strip() == "":
+            return
+        self.genAISSHKey.setText(key_path)
 
     def test_genai_ssh_connection(self):
         host: str = self.genAISSHHost.text()
@@ -140,7 +149,7 @@ class SettingsDialog(QDialog, Ui_Dialog):
         current.setData(Qt.ItemDataRole.UserRole, color)
         current.setText(color.name())
         current.setIcon(QIcon(pixmap))
-    
+
     def test_robot_connection(self):
         host: str = self.robotIP.text()
         ports: list[int] = [29999, 30003, 30004]
