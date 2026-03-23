@@ -1,23 +1,35 @@
-from duckify_simulation.duckify_sim.robot_control import SimRobotControl
+import pybullet as pb
 
 from src.stage import Stage
 from src.logger import DataStore
 from src.utils import ask_yes_no
 from src.config import *
 
-import pybullet as pb
+from duckify_simulation.duckify_sim import DuckifySim
 
 from src.safety import setup_checker
 from src.transformation import extract_pybullet_pose
 from src.pybullet_helpers import clear_bodies, find_hovers, preview_traces, split_and_visualize, validate_and_visualize
 from src.computation import assemble_segments, smoothing
-from src.segment import SideType
 
 class Pathfinding(Stage):
-    def __init__(self, datastore: DataStore, obstacles=OBSTACLE_STLS, side=SideType.LEFT, verbose=True):
+    def __init__(self, datastore: DataStore, obstacles: list = OBSTACLE_STLS, verbose: bool = True):
+        """
+        Initialize the pathfinding stage.
+
+        Parameters
+        ----------
+        datastore : DataStore
+            The data store to use.
+        obstacles : list, optional
+            List of obstacle STL files to load.
+        side : SideType, optional
+            The side for which to find paths.
+        verbose : bool, optional
+            Whether to display verbose output.
+        """
         super().__init__(name="Pathfinding", datastore=datastore)
         self.obstacles = obstacles
-        self.side = side
         self.verbose = verbose
     
     def run(self):
@@ -27,10 +39,11 @@ class Pathfinding(Stage):
         
         obj2robot = self.ds.load_transformation()
         traces = self.ds.load_tcp_segments()
-        traces = [t for t in traces if t.side == self.side ]
         
-        robot = SimRobotControl()
         _, tcp_offset = self.ds.load_calibration()
+        duckify_sim = DuckifySim()
+        robot = duckify_sim.robot_control()
+
         robot.set_tcp(tcp_offset)
 
         pos, quat, scale = extract_pybullet_pose(obj2robot)
@@ -50,20 +63,20 @@ class Pathfinding(Stage):
         surface_tcps_per_trace = [t.waypoints for t in traces]
         
         preview_traces(checker, surface_tcps_per_trace)
-        if not ask_yes_no("Are the traces correct ?"):
+        if not ask_yes_no("Do the trace are correct? y/n \n"):
             if pb.isConnected(checker.cid):
                 pb.disconnect(checker.cid)
-            raise RuntimeError("The traces are not correct.")
+            raise RuntimeError("The trace are not correct.")
 
 
         valid_masks, surface_joints, validation_spheres = validate_and_visualize(
             checker, robot, surface_tcps_per_trace, HOMEJ,
         )
 
-        if not ask_yes_no("Are the traces correct? y/n \n"):
+        if not ask_yes_no("Do the trace are correct? y/n \n"):
             if pb.isConnected(checker.cid):
                 pb.disconnect(checker.cid)
-            raise RuntimeError("The traces are not correct.")
+            raise RuntimeError("The trace are not correct.")
         
         clear_bodies(checker.cid, validation_spheres)
 
@@ -81,4 +94,4 @@ class Pathfinding(Stage):
         
                              
     def fallback():
-        raise NotImplemented("Pathfinding is not implemented yet.")
+        raise NotImplementedError("Pathfinding is not implemented yet.")
