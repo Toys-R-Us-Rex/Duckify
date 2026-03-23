@@ -25,7 +25,7 @@ def generate_texture(obj_path: Path, prompt: str, output_dir: Path, negative_pro
                 response = requests.post(api_url, files=files, data=data)
 
             if response.status_code == 200:
-                zip_path = Path(output_dir) / "resultat_texture.zip"
+                zip_path = output_dir / "resultat_texture.zip"
                 with open(zip_path, "wb") as f:
                     f.write(response.content)
                 print("Zip reçu !")
@@ -34,7 +34,7 @@ def generate_texture(obj_path: Path, prompt: str, output_dir: Path, negative_pro
                 return None, []
                 
             extract_dir = "extracted_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            extract_path = Path(output_dir) / extract_dir
+            extract_path = output_dir / extract_dir
             with zipfile.ZipFile(zip_path, "r") as zip_ref:
                 zip_ref.extractall(extract_path)
                 
