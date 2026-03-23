@@ -5,8 +5,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QIcon, QPixmap
 from PyQt6.QtWidgets import QColorDialog, QDialog, QListWidgetItem
 
-from ui.settings_manager import GenAISettings, Settings, TracingSettings
-from ui.settings_ui import Ui_Dialog
+from ui.settings_manager import GenAISettings, RobotSettings, Settings, TracingSettings
+from ui.ui.settings_ui import Ui_Dialog
 from ui.utils import ping
 
 
@@ -27,14 +27,24 @@ class SettingsDialog(QDialog, Ui_Dialog):
             genAI=GenAISettings(
                 host=self.genAIHost.text(),
                 port=self.genAIPort.value(),
+                negative_prompt=self.genAINegativePrompt.toPlainText(),
+                prompt_wrapper=self.genAIPromptWrapper.toPlainText(),
+                steps=self.genAISteps.value(),
+                guidance=self.genAIGuidance.value()
             ),
             tracing=TracingSettings(palette=self.get_palette()),
+            robot=RobotSettings(ip_address=self.robotIP.text())
         )
 
     def set_settings(self, settings: Settings):
         self.genAIHost.setText(settings.genAI.host)
         self.genAIPort.setValue(settings.genAI.port)
+        self.genAINegativePrompt.setText(settings.genAI.negative_prompt)
+        self.genAIPromptWrapper.setText(settings.genAI.prompt_wrapper)
+        self.genAISteps.setValue(settings.genAI.steps)
+        self.genAIGuidance.setValue(settings.genAI.guidance)
         self.set_palette(settings.tracing.palette)
+        self.robotIP.setText(settings.robot.ip_address)
 
     def get_palette(self) -> list[tuple[int, int, int]]:
         colors: list[tuple[int, int, int]] = []
