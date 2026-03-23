@@ -1,32 +1,10 @@
-'''
+"""
 Utility functions for working with 3D rotations and poses.
-
-This module provides lightweight helpers for converting between several
-common rotation representations used in robotics and computer vision:
-
-- normal_to_rotvec(n):
-    Computes the rotation vector that aligns the +Z axis with a given
-    surface normal. Useful for orienting tools or end-effectors so they
-    face a surface.
-
-- rotvec_to_rotmat(r):
-    Converts a rotation vector (axis-angle representation) into a 3x3
-    rotation matrix using Rodrigues' formula.
-
-- rotmat_to_rotvec(R):
-    Converts a 3x3 rotation matrix into a rotation vector.
-
-- pose_to_T(pose):
-    Converts a 6-element pose [x, y, z, rx, ry, rz] (UR-style axis-angle)
-    into a 4x4 homogeneous transformation matrix.
-
-All functions assume right-handed coordinate frames and use NumPy for
-vector and matrix operations.
 
 Usage
 -----
-This module is designed to be used with the URBasic library, from which this
-project is derived:
+This module is designed to be used with our Duckify simulation environment,
+and the URBasic library from which it is derived:
     https://github.com/ISC-HEI/ur3e-control
 
 MIT License
@@ -51,12 +29,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-Author:     Mariéthoz Cédric, with assistance from Copilote AI (Microsoft)
+Author:     Mariéthoz Cédric, with assistance from Copilot AI (Microsoft)
+Co-Author:  Savioz Pierre-Yves, with assistance from Claude AI (Anthropic)
 Course:     HES-SO Valais-Wallis, Engineering Track 304
-'''
-import numpy as np
+"""
 
-def normal_to_rotvec(n):
+import numpy as np
+from URBasic import TCP6D
+
+def normal_to_rotvec(n: np.ndarray|list) -> np.ndarray:
     """
     Compute the rotation vector that aligns the +Z axis with a given normal.
 
@@ -87,9 +68,9 @@ def normal_to_rotvec(n):
     axis = cross / sin_angle
     angle = np.arctan2(sin_angle, cos_angle)
     rotvec = axis * angle
-    return rotvec
+    return np.asarray(rotvec)
 
-def rotvec_to_rotmat(r):
+def rotvec_to_rotmat(r: np.ndarray|list) -> np.ndarray:
     """
     Convert a rotation vector (axis-angle) into a 3x3 rotation matrix.
 
@@ -114,7 +95,7 @@ def rotvec_to_rotmat(r):
                   [-k[1], k[0], 0]])
     return np.eye(3) + np.sin(theta)*K + (1-np.cos(theta))*(K @ K)
 
-def rotmat_to_rotvec(R):
+def rotmat_to_rotvec(R: np.ndarray|list) -> np.ndarray:
     """
     Convert a 3x3 rotation matrix into a rotation vector.
 
@@ -129,7 +110,7 @@ def rotmat_to_rotvec(R):
         Axis-angle rotation vector whose magnitude is the rotation angle.
     """
 
-    theta = np.arccos((np.trace(R) - 1) / 2)
+    theta = np.arccos(np.clip((np.trace(R) - 1) / 2, -1, 1))
     if theta < 1e-12:
         return np.zeros(3)
     rx = (R[2,1] - R[1,2]) / (2*np.sin(theta))
@@ -138,7 +119,7 @@ def rotmat_to_rotvec(R):
     return theta * np.array([rx, ry, rz])
 
 
-def pose_to_T(pose):
+def pose_to_T(pose: np.ndarray|list) -> np.ndarray:
     """
     Convert a 6-element UR-style pose into a 4x4 homogeneous transform.
 
@@ -172,11 +153,39 @@ def pose_to_T(pose):
     return T
 
 
-def fmt_tcp(tcp):
+def fmt_tcp(tcp: TCP6D) -> str:
+    """
+    Format a TCP pose as a string.
+
+    Parameters
+    ----------
+    tcp : TCP6D
+        The TCP pose to format.
+
+    Returns
+    -------
+    str
+        The formatted string.
+    """
     return f"({tcp.x:.4f}, {tcp.y:.4f}, {tcp.z:.4f})"
 
 
-def tcp_trans(tcp1, tcp2):
+def tcp_trans(tcp1: np.ndarray|list, tcp2: np.ndarray|list) -> np.ndarray:
+    """
+    Compose two TCP poses (position + rotation vector) and return the resulting pose.
+
+    Parameters
+    ----------
+    tcp1 : array_like, shape (6,)
+        First TCP pose to compose.
+    tcp2 : array_like, shape (6,)
+        Second TCP pose to compose.
+
+    Returns
+    -------
+    ndarray, shape (6,)
+        The resulting TCP pose.
+    """
     # Décomposition
     p1 = np.array(tcp1[:3])
     r1 = np.array(tcp1[3:])
@@ -195,14 +204,20 @@ def tcp_trans(tcp1, tcp2):
     return np.concatenate([p_new, r_new])
 
 
-def obj_to_stl(pts):
+def obj_to_stl(pts: np.ndarray|list) -> np.ndarray:
     """
     Convert from OBJ coords (Y-up) to STL coords (Z-up).
-    Mapping: OBJ(x, y, z) → STL(x, -z, y).
+    Mapping: OBJ(x, y, z) -> STL(x, -z, y).
 
-    Accepts:
-        - a single point: (3,)
-        - a list of points: (N, 3)
+    Parameters
+    ----------
+    pts : array_like, shape (3,) or (N, 3)
+        Points in OBJ coordinates.
+
+    Returns
+    -------
+    ndarray, shape (3,) or (N, 3)
+        Points in STL coordinates.
     """
     pts = np.asarray(pts)
 
@@ -220,14 +235,20 @@ def obj_to_stl(pts):
 
     raise ValueError("Input must be shape (3,) or (N,3)")
 
-def stl_to_obj(pts):
+def stl_to_obj(pts: np.ndarray|list) -> np.ndarray:
     """
     Convert from STL coordinates (Z-up) to OBJ coordinates (Y-up).
-    Mapping: STL(x, y, z) → OBJ(x, z, -y).
+    Mapping: STL(x, y, z) -> OBJ(x, z, -y).
 
-    Accepts:
-        - a single point: (3,)
-        - a list of points: (N, 3)
+    Parameters
+    ----------
+    pts : array_like, shape (3,) or (N, 3)
+        Points in STL coordinates.
+
+    Returns
+    -------
+    ndarray, shape (3,) or (N, 3)
+        Points in OBJ coordinates.
     """
     pts = np.asarray(pts)
 
@@ -247,14 +268,53 @@ def stl_to_obj(pts):
 
 
 def ask_yes_no(prompt: str) -> bool:
+    """
+    Ask the user a yes/no question.
+
+    Parameters
+    ----------
+    prompt : str
+        The question to ask.
+
+    Returns
+    -------
+    bool
+        True if the user answers "y", False otherwise.
+    """
     return input(prompt).strip().lower() == "y"
     
 class AtoB:
-    def __init__(self, T_position, T_orientation):
+    """
+    A similarity transform that maps points from one coordinate system to another.
+    """
+    def __init__(self, T_position: np.ndarray, T_orientation: np.ndarray):
+        """
+        Initialize the similarity transform.
+
+        Parameters
+        ----------
+        T_position : array_like, shape (4, 4)
+            The transformation matrix for position.
+        T_orientation : array_like, shape (4, 4)
+            The transformation matrix for orientation.
+        """
         self.T_position = T_position
         self.T_orientation = T_orientation
     
-    def __call__(self, p):
+    def __call__(self, p: np.ndarray|list) -> np.ndarray:
+        """
+        Transform a point from the source coordinate system to the target coordinate system.
+
+        Parameters
+        ----------
+        p : array_like, shape (6,) or (N, 6)
+            Points in the source coordinate system, where each point is represented as [x, y, z, rx, ry, rz].
+
+        Returns
+        -------
+        ndarray, shape (6,) or (N, 6)
+            Points in the target coordinate system.
+        """
         p = np.asarray(p)
         point = p[:3]
         normal = p[3:]
