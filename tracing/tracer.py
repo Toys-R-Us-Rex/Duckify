@@ -81,7 +81,7 @@ class Tracer:
 
         if not self.mesh_has_uv_map(self.model):
             self.logger.error("Missing mesh UV coordinates")
-            return
+            return TracingStats(0, 0, 0, 0, 0)
 
         # 2. Quantize and split colors
         self.texture = self.mask_outside_UV_texture(self.texture, self.model)
