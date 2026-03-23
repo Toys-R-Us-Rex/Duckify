@@ -5,6 +5,9 @@ Copyright (c) 2026 HES-SO Valais-Wallis, Engineering Track 304
 '''
 
 from pathlib import Path
+import numpy as np
+
+from URBasic import Joint6D
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 ASSETS_DIR = PROJECT_DIR / "assets"
@@ -17,8 +20,16 @@ COLLISION_MARGIN = 0            # margin for obstacle collision checks
 SELF_COLLISION_MARGIN = 0.01   # margin for self-collision checks (5mm safety buffer)
 
 # Default home position
-from URBasic.waypoint6d import Joint6D
 HOMEJ = Joint6D.createFromRadians(1.8859, -1.4452, 1.2389, -1.3639, -1.5693, -0.3849)
+
+MINIMAL_DISTANCE = 0.164
+LEGNTH_BETWEEN_PENS = 0.05 # This distance comes from the design of the wood support for pen.
+FACING_DOWN = (np.pi, 0, 0) # To maintain the gripper facing down
+SECURITY_APPROACH = 0.075
+
+GRIPPER_LENGTH = 0.101
+PEN_LENGTH = 0.128
+# PEN_POS_0 =  [-0.3, -0.172, MINIMAL_DISTANCE] # Position of pen at index 0
 
 # Pathfinding parameters
 SAFE_MARGIN = 0.005

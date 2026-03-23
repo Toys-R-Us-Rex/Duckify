@@ -1,38 +1,13 @@
-import sys
-import json
-from pathlib import Path
-import os
 import time
-
-from src.utils import ask_yes_no
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-#from duckify_simulation.duckify_sim import DuckifySim as ISCoin
-from URBasic import ISCoin  # <-- swap this line to use the real robot
-
-# from src.safety import get_reachable
-from URBasic import Joint6D, TCP6D
-from URBasic.waypoint6d import TCP6DDescriptor
-from math import radians, pi
 from enum import Enum, auto
 
-from duckify_simulation.duckify_sim import DuckifySim as ISCoin # (x,y,z)
-# from URBasic import ISCoin  # <-- swap this line to use the real robot # (y,x,z)
+from src.utils import ask_yes_no
+from src.config import *
 
-#[-0.31030073427776544, -0.12772318658605364, 0.1691221791937419, -3.123526746656135, 0.06494033931935389, 0.0007571664234476744]
+from URBasic import TCP6D, TCP6DDescriptor
+from URBasic import ISCoin
 
-from math import pi
-from URBasic import TCP6D
-from URBasic.waypoint6d import TCP6DDescriptor
-
-MINIMAL_DISTANCE = 0.164
-LEGNTH_BETWEEN_PENS = 0.05 # This distance comes from the design of the wood support for pen.
-FACING_DOWN = (pi, 0, 0) # To maintain the gripper facing down
-SECURITY_APPROACH = 0.075
-
-GRIPPER_LENGTH = 0.101
-PEN_LENGTH = 0.128
-# PEN_POS_0 =  [-0.3, -0.172, MINIMAL_DISTANCE] # Position of pen at index 0
+from duckify_simulation.duckify_sim import DuckifySim
 
 class GripperAction(Enum):
     CLOSE = auto()  # Close gripper
@@ -56,8 +31,7 @@ class PenState():
     )
     ```
     """
-
-    def __init__(self, home: TCP6D, robot: ISCoin):
+    def __init__(self, home: TCP6D, robot: ISCoin|DuckifySim):
         self.home = home
         self.support_position: TCP6D = None
 
