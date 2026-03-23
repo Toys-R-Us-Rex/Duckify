@@ -431,6 +431,8 @@ class Tracer:
                     i=self.trace_id()
                 )
                 traces.append(trace)
+            elif l.geom_type == "Point":
+                continue
             else:
                 for ls in l.geoms:
                     trace = Trace2D(
