@@ -33,7 +33,7 @@
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-233</y>
+            <y>-261</y>
             <width>344</width>
             <height>647</height>
            </rect>
@@ -218,7 +218,11 @@
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QLineEdit" name="genAIHFToken"/>
+               <widget class="QLineEdit" name="genAIHFToken">
+                <property name="echoMode">
+                 <enum>QLineEdit::Password</enum>
+                </property>
+               </widget>
               </item>
              </layout>
             </widget>
