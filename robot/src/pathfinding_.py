@@ -9,7 +9,7 @@ from duckify_simulation.duckify_sim import DuckifySim
 
 from src.safety import setup_checker
 from src.transformation import extract_pybullet_pose
-from src.pybullet_helpers import clear_bodies, find_hovers, preview_traces, split_and_visualize, validate_and_visualize
+from src.pybullet_helpers import clear_bodies, find_hovers, preview_traces, split_into_runs, validate_surface_points, visualize_validation
 from src.computation import assemble_segments, smoothing
 
 class Pathfinding(Stage):
@@ -62,7 +62,7 @@ class Pathfinding(Stage):
         )
 
         checker.set_joint_angles(HOMEJ.toList())
-        
+
         for k, d in data.items():
             print(f"Processing segment {k}")
             for k, trace in d.items():
@@ -76,11 +76,12 @@ class Pathfinding(Stage):
                     raise RuntimeError("The trace are not correct.")
 
 
-                valid_masks, surface_joints, validation_spheres = validate_and_visualize(
+                valid_masks, surface_joints = validate_surface_points(
                     checker, robot, surface_tcps_per_trace, HOMEJ,
                 )
+                validation_spheres = visualize_validation(checker, surface_tcps_per_trace, valid_masks)
 
-                if not ask_yes_no("Do the trace are correct? y/n \n"):
+                if not ask_yes_no("Judge and tell if the traces valid ? y/n \n"):
                     if pb.isConnected(checker.cid):
                         pb.disconnect(checker.cid)
                     raise RuntimeError("The trace are not correct.")
@@ -88,7 +89,7 @@ class Pathfinding(Stage):
                 clear_bodies(checker.cid, validation_spheres)
 
                 
-                runs_per_trace, _ = split_and_visualize(checker, surface_tcps_per_trace, valid_masks)
+                runs_per_trace = split_into_runs(valid_masks)
                 validated_runs = find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_joints)
                 segments = assemble_segments(robot, checker, validated_runs, surface_joints, HOMEJ)
                 smoothing(robot, checker, segments, HOMEJ)

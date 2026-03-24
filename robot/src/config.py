@@ -29,7 +29,9 @@ ROBOT_IP = "10.30.5.158"
 
 # Collision margins
 COLLISION_MARGIN = 0            # margin for obstacle collision checks
-SELF_COLLISION_MARGIN = 0.01   # margin for self-collision checks (5mm safety buffer)
+SELF_COLLISION_MARGIN = 0.01   # margin for self-collision checks
+MAX_JOINT_JUMP = 1.0           # max allowed single-joint difference from qnear in radians
+
 
 # Default home position
 HOMEJ = Joint6D.createFromRadians(1.8859, -1.4452, 1.2389, -1.3639, -1.5693, -0.3849)
