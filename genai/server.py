@@ -1,17 +1,20 @@
 import io
+import logging
 import os
 import shutil
 import uuid
 import zipfile
+from logging import Logger
 from pathlib import Path
 
 from flask import Flask, jsonify, request, send_file
-from pydantic import ValidationError
 from models import MVAdapaterModel
+from pydantic import ValidationError
 
 from genai.data import GenerationRequest
 
 app = Flask(__name__)
+logger: Logger = logging.getLogger("GenAIServer")
 
 
 MV_ADAPTER_DIR = Path(os.getenv("MV_ADAPTER_PATH", None))
@@ -26,11 +29,9 @@ JOBS_DIR.mkdir(exist_ok=True)
 @app.post("/generate")
 def generate_texture():
     req: GenerationRequest
-    
+
     try:
-        req = GenerationRequest.model_validate(
-            request.form, extra="ignore"
-        )
+        req = GenerationRequest.model_validate(request.form, extra="ignore")
         file = request.files.get("file", None)
         assert file is not None
     except (ValidationError, AssertionError):
@@ -46,7 +47,9 @@ def generate_texture():
     input_path = current_job_path / safe_filename
     file.save(input_path)
 
-    print(f"[{job_id}] Démarrage du job SLURM | Steps: {req.steps} | Guidance: {req.guidance}")
+    logger.info(
+        f"[{job_id}] Starting SLURM job | Steps: {req.steps} | Guidance: {req.guidance}"
+    )
     try:
         texture_model = MVAdapaterModel(
             base_path=MV_ADAPTER_DIR, slurm_script=Path("run.slurm")
@@ -62,7 +65,7 @@ def generate_texture():
             hf_token=req.hf_token,
         )
 
-        print(f"[{job_id}] Génération SLURM terminée. Préparation du zip...")
+        logger.info(f"[{job_id}] Generation finished. Preparing zip...")
 
         memory_file = io.BytesIO()
         with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -74,7 +77,7 @@ def generate_texture():
 
         memory_file.seek(0)
 
-        print(f"[{job_id}] Succès ! Envoi du zip.")
+        logger.info(f"[{job_id}] Sending zip")
 
         return send_file(
             memory_file,
@@ -84,7 +87,7 @@ def generate_texture():
         )
 
     except Exception as e:
-        print(f"[{job_id}] Erreur : {e}")
+        logger.error(f"[{job_id}] Error: {e}")
         return jsonify({"error": str(e)}), 500
 
     finally:
@@ -92,14 +95,18 @@ def generate_texture():
             try:
                 shutil.rmtree(current_job_path)
             except Exception as cleanup_error:
-                print(f"[{job_id}] Erreur nettoyage upload : {cleanup_error}")
+                logger.error(
+                    f"[{job_id}] Error while cleaning job directory: {cleanup_error}"
+                )
 
         if experiment_path and experiment_path.exists():
             try:
                 shutil.rmtree(experiment_path)
-                print(f"[{job_id}] Nettoyage des résultats MV-Adapter terminé.")
+                logger.info(f"[{job_id}] Cleanup finished")
             except Exception as cleanup_error:
-                print(f"[{job_id}] Erreur nettoyage résultats : {cleanup_error}")
+                logger.error(
+                    f"[{job_id}] Error while cleaning experiment directory: {cleanup_error}"
+                )
 
 
 if __name__ == "__main__":

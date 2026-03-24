@@ -1,13 +1,16 @@
+import logging
 import os
 import shutil
 import subprocess
 import time
+from logging import Logger
 from pathlib import Path
 from typing import Optional
 
 
 class MVAdapaterModel:
     def __init__(self, base_path: Path, slurm_script: Path):
+        self.logger: Logger = logging.getLogger("MVAdapter")
         self.base_path = base_path.resolve()
         script_path = Path(slurm_script)
         if script_path.is_absolute():
@@ -36,7 +39,7 @@ class MVAdapaterModel:
         hf_token: Optional[str] = "",
     ) -> Path:
         if not obj_file.exists():
-            raise FileNotFoundError(f"Fichier 3D introuvable: {obj_file}")
+            raise FileNotFoundError(f"Could not find 3D model: {obj_file}")
 
         target_obj_path = self.base_path / "3d_models" / obj_file.name
         if obj_file != target_obj_path:
@@ -64,7 +67,7 @@ class MVAdapaterModel:
         if hf_token is not None:
             env["HF_TOKEN"] = hf_token
 
-        print(f"Soumission du job SLURM pour la génération {run_id}...")
+        self.logger.info(f"Submitting SLURM job {run_id}...")
 
         try:
             result = subprocess.run(
@@ -75,9 +78,12 @@ class MVAdapaterModel:
                 text=True,
                 check=True,
             )
-            print(f"Job soumis : {result.stdout.strip()}")
+            self.logger.info(f"Job submitted: {result.stdout.strip()}")
 
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Error : {e.stderr}")
+
+        texture_path: Path = output_dir / f"{save_name}.png"
+        shutil.copy(texture_path, output_dir / "texture.png")
 
         return output_dir
