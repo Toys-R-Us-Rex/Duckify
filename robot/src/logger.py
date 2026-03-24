@@ -29,6 +29,7 @@ Course:     HES-SO Valais-Wallis, Engineering Track 304
 
 from operator import index
 from pathlib import Path
+import queue
 import threading
 import time
 import csv
@@ -38,9 +39,7 @@ from src.config import DEFAULT_DATA_DIR, DEFAULT_FORCE_PATH
 from src.segment import *
 from src.utils import AtoB
 
-from urbasic.URBasic.waypoint6d import TCP6D, Joint6D
-
-from urbasic.URBasic.urScript import UrScript
+from URBasic.urScript import UrScript
 from duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
 
@@ -64,6 +63,19 @@ class DataStore:
         if not data_path.exists():
             data_path.mkdir(parents=True, exist_ok=True)
         self.log_path.touch()
+    
+        self.queue = queue.Queue()
+        self.worker = threading.Thread(target=self._writer, daemon=True)
+        self.worker.start()
+
+    def __del__(self):
+        """
+        Cleanup the DataStore.
+        """
+        try:
+            self.worker.join()
+        except Exception:
+            pass
 
     def log_calibration(self, tcps: list[TCP6D], tcp_offset: TCP6D):
         """
@@ -82,6 +94,17 @@ class DataStore:
             s += "\n"
         self.log(f"Calibration measure:\n" + s)
         self.log(f"Calibred offset:" + str(tcp_offset))
+    
+    def log_pen_calibration(self, first_pen_position: TCP6D):
+        """
+        Log the pen calibration position.
+
+        Parameters
+        ----------
+        pen_position : TCP6D
+            The calibrated pen position.
+        """
+        self.log(f"Pen calibration position: {first_pen_position}")
 
     def log_worldtcp(self, pworld: list[TCP6D], tcps: list[TCP6D]):
         """
@@ -145,8 +168,7 @@ class DataStore:
             for p in seg.waypoints:
                 s += str(p)
                 s += ", "
-            s += "\n"   
-        s += "\n"
+            s += "\n"
         self.log(f"Path of the robot (traces):\n" + s)
         pass
     
@@ -165,8 +187,7 @@ class DataStore:
             for p in seg.waypoints:
                 s += str(p)
                 s += ", "
-            s += "\n"   
-        s += "\n"
+            s += "\n"
         self.log(f"Path of the robot (tcp waypoints):\n" + s)
         pass
 
@@ -185,8 +206,7 @@ class DataStore:
             for p in seg.waypoints:
                 s += str(p)
                 s += ", "
-            s += "\n"   
-        s += "\n"
+            s += "\n"
         self.log(f"Path of the robot (joint waypoints):\n" + s)
         pass
 
@@ -201,10 +221,21 @@ class DataStore:
         """
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         entry = f"{timestamp} - {message}\n"
-        
-        with open(self.log_path, "a") as f:
-            f.write(entry)
+        self.queue.put(entry)
     
+    def _writer(self):
+        """
+        Background thread that writes logs in order.
+        """
+        with open(self.log_path, "a", encoding="utf-8") as f:
+            while self.running or not self.queue.empty():
+                try:
+                    entry = self.queue.get(timeout=0.2)
+                    f.write(entry + "\n")
+                    f.flush()
+                except queue.Empty:
+                    continue
+
     # ----------------------------------------------------
     #                SAVE / LOAD HELPER
     # ----------------------------------------------------
@@ -271,7 +302,7 @@ class DataStore:
             pickle.dump(obj, f)
         self.log(f"Saved history entry {idx} for {key} -> {file_path}")
 
-    def load_history_latest(self, key: str) -> dict|None:
+    def load_history_latest(self, key: str) -> dict:
         """
         Load the latest history entry for a given key.
 
@@ -288,10 +319,10 @@ class DataStore:
         idx = self._next_index(key) - 1
         if idx < 0:
             self.log(f"No history found for {key}")
-            return None
+            raise FileNotFoundError(f"History file not found: {key}")
         return self.load_history_index(key, idx)
 
-    def load_history_index(self, key: str, index: int) -> dict|None:
+    def load_history_index(self, key: str, index: int) -> dict:
         """
         Load a history entry for a given key and index.
 
@@ -312,7 +343,7 @@ class DataStore:
         file_path = self._indexed_file(key, index)
         if not file_path.exists():
             self.log(f"History file not found: {file_path}")
-            return None
+            raise FileNotFoundError(f"History file not found: {file_path}")
         with file_path.open("rb") as f:
             return pickle.load(f)
 
@@ -346,7 +377,7 @@ class DataStore:
         else:
             self.save_history("calibration", data)
 
-    def load_calibration(self, file_path: Path=None, index: int=-1) -> tuple[list[float], float]|tuple[None, None]:
+    def load_calibration(self, file_path: Path=None, index: int=-1) -> tuple[list[float], float]:
         """
         Load calibration data.
 
@@ -365,7 +396,7 @@ class DataStore:
         if file_path:
             if not file_path.exists():
                 self.log(f"Calibration data file not found {file_path}")
-                return None, None
+                raise RuntimeError(f"Calibration data file not found: {file_path}")
             with file_path.open("rb") as f:
                 data = pickle.load(f)
             self.log(f"Loaded calibration data from file {file_path}")
@@ -375,6 +406,59 @@ class DataStore:
         tcp_offset = data["tcp_offset"]
         return tcps, tcp_offset
 
+    def save_pen_calibration(self, first_pen_position: TCP6D, second_pen_position: TCP6D, file_path: Path=None):
+        """
+        Save pen calibration data.
+
+        Parameters
+        ----------
+        first_pen_position : TCP6D
+            The first calibrated pen position.
+        second_pen_position : TCP6D
+            The second calibrated pen position.
+        file_path : Path, optional
+            The file path to save the data to.
+        """
+        data = {"first_pen_position": first_pen_position, "second_pen_position": second_pen_position}
+        if file_path:
+            folder = file_path.parent
+            if not folder.exists():
+                self.log(f"Create folder {folder}")
+                folder.mkdir(parents=True, exist_ok=True)
+            with file_path.open("wb") as f:
+                pickle.dump(data, f)
+            self.log(f"Saved pen calibration data to file {file_path}")
+        else:
+            self.save_history("pen_calibration", data)
+
+    def load_pen_calibration(self, file_path: Path=None, index: int=-1) -> tuple[TCP6D, TCP6D]:
+        """
+        Load pen calibration data.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to load the data from.
+        index : int, optional
+            The index of the history entry to load.
+
+        Returns
+        -------
+        tuple[TCP6D, TCP6D] or tuple[None, None]
+            The loaded pen positions, or (None, None) if not found.
+        """
+        if file_path:
+            if not file_path.exists():
+                self.log(f"Pen calibration data file not found {file_path}")
+                raise RuntimeError(f"Pen calibration data file not found: {file_path}")
+            with file_path.open("rb") as f:
+                data = pickle.load(f)
+            self.log(f"Loaded pen calibration data from file {file_path}")
+        else:
+            data = self.load_history_index("pen_calibration", index)
+        first_pen_position = data["first_pen_position"]
+        second_pen_position = data["second_pen_position"]
+        return first_pen_position, second_pen_position
 
 
     def save_worldtcp(self, pworld: list[float], tcps: list[float], file_path: Path=None):
@@ -405,7 +489,7 @@ class DataStore:
         else:
             self.save_history("worldtcp", data)
 
-    def load_worldtcp(self, file_path: Path=None, index: int=-1) -> tuple[list[float], list[float]]|tuple[None, None]:
+    def load_worldtcp(self, file_path: Path=None, index: int=-1) -> tuple[list[float], list[float]]:
         """
         Load worldtcp data.
 
@@ -425,7 +509,7 @@ class DataStore:
 
             if not file_path.exists():
                 self.log(f"Worldtcp data file not found {file_path}")
-                return None, None
+                raise RuntimeError(f"Worldtcp data file not found: {file_path}")
 
             with file_path.open("rb") as f:
                 data = pickle.load(f)
@@ -464,7 +548,7 @@ class DataStore:
         else:
             self.save_history("transformation", data)
 
-    def load_transformation(self, file_path: Path=None, index: int=-1) -> AtoB|None:
+    def load_transformation(self, file_path: Path=None, index: int=-1) -> AtoB:
         """
         Load transformation data.
 
@@ -483,7 +567,7 @@ class DataStore:
         if file_path:
             if not file_path.exists():
                 self.log(f"Transformation data file not found {file_path}")
-                return None
+                raise RuntimeError(f"Transformation data file not found: {file_path}")
 
             with file_path.open("rb") as f:
                 data = pickle.load(f)
@@ -523,7 +607,7 @@ class DataStore:
         else:
             self.save_history("waypoints", data)
 
-    def load_waypoints(self, file_path: Path=None, index: int=-1) -> list[TCP6D|Joint6D]|None:
+    def load_waypoints(self, file_path: Path=None, index: int=-1) -> list[TCP6D|Joint6D]:
         """
         Load waypoints data.
 
@@ -542,7 +626,7 @@ class DataStore:
         if file_path:
             if not file_path.exists():
                 self.log(f"Waypoints data file not found {file_path}")
-                return None
+                raise RuntimeError(f"Waypoints data file not found: {file_path}")
 
             with file_path.open("rb") as f:
                 data = pickle.load(f)
@@ -581,7 +665,7 @@ class DataStore:
         else:
             self.save_history("tcp_segments", data)
 
-    def load_tcp_segments(self, file_path: Path=None, index: int=-1) -> list[TCPSegment]|None:
+    def load_tcp_segments(self, file_path: Path=None, index: int=-1) -> list[TCPSegment]:
         """
         Load TCP segments data.
 
@@ -600,7 +684,7 @@ class DataStore:
         if file_path:
             if not file_path.exists():
                 self.log(f"TCP segments data file not found {file_path}")
-                return None
+                raise RuntimeError(f"TCP segments data file not found: {file_path}")
 
             with file_path.open("rb") as f:
                 data = pickle.load(f)
@@ -639,7 +723,7 @@ class DataStore:
         else:
             self.save_history("joint_segments", data)
 
-    def load_joint_segments(self, file_path: Path=None, index: int=-1) -> list[JointSegment]|None:
+    def load_joint_segments(self, file_path: Path=None, index: int=-1) -> list[JointSegment]:
         """
         Load Joint segments data.
 
@@ -658,7 +742,7 @@ class DataStore:
         if file_path:
             if not file_path.exists():
                 self.log(f"Joint segments data file not found {file_path}")
-                return None
+                raise RuntimeError(f"Joint segments data file not found: {file_path}")
 
             with file_path.open("rb") as f:
                 data = pickle.load(f)
@@ -667,7 +751,7 @@ class DataStore:
             self.log(f"Loaded Joint segments data from file {file_path}")
         else:
             data = self.load_history_index("joint_segments", index)
-            
+
         segments = data["segments"]
         return segments
 
@@ -698,7 +782,7 @@ class DataStore:
         else:
             self.save_history("trace_segments", data)
 
-    def load_trace_segments(self, file_path: Path=None, index: int=-1) -> list[TraceSegment]|None:
+    def load_trace_segments(self, file_path: Path=None, index: int=-1) -> list[TraceSegment]:
         """
         Load Trace segments data.
 
@@ -717,7 +801,7 @@ class DataStore:
         if file_path:
             if not file_path.exists():
                 self.log(f"Trace segments data file not found {file_path}")
-                return None
+                raise RuntimeError(f"Trace segments data file not found: {file_path}")
 
             with file_path.open("rb") as f:
                 data = pickle.load(f)
@@ -756,7 +840,7 @@ class DataStore:
         else:
             self.save_history("run_segments", data)
 
-    def load_run_segments(self, file_path: Path=None, index: int=-1) -> list[RunSegment]|None:
+    def load_run_segments(self, file_path: Path=None, index: int=-1) -> list[RunSegment]:
         """
         Load Run segments data.
 
@@ -775,7 +859,7 @@ class DataStore:
         if file_path:
             if not file_path.exists():
                 self.log(f"Run segments data file not found {file_path}")
-                return None
+                raise RuntimeError(f"Run segments data file not found: {file_path}")
 
             with file_path.open("rb") as f:
                 data = pickle.load(f)
