@@ -752,35 +752,6 @@ class Tracer:
         """
         return contour[:, 0, :]
 
-
-    # https://stackoverflow.com/a/70664846/11109181
-    def resample_polygon(self, xy: np.ndarray, n_points: int = 100, closed: bool = False) -> np.ndarray:
-        n = n_points
-
-        # If closed, duplicate first point at end
-        if closed:
-            xy = np.vstack([xy, [xy[0]]])
-            n += 1
-
-        # Cumulative Euclidean distance between successive polygon points.
-        # This will be the "x" for interpolation
-        d = np.cumsum(np.r_[0, np.sqrt((np.diff(xy, axis=0) ** 2).sum(axis=1))])
-
-        # get linearly spaced points along the cumulative Euclidean distance
-        d_sampled = np.linspace(0, d.max(), n)
-
-        # interpolate x and y coordinates
-        xy_interp = np.c_[
-            np.interp(d_sampled, d, xy[:, 0]),
-            np.interp(d_sampled, d, xy[:, 1]),
-        ]
-
-        # If closed, ignore last point (duplicate of first point)
-        if closed:
-            xy_interp = xy_interp[:-1]
-
-        return xy_interp
-
     def format_palette(self, palette: tuple[Color, ...]) -> list[int]:
         """Formatting an input palette to be used in  palettize_texture()
 
