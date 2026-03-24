@@ -150,17 +150,18 @@ class CollisionChecker:
     # returns a new tcp valid if one has been found
     def validate_tcp(self, robot, tcp, qnear=None, margin=COLLISION_MARGIN,
                      check_obstacle=True, orientation_search=False,
-                     max_cone_angle=math.radians(DRAWING_ANGLE), cone_step=math.radians(5)):
+                     max_cone_angle=math.radians(DRAWING_ANGLE), cone_step=math.radians(5),
+                     check_joint_jump=True):
         ok, reason = self.check_workspace_bounds(tcp)
         if not ok:
             return False, None, reason, tcp
 
-        ok, q, reason = self._try_ik_and_collision(robot, tcp, qnear, margin, check_obstacle)
+        ok, q, reason = self._try_ik_and_collision(robot, tcp, qnear, margin, check_obstacle, check_joint_jump)
         if ok:
             return True, q, "", tcp
 
         if orientation_search:
-            result = self._cone_search(robot, tcp, qnear, margin, check_obstacle, max_cone_angle, cone_step)
+            result = self._cone_search(robot, tcp, qnear, margin, check_obstacle, max_cone_angle, cone_step, check_joint_jump)
             if result:
                 q, adjusted_tcp = result
                 return True, q, "", adjusted_tcp
@@ -169,7 +170,7 @@ class CollisionChecker:
 
 
     # Reurns all IK solution, sort them by qnear, then returns the first safe waypoint
-    def _try_ik_and_collision(self, robot, tcp, qnear, margin, check_obstacle):
+    def _try_ik_and_collision(self, robot, tcp, qnear, margin, check_obstacle, check_joint_jump=True):
         candidates = get_all_ik_solutions(tcp, robot._tcp_offset, robot._model_correction)
         if not candidates:
             return False, None, "IK has no solution"
@@ -185,6 +186,15 @@ class CollisionChecker:
 
         first_reason = None
         for q in candidates:
+
+            if check_joint_jump and qnear is not None:
+                q_arr = np.array(q.toList())
+                max_diff = np.max(np.abs(q_arr - qnear_arr))
+                if max_diff > MAX_JOINT_JUMP:
+                    if first_reason is None:
+                        first_reason = f"Joint jump {max_diff:.2f} rad > {MAX_JOINT_JUMP}"
+                    continue
+
             ok, reason = self.check_joint_limits(q)
             if not ok:
                 if first_reason is None:

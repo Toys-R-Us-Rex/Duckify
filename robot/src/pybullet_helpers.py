@@ -70,12 +70,9 @@ def preview_traces(checker, surface_tcps_per_trace):
     input("Press ENTER to continue to validation...")
     pb.removeAllUserDebugItems(physicsClientId=cid)
 
-# Point by point IK and collision validation for each trace gree/red
-def validate_and_visualize(checker, robot, surface_tcps_per_trace, home):
-    cid = checker.cid
+def validate_surface_points(checker, robot, surface_tcps_per_trace, home):
     valid_masks_per_trace = []
     surface_joints_per_trace = []
-    sphere_ids = []
 
     for trace_i, surface_pts in enumerate(surface_tcps_per_trace):
         n_pts = len(surface_pts)
@@ -89,28 +86,31 @@ def validate_and_visualize(checker, robot, surface_tcps_per_trace, home):
 
         ok_count = sum(valid_mask)
         fail_count = n_pts - ok_count
-
-        pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0, physicsClientId=cid)
-        for i, (wp, ok, reason) in enumerate(zip(surface_pts, valid_mask, reasons)):
-            pos_wp = wp.toList()[:3]
-            if ok:
-                bid = draw_sphere(cid, pos_wp, [1, 1, 0])
-            else:
-                bid = draw_sphere(cid, pos_wp, [1, 0, 0])
+        for i, (ok, reason) in enumerate(zip(valid_mask, reasons)):
+            if not ok:
                 print(f"\n    pt {i} SKIP ({reason})", end="", flush=True)
+        print(f"\n    => {ok_count} OK, {fail_count} skipped")
+
+    return valid_masks_per_trace, surface_joints_per_trace
+
+
+def visualize_validation(checker, surface_tcps_per_trace, valid_masks_per_trace):
+    cid = checker.cid
+    sphere_ids = []
+
+    for trace_i, (surface_pts, valid_mask) in enumerate(zip(surface_tcps_per_trace, valid_masks_per_trace)):
+        pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0, physicsClientId=cid)
+        for wp, ok in zip(surface_pts, valid_mask):
+            pos_wp = wp.toList()[:3]
+            color = [1, 1, 0] if ok else [1, 0, 0]
+            bid = draw_sphere(cid, pos_wp, color)
             sphere_ids.append(bid)
         pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1, physicsClientId=cid)
 
-        print(f"\n    => {ok_count} OK, {fail_count} skipped")
+    return sphere_ids
 
-    return valid_masks_per_trace, surface_joints_per_trace, sphere_ids
-
-# separate groups of points into runs ( each with a diff color )
-def split_and_visualize(checker, surface_tcps_per_trace, valid_masks_per_trace):
-    cid = checker.cid
+def split_into_runs(valid_masks_per_trace):
     runs_per_trace = []
-    sphere_ids = []
-    global_run_idx = 0
 
     for trace_i, valid_mask in enumerate(valid_masks_per_trace):
         runs = _split_into_runs(valid_mask)
@@ -125,18 +125,30 @@ def split_and_visualize(checker, surface_tcps_per_trace, valid_masks_per_trace):
             gap_str = f", gaps at [{', '.join(gaps)}]" if gaps else ""
             print(f"  Trace {trace_i}: {len(runs)} run(s) - {[f'{s}-{e}' for s, e in runs]}{gap_str}")
 
-            surface_pts = surface_tcps_per_trace[trace_i]
-            pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0, physicsClientId=cid)
-            for run_start, run_end in runs:
-                color = RUN_COLORS[global_run_idx % len(RUN_COLORS)]
-                for wp in surface_pts[run_start:run_end + 1]:
-                    bid = draw_sphere(cid, wp.toList()[:3], color)
-                    sphere_ids.append(bid)
-                print(f"    Run {global_run_idx} ({run_start}-{run_end}): color {color}")
-                global_run_idx += 1
-            pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1, physicsClientId=cid)
+    return runs_per_trace
 
-    return runs_per_trace, sphere_ids
+
+def visualize_runs(checker, surface_tcps_per_trace, runs_per_trace):
+    cid = checker.cid
+    sphere_ids = []
+    global_run_idx = 0
+
+    for trace_i, runs in enumerate(runs_per_trace):
+        if not runs:
+            continue
+        surface_pts = surface_tcps_per_trace[trace_i]
+
+        pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0, physicsClientId=cid)
+        for run_start, run_end in runs:
+            color = RUN_COLORS[global_run_idx % len(RUN_COLORS)]
+            for wp in surface_pts[run_start:run_end + 1]:
+                bid = draw_sphere(cid, wp.toList()[:3], color)
+                sphere_ids.append(bid)
+            print(f"    Run {global_run_idx} ({run_start}-{run_end}): color {color}")
+            global_run_idx += 1
+        pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1, physicsClientId=cid)
+
+    return sphere_ids
 
 # For each run search a non colliding hover point, if not , trim the run
 def find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_joints_per_trace):
