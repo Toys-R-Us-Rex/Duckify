@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from URBasic import TCP6D, Joint6D
+from URBasic.waypoint6d import TCP6D, Joint6D
 
 class MotionType(Enum):
     TRAVEL = auto()      # free-space collision-avoidant move

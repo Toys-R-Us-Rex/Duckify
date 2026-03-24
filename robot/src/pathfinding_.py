@@ -13,7 +13,7 @@ from src.pybullet_helpers import clear_bodies, find_hovers, preview_traces, spli
 from src.computation import assemble_segments, smoothing
 
 class Pathfinding(Stage):
-    def __init__(self, datastore: DataStore, obstacles: list = OBSTACLE_STLS, verbose: bool = True):
+    def __init__(self, datastore: DataStore, default_calibration: Path = None, obstacles: list = OBSTACLE_STLS, verbose: bool = True):
         """
         Initialize the pathfinding stage.
 
@@ -21,6 +21,8 @@ class Pathfinding(Stage):
         ----------
         datastore : DataStore
             The data store to use.
+        default_calibration : Path, optional
+            The path to the default calibration file.
         obstacles : list, optional
             List of obstacle STL files to load.
         side : SideType, optional
@@ -29,10 +31,11 @@ class Pathfinding(Stage):
             Whether to display verbose output.
         """
         super().__init__(name="Pathfinding", datastore=datastore)
+        self.default_calibration = default_calibration
         self.obstacles = obstacles
         self.verbose = verbose
     
-    def run(self):
+    def run(self, manual_flag: bool=True):
         if not ask_yes_no("Do you want to launch a pathfinding? y/n \n"):
             self.ds.load_joint_segments()
             return
@@ -40,9 +43,9 @@ class Pathfinding(Stage):
         obj2robot = self.ds.load_transformation()
         traces = self.ds.load_tcp_segments()
         
-        _, tcp_offset = self.ds.load_calibration()
+        _, tcp_offset = self.ds.load_calibration(self.default_calibration)
         duckify_sim = DuckifySim()
-        robot = duckify_sim.robot_control()
+        robot = duckify_sim.robot_control
 
         robot.set_tcp(tcp_offset)
 

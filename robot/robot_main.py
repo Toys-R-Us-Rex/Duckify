@@ -1,13 +1,12 @@
-#!/usr/bin/env python3
-
-import time
+import argparse
 from pathlib import Path
+import time
 
-from src.config import ASSETS_DIR, OUTPUT_DIR
 from src.logger import DataStore
 from src.segment import SideType
-from src.stage import run_stage
-from src.robot import Robot
+from src.stage import Stage, run_stage
+
+from src.config import DEFAULT_JSON_SOCLE, ROBOT_IP, DEFAULT_JSON_OBJECT, DEFAULT_CALIBRATION_PATH, OUTPUT_DIR
 
 from src.calibration import Calibration
 from src.transformation import Transformation
@@ -15,29 +14,220 @@ from src.filter import Filter
 from src.conversion import Conversion
 from src.pathfinding_ import Pathfinding
 from src.gazebo import Gazebo
+from src.robot import Robot
 
-# Create a new ISCoin object
-# UR3e1 IP (closest to window): 10.30.5.158
-# UR3e2 IP: 10.30.5.159
-ROBOT_IP = "10.30.5.158"
 
-JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
-JSON_CALIBRATION = ASSETS_DIR / "tests" / "calibration_socle.json"
+def maybe_run(stage_name: str, skip_flag: bool, stage_obj: Stage, on_error: str, dry_run: bool, manual_flag: bool, data_store: DataStore):
+    if skip_flag:
+        print(f"--- {stage_name:<20} (skipped)")
+        if not dry_run:
+            data_store.log(f"--- {stage_name:<20} (skipped) ---")
+        return
+    if dry_run:
+        print(f"RUN {stage_name:<20} (would run)")
+        return
+    print(f">>> {stage_name:<20} (running)")
+    data_store.log(f">>> {stage_name:<20} (running) >>>")
+    run_stage(stage_obj, on_error, manual_flag)
 
-def main():
+def main(
+    robot_ip: str,
+    output_dir: str|Path,
+    json_object: str|Path,
+    json_socle: str|Path,
+
+    side: SideType,
+    default_transformation: str|Path = None,
+    default_calibration: str|Path = DEFAULT_CALIBRATION_PATH,
+    manual: bool = True,
+    multipen: bool = False,
+
+
+    skip_calibration: bool = False,
+    skip_transformation: bool = False,
+    skip_filter: bool = False,
+    skip_conversion: bool = False,
+    skip_pathfinding: bool = False,
+    skip_gazebo: bool = False,
+    skip_robot: bool = False,
+
+    dry_run: bool = False,
+):
+
     day = time.strftime("%Y%m%d")
-    ds = DataStore(OUTPUT_DIR / f"save_data_test/{day}/")
+    output_dir = Path(output_dir)
+    print(output_dir)
+    ds = DataStore(output_dir / day)
     ds.log("Pipeline started")
 
-    run_stage(Calibration(ds, ROBOT_IP), on_error="continue")
-    run_stage(Transformation(ds, ROBOT_IP, JSON_CALIBRATION), on_error="fallback")
-    run_stage(Filter(ds, JSON_OBJECT), on_error="stop")
-    run_stage(Conversion(ds), on_error="stop")
-    run_stage(Pathfinding(ds), on_error="stop")
-    run_stage(Gazebo(ds), on_error="stop")
-    run_stage(Robot(ds,ROBOT_IP), on_error="continue")
+    # Stage table: (name, skip_flag, builder, on_error)
+    pipeline = [
+        ("Calibration",    skip_calibration,    Calibration(ds, robot_ip, Path(default_calibration), multipen), "continue"),
+        ("Transformation", skip_transformation, Transformation(ds, robot_ip, Path(json_socle)),                 "fallback"),
+        ("Filter",         skip_filter,         Filter(ds, Path(json_object), multipen),                        "stop"),
+        ("Conversion",     skip_conversion,     Conversion(ds),                                                 "stop"),
+        ("Pathfinding",    skip_pathfinding,    Pathfinding(ds, Path(default_calibration)),                     "stop"),
+        ("Gazebo",         skip_gazebo,         Gazebo(ds, Path(default_calibration), multipen),                "stop"),
+        ("Robot",          skip_robot,          Robot(ds, robot_ip, side, Path(default_calibration), multipen), "continue"),
+    ]
+
+    for stage in pipeline:
+        maybe_run(*stage, dry_run=dry_run, manual_flag=manual, data_store=ds)
 
     ds.log("Pipeline finished")
 
+    ds.log("Pipeline finished")
+
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description=(
+        "Run the robot pipeline;\n"
+        "The pipeline consists of several stages: calibration, transformation, filter, conversion, pathfinding, gazebo, and robot.\n\n"
+        "Calibration     will allow the user to calibrate the robot's TCP (Tool Center Point).\n"
+        "Transformation  will compute the transformation matrix to convert the object coordinates to the robot's coordinate system.\n"
+        "Filter          will apply filters to the data; Currently, determine left and right sides.\n"
+        "Conversion      will convert the object coordinates to the robot's coordinate system.\n"
+        "Pathfinding     will generate a path for the robot to follow, given the robot motion in joint space.\n"
+        "Gazebo          will simulate the robot in a Gazebo environment (make sure the environment is running, see project README.md).\n"
+        "Robot           will control the actual robot and execute the planned path."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    # Overrides
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=OUTPUT_DIR / "save_data",
+        help="The output directory for the pipeline results"
+    )
+    parser.add_argument(
+        "--socle",
+        type=str,
+        default=DEFAULT_JSON_SOCLE,
+        metavar="<FILE>",
+        help="Override the default socle JSON file"
+    )
+    parser.add_argument(
+        "--transformation",
+        type=str,
+        default=None,
+        metavar="<FILE>",
+        help="Override the default transformation JSON file"
+    )
+    parser.add_argument(
+        "--multipen",
+        action="store_true",
+        help="Use multiple pen"
+    )
+
+    # Parameters
+    parser.add_argument(
+        "--robot-ip",
+        type=str,
+        default=ROBOT_IP,
+        metavar="<IP>",
+        help="The robot IP address"
+    )
+
+    parser.add_argument(
+        "--side",
+        type=str,
+        choices=["left", "right"],
+        default="right"
+    )
+
+    parser.add_argument(
+        "--object",
+        type=str,
+        default=DEFAULT_JSON_OBJECT,
+        metavar="<FILE>",
+        help="The JSON object file: The drawing path"
+    )
+
+    # Skipper
+    parser.add_argument(
+        "--skip",
+        type=str,
+        default="ctfv",
+        metavar="ctfv",
+        help=(
+            "Stages to skip: \n"
+            "c=calibration, t=transformation, f=filter, "
+            "v=conversion, p=pathfinding, g=gazebo, r=robot, "
+            "a=all except gazebo + robot, "
+            "n=none"
+        )
+    )
+
+    # Helper
+    parser.add_argument(
+        "--list-stages",
+        action="store_true",
+        help="List all available pipeline stages and exit"
+    )
+
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show which stages would run without executing them"
+    )
+
+    args = parser.parse_args()
+
+    # Convert side string to your enum
+    side_enum = SideType.RIGHT if args.side == "right" else SideType.LEFT
+
+    # Check skipped
+    skip = args.skip
+    if "a" in skip:
+        skip_calibration    = True
+        skip_transformation = True
+        skip_filter         = True
+        skip_conversion     = True
+        skip_pathfinding    = True
+        skip_gazebo         = False
+        skip_robot          = False
+    else:
+        skip_calibration    = "c" in skip
+        skip_transformation = "t" in skip
+        skip_filter         = "f" in skip
+        skip_conversion     = "v" in skip
+        skip_pathfinding    = "p" in skip
+        skip_gazebo         = "g" in skip
+        skip_robot          = "r" in skip
+
+    if args.list_stages:
+        print("Available stages:")
+        print("  c  Calibration")
+        print("  t  Transformation")
+        print("  f  Filter")
+        print("  v  Conversion")
+        print("  p  Pathfinding")
+        print("  g  Gazebo")
+        print("  r  Robot")
+        exit(0)
+    
+    main(
+        robot_ip=args.robot_ip,
+        output_dir=args.output_dir,
+        side=side_enum,
+        json_object=args.object,
+        json_socle=args.socle,
+
+        multipen=args.multipen,
+
+        # Skip
+        skip_calibration=skip_calibration,
+        skip_transformation=skip_transformation,
+        skip_filter=skip_filter,
+        skip_conversion=skip_conversion,
+        skip_pathfinding=skip_pathfinding,
+        skip_gazebo=skip_gazebo,
+        skip_robot=skip_robot,
+
+        dry_run=args.dry_run
+    )
+
+
