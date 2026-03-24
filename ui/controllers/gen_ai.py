@@ -41,7 +41,7 @@ class GenAIController(QObject):
             ssh_host=settings.genAI.ssh_host,
             ssh_port=settings.genAI.ssh_port,
             ssh_user=settings.genAI.ssh_user,
-            ssh_key_path=settings.genAI.ssh_key,
+            ssh_key_path=Path(settings.genAI.ssh_key),
             host=settings.genAI.host,
             port=settings.genAI.port,
             hf_token=settings.genAI.hf_token

@@ -2,18 +2,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from genai.client import generate_texture
+from genai.client import GenAIClient
 
 
 @dataclass
 class GenAIRequest:
     model_path: Path
     prompt: str
-    negative_prompt: str
-    prompt_wrapper: Optional[str]
     steps: int
     guidance: float
     output_dir: Path
+    negative_prompt: str = ""
+    prompt_wrapper: str = ""
 
 
 @dataclass
@@ -27,7 +27,7 @@ class GenAIService:
         ssh_host: str,
         ssh_port: int,
         ssh_user: str,
-        ssh_key_path: str,
+        ssh_key_path: Path,
         host: str,
         port: int,
         hf_token: str
@@ -35,13 +35,23 @@ class GenAIService:
         self.ssh_host: str = ssh_host
         self.ssh_port: int = ssh_port
         self.ssh_user: str = ssh_user
-        self.ssh_key_path: str = ssh_key_path
+        self.ssh_key_path: Path = ssh_key_path
         self.host: str = host
         self.port: int = port
         self.hf_token: str = hf_token
 
+        self.client: GenAIClient = GenAIClient(
+            ssh_host=ssh_host,
+            ssh_port=ssh_port,
+            ssh_user=ssh_user,
+            ssh_key_path=ssh_key_path,
+            remote_host=host,
+            remote_port=port,
+            hf_token=hf_token
+        )
+
     def run(self, request: GenAIRequest) -> GenAIResult:
-        outdir, _ = generate_texture(
+        texture_path: Optional[Path] = self.client.generate(
             obj_path=request.model_path,
             prompt=request.prompt,
             output_dir=request.output_dir,
@@ -49,15 +59,6 @@ class GenAIService:
             prompt_wrapper=request.prompt_wrapper,
             steps=request.steps,
             guidance=request.guidance,
-            SSH_HOST=self.ssh_host,
-            SSH_USER=self.ssh_user,
-            SSH_KEY_PATH=self.ssh_key_path,
-            HF_TOKEN=self.hf_token,
         )
 
-        if outdir is None:
-            return GenAIResult(None)
-        
-        model_name: str = request.model_path.stem
-        texture_filename: str = f"textured_{model_name}.png"
-        return GenAIResult(outdir / texture_filename)
+        return GenAIResult(texture_path)
