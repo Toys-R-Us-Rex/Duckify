@@ -278,10 +278,35 @@ class DataStore:
         with file_path.open("rb") as f:
             return pickle.load(f)
 
+    def check_history(self, key: str, index: int) -> bool:
+        """
+        Check if a history entry exists for a given key and index.
+
+        Parameters
+        ----------
+        key : str
+            The key for the file.
+        index : int
+            The index for the file.
+
+        Returns
+        -------
+        bool
+            True if the history entry exists, False otherwise.
+        """
+        if index == -1:
+            index = self._next_index(key) - 1
+        if index < 0:
+            self.log(f"No history found for {key}")
+            return False
+        file_path = self._indexed_file(key, index)
+        self.log(f"Checking history for {key} at index {index}: {file_path}")
+        return file_path.exists()
+
+
     # ----------------------------------------------------
     #                SAVE / LOAD DATA
     # ----------------------------------------------------
-
 
     def save_calibration(self, tcps: list[float], tcp_offset: float, file_path: Path=None):
         """
@@ -337,6 +362,27 @@ class DataStore:
         tcp_offset = data["tcp_offset"]
         return tcps, tcp_offset
 
+    def check_calibration(self, file_path: Path=None, index: int=-1) -> bool:
+        """
+        Check if calibration data exists.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to check.
+        index : int, optional
+            The index of the history entry to check.
+
+        Returns
+        -------
+        bool
+            True if the calibration data exists, False otherwise.
+        """
+        if file_path:
+            return file_path.exists()
+        else:
+            return self.check_history("calibration", index)
+
     def save_pen_calibration(self, first_pen_position: TCP6D, second_pen_position: TCP6D, file_path: Path=None):
         """
         Save pen calibration data.
@@ -390,6 +436,27 @@ class DataStore:
         first_pen_position = data["first_pen_position"]
         second_pen_position = data["second_pen_position"]
         return first_pen_position, second_pen_position
+
+    def check_pen_calibration(self, file_path: Path=None, index: int=-1) -> bool:
+        """
+        Check if pen calibration data exists.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to check.
+        index : int, optional
+            The index of the history entry to check.
+
+        Returns
+        -------
+        bool
+            True if the pen calibration data exists, False otherwise.
+        """
+        if file_path:
+            return file_path.exists()
+        else:
+            return self.check_history("pen_calibration", index)
 
 
     def save_worldtcp(self, pworld: list[float], tcps: list[float], file_path: Path=None):
@@ -452,6 +519,27 @@ class DataStore:
         tcps = data["tcps"]
         return pworld, tcps
 
+    def check_worldtcp(self, file_path: Path=None, index: int=-1) -> bool:
+        """
+        Check if worldtcp data exists.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to check.
+        index : int, optional
+            The index of the history entry to check.
+
+        Returns
+        -------
+        bool
+            True if the worldtcp data exists, False otherwise.
+        """
+        if file_path:
+            return file_path.exists()
+        else:
+            return self.check_history("worldtcp", index)
+
 
     def save_transformation(self, obj_to_robot: AtoB, file_path: Path=None):
         """
@@ -511,6 +599,27 @@ class DataStore:
         T_normal = data["T_normal"]
         return AtoB(T_position, T_normal)
     
+    def check_transformation(self, file_path: Path=None, index: int=-1) -> bool:
+        """
+        Check if transformation data exists.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to check.
+        index : int, optional
+            The index of the history entry to check.
+
+        Returns
+        -------
+        bool
+            True if the transformation data exists, False otherwise.
+        """
+        if file_path:
+            return file_path.exists()
+        else:
+            return self.check_history("transformation", index)
+
 
     def save_waypoints(self, waypoints: list[TCP6D|Joint6D], file_path: Path=None):
         """
@@ -569,6 +678,27 @@ class DataStore:
         waypoints = data["waypoints"]
         return waypoints
 
+    def check_waypoints(self, file_path: Path=None, index: int=-1) -> bool:
+        """
+        Check if waypoints data exists.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to check.
+        index : int, optional
+            The index of the history entry to check.
+
+        Returns
+        -------
+        bool
+            True if the waypoints data exists, False otherwise.
+        """
+        if file_path:
+            return file_path.exists()
+        else:
+            return self.check_history("waypoints", index)
+
 
     def save_tcp_segments(self, data: dict, file_path: Path=None):
         """
@@ -624,6 +754,27 @@ class DataStore:
             data = self.load_history_index("tcp_segments", index)
             
         return data
+
+    def check_tcp_segments(self, file_path: Path=None, index: int=-1) -> bool:
+        """
+        Check if TCP segments data exists.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to check.
+        index : int, optional
+            The index of the history entry to check.
+
+        Returns
+        -------
+        bool
+            True if the TCP segments data exists, False otherwise.
+        """
+        if file_path:
+            return file_path.exists()
+        else:
+            return self.check_history("tcp_segments", index)
 
 
     def save_joint_segments(self, segments: list[JointSegment], file_path: Path=None):
@@ -684,6 +835,27 @@ class DataStore:
         segments = data["segments"]
         return segments
 
+    def check_joint_segments(self, file_path: Path=None, index: int=-1) -> bool:
+        """
+        Check if Joint segments data exists.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to check.
+        index : int, optional
+            The index of the history entry to check.
+
+        Returns
+        -------
+        bool
+            True if the Joint segments data exists, False otherwise.
+        """
+        if file_path:
+            return file_path.exists()
+        else:
+            return self.check_history("joint_segments", index)
+
 
     def save_trace_segments(self, data: dict, file_path: Path=None):
         """
@@ -739,6 +911,27 @@ class DataStore:
             data = self.load_history_index("trace_segments", index)
             
         return data
+
+    def check_trace_segments(self, file_path: Path=None, index: int=-1) -> bool:
+        """
+        Check if Trace segments data exists.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to check.
+        index : int, optional
+            The index of the history entry to check.
+
+        Returns
+        -------
+        bool
+            True if the Trace segments data exists, False otherwise.
+        """
+        if file_path:
+            return file_path.exists()
+        else:
+            return self.check_history("trace_segments", index)
 
 
     def save_run_segments(self, segments: list[RunSegment], file_path: Path=None):
@@ -798,6 +991,27 @@ class DataStore:
             
         segments = data["segments"]
         return segments
+
+    def check_run_segments(self, file_path: Path=None, index: int=-1) -> bool:
+        """
+        Check if Run segments data exists.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to check.
+        index : int, optional
+            The index of the history entry to check.
+
+        Returns
+        -------
+        bool
+            True if the Run segments data exists, False otherwise.
+        """
+        if file_path:
+            return file_path.exists()
+        else:
+            return self.check_history("run_segments", index)
 
 
 class DataStoreForce:

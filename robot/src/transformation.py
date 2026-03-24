@@ -405,6 +405,22 @@ class Transformation(Stage):
         manual_flag : bool, optional
             If True, allows manual calibration. Default is True.
         """
+        if not manual_flag:
+            self.ds.log("Run in automatic mode.")
+            if self.ds.check_transformation():
+                obj2robot = self.ds.load_transformation()
+                self.ds.log("Using existing transformation.")
+                self.ds.log_transformation(obj2robot)
+                return
+            if self.custom_transformation is not None:
+                self.ds.log("Using custom provided transformation.")
+                obj2robot = generate_custom_transforamtion(self.custom_transformation)
+                self.ds.save_transformation(obj2robot)
+                self.ds.log_transformation(obj2robot)
+                return
+            self.log("No existing transformation found.")
+            raise RuntimeError("No existing transformation found.")
+
         if self.custom_transformation is not None:
             obj2robot = generate_custom_transforamtion(self.custom_transformation)
             self.ds.save_transformation(obj2robot)

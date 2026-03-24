@@ -37,16 +37,18 @@ def main(
     json_socle: str|Path,
 
     side: SideType,
+
     default_transformation: str|Path = None,
     default_calibration: str|Path = DEFAULT_CALIBRATION_PATH,
-    manual: bool = True,
+
     multipen: bool = False,
-    turn_degree: float = 0.0,
 
     x_position: float = 0.0,
     y_position: float = 0.0,
     z_position: float = 0.0,
+    turn_degree: float = 0.0,
 
+    manual: bool = False,
     skip_calibration: bool = False,
     skip_transformation: bool = False,
     skip_filter: bool = False,
@@ -57,10 +59,8 @@ def main(
 
     dry_run: bool = False,
 ):
-
     day = time.strftime("%Y%m%d")
     output_dir = Path(output_dir)
-    print(output_dir)
     ds = DataStore(output_dir / day)
     ds.log("Pipeline started")
 
@@ -69,9 +69,9 @@ def main(
         ("Calibration",    skip_calibration,    Calibration(ds, robot_ip, Path(default_calibration), multipen), "continue"),
         ("Transformation", skip_transformation, Transformation(ds, robot_ip, Path(json_socle),
                                     custom_transformation=[x_position, y_position, z_position, turn_degree]),   "fallback"),
-        ("Filter",         skip_filter,         Filter(ds, Path(json_object), multipen, turn_degree),           "stop"),
-        ("Conversion",     skip_conversion,     Conversion(ds),                                                 "stop"),
-        ("Pathfinding",    skip_pathfinding,    Pathfinding(ds, Path(default_calibration)),                     "stop"),
+        ("Filter",         skip_filter,         Filter(ds, Path(json_object), multipen),           "stop"),
+        ("Conversion",     skip_conversion,     Conversion(ds, Path(json_object)),                                                 "stop"),
+        ("Pathfinding",    skip_pathfinding,    Pathfinding(ds, Path(default_calibration), Path(json_object)),                     "stop"),
         ("Gazebo",         skip_gazebo,         Gazebo(ds, Path(default_calibration), multipen),                "stop"),
         ("Robot",          skip_robot,          Robot(ds, robot_ip, side, Path(default_calibration), multipen), "continue"),
     ]
@@ -183,6 +183,12 @@ if __name__ == "__main__":
         help="The z-position of the object coordinates"
     )
 
+    parser.add_argument(
+        "--manual",
+        action="store_true",
+        help="Run the pipeline in manual mode"
+    )
+
     # Skipper
     parser.add_argument(
         "--skip",
@@ -253,11 +259,13 @@ if __name__ == "__main__":
         json_object=args.object,
         json_socle=args.socle,
 
+        manual=args.manual,
         multipen=args.multipen,
-        turn_degree=args.turn_degree,
+
         x_position=args.x_position,
         y_position=args.y_position,
         z_position=args.z_position,
+        turn_degree=args.turn_degree,
 
 
         # Skip

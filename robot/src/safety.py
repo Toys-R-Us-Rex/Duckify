@@ -7,11 +7,7 @@ from scipy.spatial.transform import Rotation
 from pathlib import Path
 from URBasic import TCP6D
 
-from src.config import (
-    JOINT_LIMITS, TCP_Y_MAX, TCP_Z_MIN, TCP_Z_MAX,
-    UR3E_MAX_REACH, LINK_Z_MIN,
-    DRAWING_ANGLE, COLLISION_MARGIN, SELF_COLLISION_MARGIN
-)
+from src.config import *
 from src.kinematics import get_all_ik_solutions
 
 URDF_PATH = Path(__file__).resolve().parents[1] / 'duckify_simulation' / 'urdf' / 'ur3e.urdf'
@@ -161,7 +157,7 @@ class CollisionChecker:
             return True, q, "", tcp
 
         if orientation_search:
-            result = self._cone_search(robot, tcp, qnear, margin, check_obstacle, max_cone_angle, cone_step, check_joint_jump)
+            result = self._cone_search(robot, tcp, qnear, margin, check_obstacle, max_cone_angle, cone_step)
             if result:
                 q, adjusted_tcp = result
                 return True, q, "", adjusted_tcp
