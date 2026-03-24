@@ -7,8 +7,21 @@ from src.stage import Stage
 from src.utils import ask_yes_no
 import numpy as np
 
-def rotation_matrix_z(deg):
-    theta = np.radians(deg)  # convert degrees → radians
+def rotation_matrix_z(deg: float) -> np.ndarray:
+    """
+    Creates a rotation matrix for rotation around the Z-axis.
+
+    Parameters
+    ----------
+    deg : float
+        The rotation angle in degrees.
+
+    Returns
+    -------
+    np.ndarray
+        The rotation matrix for rotation around the Z-axis.
+    """
+    theta = np.radians(deg)
     R = np.array([
         [np.cos(theta), -np.sin(theta), 0],
         [np.sin(theta),  np.cos(theta), 0],
@@ -67,8 +80,11 @@ class Filter(Stage):
         for trace in traces:
             path = trace['path']
             color = trace['color']
+
+            # Rotate the coordinate
             R = rotation_matrix_z(self.turn_degree)
             waypoints = [(R @ np.array(pt)).tolist() + pn for pt, pn in path]
+
             ys = [pt[1] for pt in waypoints]
 
             avg_y = sum(ys) / len(ys) if ys else 0

@@ -151,7 +151,7 @@ if __name__ == "__main__":
         type=float,
         default=0.0,
         metavar="<DEGREE>",
-        help="The turning degree for the robot"
+        help="The turning degree of the object coordinates"
     )
 
     # Skipper
