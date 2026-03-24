@@ -11,13 +11,13 @@ class TracerConfig:
     barycentric_epsilon: float = 1e-8
     """A small epsilon to account for floating-point error in barycentric tests"""
 
-    parallel_normal_epsilon: float = 1e-1
+    parallel_normal_epsilon: float = 0.8
     """A small epsilon to account for floating-point error when comparing parallel face normals"""
 
     fill_slice_spacing: float = 0.005  # TODO valeur à adapter dynamiquement plus tard ?
     """Gap between filling lines (in UV coordinates)"""
 
-    min_segment_length: float = 0.1
+    min_segment_length: float = 1
     """Minimum segment length at which recursive edge detection stops (in 3D units)"""
 
     max_edge_recursion_depth: int = 100
@@ -32,8 +32,11 @@ class TracerConfig:
     image_size: tuple[int,int] = (800,800)
     """Size format for the loaded texture image"""
 
-    min_island_surface: int = 100  # TODO valeur à adapter dynamiquement plus tard ?
+    min_island_surface: int = 1  # TODO valeur à adapter dynamiquement plus tard ?
     """Island's surface as treshold to block too small one's"""
 
     contour_epsilon: float = 1e-8
     """A small epsilon to account for colinearity check in island contour cleaning"""
+
+    contour_simplification_epsilon: float = 0.01
+    """An epsilon to account for size refactoring in island contour simplification"""
