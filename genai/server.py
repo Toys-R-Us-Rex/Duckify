@@ -93,6 +93,7 @@ def generate_texture():
             steps=req.steps,
             guidance=req.guidance,
             hf_token=req.hf_token,
+            num_generations=req.num_generations
         )
 
         logger.info(f"[{job_id}] Generation finished. Preparing zip...")
