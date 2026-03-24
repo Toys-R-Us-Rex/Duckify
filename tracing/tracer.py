@@ -923,7 +923,7 @@ class Tracer:
 
         return island
 
-    def angle_between_normals(n1:np.ndarray, n2:np.ndarray) -> float:
+    def angle_between_normals(self, n1:np.ndarray, n2:np.ndarray) -> float:
         """Compute the angle between two normals in radian
 
         Args:
