@@ -31,25 +31,25 @@ class MVAdapaterModel:
     def run(
         self,
         text_prompt: str,
-        obj_file: Path,
+        glb_file: Path,
         negative_prompt: str = "",
         prompt_wrapper: str = "",
         steps: int = 30,
         guidance: float = 6.0,
         hf_token: Optional[str] = "",
     ) -> Path:
-        if not obj_file.exists():
-            raise FileNotFoundError(f"Could not find 3D model: {obj_file}")
+        if not glb_file.exists():
+            raise FileNotFoundError(f"Could not find 3D model: {glb_file}")
 
-        target_obj_path = self.base_path / "3d_models" / obj_file.name
-        if obj_file != target_obj_path:
-            shutil.copy(obj_file, target_obj_path)
+        target_obj_path = self.base_path / "3d_models" / glb_file.name
+        if glb_file != target_obj_path:
+            shutil.copy(glb_file, target_obj_path)
 
         run_id = f"gen_{int(time.time())}"
         output_dir = self.base_path / "outputs" / run_id
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        save_name = f"textured_{obj_file.stem}"
+        save_name = f"textured_{glb_file.stem}"
 
         final_prompt = text_prompt
         if prompt_wrapper:
@@ -58,7 +58,7 @@ class MVAdapaterModel:
         env = os.environ.copy()
         env["MV_PROMPT"] = final_prompt
         env["MV_NEG_PROMPT"] = negative_prompt
-        env["MV_MESH_PATH"] = f"3d_models/{obj_file.name}"
+        env["MV_MESH_PATH"] = f"3d_models/{glb_file.name}"
         env["MV_OUTPUT_DIR"] = f"outputs/{run_id}"
         env["MV_SAVE_NAME"] = save_name
         env["MV_STEPS"] = str(steps)
