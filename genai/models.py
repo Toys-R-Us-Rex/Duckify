@@ -1,8 +1,10 @@
 import os
 import shutil
 import subprocess
-from pathlib import Path
 import time
+from pathlib import Path
+from typing import Optional
+
 
 class MVAdapaterModel:
     def __init__(self, base_path: Path, slurm_script: Path):
@@ -11,16 +13,28 @@ class MVAdapaterModel:
         if script_path.is_absolute():
             self.slurm_script = script_path
         else:
-            self.slurm_script = (Path(__file__).resolve().parent / script_path).resolve()
+            self.slurm_script = (
+                Path(__file__).resolve().parent / script_path
+            ).resolve()
 
         if not self.slurm_script.exists():
-            raise FileNotFoundError(f"Le script SLURM est introuvable: {self.slurm_script}")
-        
+            raise FileNotFoundError(
+                f"Le script SLURM est introuvable: {self.slurm_script}"
+            )
 
         for d in ["3d_models", "outputs", "logs"]:
             (self.base_path / d).mkdir(parents=True, exist_ok=True)
 
-    def run(self, text_prompt: str, obj_file: Path, negative_prompt: str = "", prompt_wrapper: str = "", steps: int = 30, guidance: float = 6.0,HF_TOKEN="") -> Path:
+    def run(
+        self,
+        text_prompt: str,
+        obj_file: Path,
+        negative_prompt: str = "",
+        prompt_wrapper: str = "",
+        steps: int = 30,
+        guidance: float = 6.0,
+        hf_token: Optional[str] = "",
+    ) -> Path:
         if not obj_file.exists():
             raise FileNotFoundError(f"Fichier 3D introuvable: {obj_file}")
 
@@ -31,7 +45,7 @@ class MVAdapaterModel:
         run_id = f"gen_{int(time.time())}"
         output_dir = self.base_path / "outputs" / run_id
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         save_name = f"textured_{obj_file.stem}"
 
         final_prompt = text_prompt
@@ -47,10 +61,11 @@ class MVAdapaterModel:
         env["MV_STEPS"] = str(steps)
         env["MV_GUIDANCE"] = str(guidance)
         env["MV_NEGATIVE_PROMPT"] = negative_prompt
-        env["HF_TOKEN"] = HF_TOKEN
+        if hf_token is not None:
+            env["HF_TOKEN"] = hf_token
 
         print(f"Soumission du job SLURM pour la génération {run_id}...")
-        
+
         try:
             result = subprocess.run(
                 ["sbatch", "--wait", str(self.slurm_script)],
@@ -58,10 +73,10 @@ class MVAdapaterModel:
                 cwd=str(self.base_path),
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             print(f"Job soumis : {result.stdout.strip()}")
-            
+
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Error : {e.stderr}")
 
