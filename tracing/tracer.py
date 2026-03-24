@@ -174,6 +174,8 @@ class Tracer:
 
             print(total_points, "points")
 
+            print(total_points, "points")
+
     def load_texture(self, path: Path) -> Image.Image:
         """Load texture from file path
 
