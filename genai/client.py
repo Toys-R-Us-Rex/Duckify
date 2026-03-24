@@ -40,6 +40,22 @@ class GenAIClient:
             remote_bind_address=(self.remote_host, self.remote_port),
         )
 
+    def test_ssh_connection(self) -> bool:
+        with self.open_tunnel() as tunnel:
+            return tunnel is not None
+        return False
+
+    def test_api_connection(self) -> bool:
+        with self.open_tunnel() as tunnel:
+            if tunnel is None:
+                return False
+
+            res = requests.get(
+                f"http://{self.remote_host}:{tunnel.local_bind_port}/ping"
+            )
+            return res.status_code == 200
+        return False
+
     def generate(
         self,
         obj_path: Path,
@@ -57,7 +73,7 @@ class GenAIClient:
                 return None
 
             self.logger.info("SSH tunnel opened")
-            api_url = f"http://127.0.0.1:{tunnel.local_bind_port}/generate"
+            api_url = f"http://{self.remote_host}:{tunnel.local_bind_port}/generate"
 
             with open(obj_path, "rb") as f:
                 files = {"file": f}

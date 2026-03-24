@@ -30,7 +30,7 @@ class GenAIService:
         ssh_key_path: Path,
         host: str,
         port: int,
-        hf_token: str
+        hf_token: str,
     ) -> None:
         self.ssh_host: str = ssh_host
         self.ssh_port: int = ssh_port
@@ -47,7 +47,7 @@ class GenAIService:
             ssh_key_path=ssh_key_path,
             remote_host=host,
             remote_port=port,
-            hf_token=hf_token
+            hf_token=hf_token,
         )
 
     def run(self, request: GenAIRequest) -> GenAIResult:
@@ -62,3 +62,9 @@ class GenAIService:
         )
 
         return GenAIResult(texture_path)
+
+    def test_ssh_connection(self) -> bool:
+        return self.client.test_ssh_connection()
+
+    def test_api_connection(self) -> bool:
+        return self.client.test_api_connection()

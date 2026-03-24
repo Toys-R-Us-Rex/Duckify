@@ -31,6 +31,11 @@ JOBS_DIR.mkdir(exist_ok=True)
 PORT = int(os.environ.get("API_PORT", 5000))
 
 
+@app.get("/ping")
+def ping():
+    return "pong"
+
+
 @app.post("/generate")
 def generate_texture():
     req: GenerationRequest

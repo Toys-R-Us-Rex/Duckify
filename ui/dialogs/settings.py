@@ -1,11 +1,11 @@
-import urllib.request
 from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QIcon, QPixmap
-from PyQt6.QtWidgets import QColorDialog, QDialog, QFileDialog, QListWidgetItem
+from PyQt6.QtWidgets import QColorDialog, QDialog, QFileDialog, QLabel, QListWidgetItem
 
+from genai.client import GenAIClient
 from ui.settings_manager import GenAISettings, RobotSettings, Settings, TracingSettings
 from ui.ui.settings_ui import Ui_Dialog
 from ui.utils import ping
@@ -89,27 +89,52 @@ class SettingsDialog(QDialog, Ui_Dialog):
             return
         self.genAISSHKey.setText(key_path)
 
-    def test_genai_ssh_connection(self):
-        host: str = self.genAISSHHost.text()
-        port: int = self.genAISSHPort.value()
-        user: str = self.genAISSHUser.text()
-        key_path: Path = Path(self.genAISSHKey.text())
+    def make_test_genai_client(self) -> GenAIClient:
+        ssh_host: str = self.genAISSHHost.text()
+        ssh_port: int = self.genAISSHPort.value()
+        ssh_user: str = self.genAISSHUser.text()
+        ssh_key_path: Path = Path(self.genAISSHKey.text())
+        remote_host: str = self.genAIHost.text()
+        remote_port: int = self.genAIPort.value()
 
-        # TODO test ssh connection
+        return GenAIClient(
+            ssh_host=ssh_host,
+            ssh_port=ssh_port,
+            ssh_user=ssh_user,
+            ssh_key_path=ssh_key_path,
+            remote_host=remote_host,
+            remote_port=remote_port,
+        )
+
+    def test_genai_ssh_connection(self):
+        client: GenAIClient = self.make_test_genai_client()
+        result: QLabel = self.genAISSHTestResult
+        result.setText("Testing connection...")
+        result.setToolTip(None)
+        try:
+            ok: bool = client.test_ssh_connection()
+            if ok:
+                result.setText("Connection successful")
+            else:
+                result.setText("Connection failed")
+        except Exception as e:
+            result.setText("Connection failed")
+            result.setToolTip(f"Connection failed: {e}")
 
     def test_genai_server_connection(self):
-        # TODO wrap in ssh tunnel
-        host: str = self.genAIHost.text()
-        port: int = self.genAIPort.value()
-        self.genAITestResult.setText("Testing connection...")
+        client: GenAIClient = self.make_test_genai_client()
+        result: QLabel = self.genAITestResult
+        result.setText("Testing connection...")
+        result.setToolTip(None)
         try:
-            urllib.request.urlopen(f"http://{host}:{port}").read()
-            self.set_genai_connection_status("Connection successful")
-        except:
-            self.set_genai_connection_status("Connection failed")
-
-    def set_genai_connection_status(self, status: str):
-        self.genAITestResult.setText(status)
+            ok: bool = client.test_api_connection()
+            if ok:
+                result.setText("Connection successful")
+            else:
+                result.setText("Connection failed")
+        except Exception as e:
+            result.setText("Connection failed")
+            result.setToolTip(f"Connection failed: {e}")
 
     def tracing_palette_prompt_add(self):
         dialog = QColorDialog(self)
