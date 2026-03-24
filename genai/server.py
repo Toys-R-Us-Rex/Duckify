@@ -17,13 +17,18 @@ app = Flask(__name__)
 logger: Logger = logging.getLogger("GenAIServer")
 
 
-MV_ADAPTER_DIR = Path(os.getenv("MV_ADAPTER_PATH", None))
+if "MV_ADAPTER_PATH" not in os.environ:
+    raise RuntimeError("Environment variable MV_ADAPTER_PATH is not set")
+
+MV_ADAPTER_DIR = Path(os.environ.get("MV_ADAPTER_PATH", "")).resolve()
 
 if not MV_ADAPTER_DIR.exists():
-    raise ValueError(f"Le dossier MV-Adapter est introuvable : {MV_ADAPTER_DIR}")
+    raise FileNotFoundError(f"MV-Adapter could not be found at {MV_ADAPTER_DIR}")
 
 JOBS_DIR = Path("jobs_temp")
 JOBS_DIR.mkdir(exist_ok=True)
+
+PORT = int(os.environ.get("API_PORT", 5000))
 
 
 @app.post("/generate")
@@ -35,14 +40,14 @@ def generate_texture():
         file = request.files.get("file", None)
         assert file is not None
     except (ValidationError, AssertionError):
-        return jsonify({"Error": "Missing or invalid parameters"}), 400
+        return jsonify({"error": "Missing or invalid parameters"}), 400
 
     job_id = str(uuid.uuid4())
     current_job_path = JOBS_DIR / job_id
     current_job_path.mkdir(parents=True, exist_ok=True)
 
     experiment_path = None
-    input_filename = file.filename
+    input_filename = file.filename or "model.glb"
     safe_filename = Path(input_filename).name
     input_path = current_job_path / safe_filename
     file.save(input_path)
@@ -110,4 +115,4 @@ def generate_texture():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=PORT)

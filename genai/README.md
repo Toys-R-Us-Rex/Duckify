@@ -23,6 +23,7 @@ GenAI uses a split architecture:
    |Variable|Description|Where|
    |:---|:---|:---|
    |MV_ADAPTER_PATH|Path to the directory where MV-Adapter is installed|Server|
+   |API_PORT|Port on which the Flask API server listens|Server|
    |SSH_HOST|Host address of the server|Client|
    |SSH_USER|SSH user on the server|Client|
    |SSH_KEY_PATH|Path to the SSH key to use|Client|
@@ -101,24 +102,40 @@ GenAI uses a split architecture:
 1. From [`main.ipynb`](../main.ipynb)
    ```python
    import os
-   from genai.client import generate_texture
+   from typing import Optional
+   from genai.client import GenAIClient
    from dotenv import load_dotenv
    glb_path = ASSETS_DIR / "models" / "official_model_1.glb"
    prompt = "A superman duck"
    NEGATIVE_PROMPT = "Yellow , bad quality, low resolution, blurry, deformed, ugly, disfigured, extra limbs, close up, b&w, weird colors"
-   PROMPT_WRAPPER = None
+   PROMPT_WRAPPER = ""
    STEPS = 30
    GUIDANCE = 6.0
    OUTPUT_DIR = PROJECT_DIR / "output"
-   
+
    load_dotenv("genai/.env")
-   
-   SSH_HOST = os.getenv("SSH_HOST",None)
-   SSH_USER = os.getenv("SSH_USER",None)
-   SSH_KEY_PATH = Path.home() / ".ssh" / "wireguard_key"
-   HF_TOKEN = os.getenv("HF_TOKEN", None)
-       
-   files = generate_texture(str(glb_path), prompt, str(OUTPUT_DIR),NEGATIVE_PROMPT, PROMPT_WRAPPER,steps=STEPS, guidance=GUIDANCE,SSH_HOST=SSH_HOST, SSH_USER=SSH_USER, SSH_KEY_PATH=SSH_KEY_PATH, HF_TOKEN=HF_TOKEN)
-   
-   print(files)
+
+   SSH_HOST = os.getenv("SSH_HOST", "")
+   SSH_USER = os.getenv("SSH_USER", "")
+   SSH_KEY_PATH = Path.home() / ".ssh" / "id_ed25519"
+   HF_TOKEN = os.getenv("HF_TOKEN",  "")
+
+   client: GenAIClient = GenAIClient(
+      ssh_host=SSH_HOST,
+      ssh_user=SSH_USER,
+      ssh_key_path=SSH_KEY_PATH,
+      hf_token=HF_TOKEN
+   )
+
+   texture_path: Optional[Path] = client.generate(
+      glb_path,
+      prompt,
+      OUTPUT_DIR,
+      NEGATIVE_PROMPT,
+      PROMPT_WRAPPER,
+      steps=STEPS,
+      guidance=GUIDANCE,
+   )
+
+   print(texture_path)
    ```

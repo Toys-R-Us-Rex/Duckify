@@ -18,6 +18,8 @@ class GenAIClient:
         ssh_port: int = 22,
         ssh_user: str = "user",
         ssh_key_path: Path = Path(),
+        remote_host: str = "127.0.0.1",
+        remote_port: int = 5000,
         hf_token: Optional[str] = None,
     ) -> None:
         self.logger: Logger = logging.getLogger("GenAIClient")
@@ -26,6 +28,8 @@ class GenAIClient:
         self.ssh_port: int = ssh_port
         self.ssh_user: str = ssh_user
         self.ssh_key_path: Path = ssh_key_path
+        self.remote_host: str = remote_host
+        self.remote_port: int = remote_port
         self.hf_token: Optional[str] = hf_token
 
     def open_tunnel(self) -> SSHTunnelForwarder:
@@ -33,7 +37,7 @@ class GenAIClient:
             (self.ssh_host, self.ssh_port),
             ssh_username=self.ssh_user,
             ssh_pkey=self.ssh_key_path,
-            remote_bind_address=("127.0.0.1", 5000),
+            remote_bind_address=(self.remote_host, self.remote_port),
         )
 
     def generate(
@@ -48,6 +52,10 @@ class GenAIClient:
     ) -> Optional[Path]:
         output_dir = output_dir.resolve()
         with self.open_tunnel() as tunnel:
+            if tunnel is None:
+                self.logger.error("Error while opening SSH tunnel")
+                return None
+
             self.logger.info("SSH tunnel opened")
             api_url = f"http://127.0.0.1:{tunnel.local_bind_port}/generate"
 
