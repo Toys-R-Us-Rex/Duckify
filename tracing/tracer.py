@@ -150,7 +150,9 @@ class Tracer:
             cv2.destroyAllWindows()
             clouds = []
             segments = []
+            total_points = 0
             for trace in self.traces_3d:
+                total_points += len(trace.path)
                 color = self.palette[trace.color]
                 polygon = trace.get_polygon()
                 path = trimesh.load_path(polygon)
@@ -172,6 +174,8 @@ class Tracer:
             n_traces_3d,
             n_points
         )
+
+            print(total_points, "points")
 
     def load_texture(self, path: Path) -> Image.Image:
         """Load texture from file path
@@ -643,7 +647,9 @@ class Tracer:
             list[Point3D]: the list of intermediary points
         """
         pts: list[Point3D] = []
-        if p1.face_idx == p2.face_idx:
+        same_face: bool = p1.face_idx == p2.face_idx
+        too_parallel_faces: bool = abs(angle_between_normals(p1.normal, p2.normal)) < self.config.parallel_angle
+        if same_face or too_parallel_faces:
             return pts
         
         mid_uv: np.ndarray = (p1.uv + p2.uv) / 2
@@ -917,3 +923,10 @@ class Tracer:
         island.outer_border = island.outer_border[indexes_to_keep]
 
         return island
+
+def angle_between_normals(n1, n2):
+    dot_product = np.dot(n1, n2)
+
+    angle_rad = np.arccos(dot_product)
+
+    return angle_rad
