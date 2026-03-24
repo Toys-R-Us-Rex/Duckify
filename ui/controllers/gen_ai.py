@@ -95,7 +95,7 @@ class GenAIController(QObject):
 
     def add_result(self, result: Path):
         item = QStandardItem(
-            QIcon(str(result)), str(result.relative_to(self.assets.textures_dir))
+            QIcon(str(result)), str(result.name)
         )
         item.setData(result)
         item.setEditable(False)
