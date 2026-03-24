@@ -5,12 +5,23 @@ from src.segment import TraceSegment, SideType
 from src.computation import load_traces
 from src.stage import Stage
 from src.utils import ask_yes_no
+import numpy as np
+
+def rotation_matrix_z(deg):
+    theta = np.radians(deg)  # convert degrees → radians
+    R = np.array([
+        [np.cos(theta), -np.sin(theta), 0],
+        [np.sin(theta),  np.cos(theta), 0],
+        [0,              0,             1]
+    ])
+    return R
+
 
 class Filter(Stage):
     """
     Filters trace segments based on their position relative to a threshold.
     """
-    def __init__(self, dataStore: DataStore, json_path: Path, multipen: bool = False):
+    def __init__(self, dataStore: DataStore, json_path: Path, multipen: bool = False, turn_degree: float = 0.0):
         """
         Initializes the Filter stage.
 
@@ -22,10 +33,13 @@ class Filter(Stage):
             The path to the JSON file containing the trace data.
         multipen : bool, optional
             If True, allows multiple pens to be used. Default is False.
+        turn_degree : float, optional
+            The turning degree for the robot. Default is 0.0.
         """
         super().__init__(name="Filter", datastore=dataStore)
         self.json_path = json_path
         self.multipen = multipen
+        self.turn_degree = turn_degree
 
     def run(self, manual_flag: bool=True):
         """
@@ -52,10 +66,15 @@ class Filter(Stage):
 
         for trace in traces:
             path = trace['path']
-            ys, color = [pt[1] for pt, _ in path], trace['color']
-            avg_y = sum(ys) / len(ys) if ys else 0
+            color = trace['color']
+            R = rotation_matrix_z(self.turn_degree)
+            waypoints = [(R @ np.array(pt)).tolist() + pn for pt, pn in path]
+            ys = [pt[1] for pt in waypoints]
 
-            waypoints = [pt + pn for pt, pn in path]
+            avg_y = sum(ys) / len(ys) if ys else 0
+            # xs = [pt[2] for pt in waypoints]
+            # avg_x = sum(xs) / len(xs) if xs else 0
+
         
             if avg_y >= 0:
                 if self.multipen:
