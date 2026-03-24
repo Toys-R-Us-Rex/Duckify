@@ -295,12 +295,29 @@ class Tracer:
         contours_too_small: list[tuple[np.ndarray, np.ndarray]] = []
         # tri des contours "trop petits"
         for idx, (contour, hierarchy) in enumerate(zipped_contour_data):
-            if cv2.contourArea(contour) < self.config.min_island_surface:
-                contours_too_small.append((contour, hierarchy))
-            else:
-                contours_cleaned.append((contour, hierarchy, idx))
-        
 
+            if cv2.contourArea(contour) >= self.config.min_island_surface:
+                # simplification de la forme du contour
+                peri = cv2.arcLength(contour, True)
+                approx = cv2.approxPolyDP(contour, self.config.contour_simplification_epsilon * peri, True)
+                contours_cleaned.append((approx, hierarchy, idx))
+
+                if self.config.debug:
+                        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+                        fig.canvas.manager.set_window_title('Contour simplification (reduction of points)')
+
+                        poly_before = Polygon(self.contour_to_polygon(contour))
+                        plot_polygon(poly_before, ax=ax1, facecolor='lightblue', edgecolor='blue', alpha=0.5)
+                        ax1.set_title(f"Before contours points reduction : n={len(poly_before.exterior.coords)-1}")
+
+                        poly_after = Polygon(self.contour_to_polygon(approx))
+                        plot_polygon(poly_after, ax=ax2, facecolor='lightblue', edgecolor='blue', alpha=0.5)
+                        ax2.set_title(f"After contours points reduction (eps={self.config.contour_simplification_epsilon}) : n={len(poly_after.exterior.coords)-1}")
+
+                        plt.tight_layout()
+                        plt.show()
+            else:
+                contours_too_small.append((contour, hierarchy))
 
         if self.config.debug:
             cv2.imshow('Islands in the layer', layer)
@@ -308,10 +325,11 @@ class Tracer:
             cv2.drawContours(with_contours, contours, -1, (0, 255, 0), 2)
             cv2.imshow("All detected contour", with_contours)
             
-            with_contours_cleaned = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
-            cv2.drawContours(with_contours_cleaned, list(zip(*contours_cleaned))[0], -1, (0, 255, 0), 2)
-            cv2.drawContours(with_contours_cleaned, list(zip(*contours_too_small))[0], -1, (0, 0, 255), 2)
-            cv2.imshow("Cleaned contours", with_contours_cleaned)
+            if len(contours_too_small) > 0 :
+                with_contours_cleaned = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
+                cv2.drawContours(with_contours_cleaned, list(zip(*contours_cleaned))[0], -1, (0, 255, 0), 2)
+                cv2.drawContours(with_contours_cleaned, list(zip(*contours_too_small))[0], -1, (0, 0, 255), 2)
+                cv2.imshow("Cleaned contours", with_contours_cleaned)
             cv2.waitKey(-1)
             cv2.destroyAllWindows()
         # gérer la hierarchie : https://learnopencv.com/contour-detection-using-opencv-python-c/
