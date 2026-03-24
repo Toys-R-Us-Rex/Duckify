@@ -41,7 +41,7 @@ class Pathfinding(Stage):
             return
         
         obj2robot = self.ds.load_transformation()
-        traces = self.ds.load_tcp_segments()
+        data = self.ds.load_tcp_segments()
         
         _, tcp_offset = self.ds.load_calibration(self.default_calibration)
         duckify_sim = DuckifySim()
@@ -63,37 +63,42 @@ class Pathfinding(Stage):
 
         checker.set_joint_angles(HOMEJ.toList())
         
-        surface_tcps_per_trace = [t.waypoints for t in traces]
-        
-        preview_traces(checker, surface_tcps_per_trace)
-        if not ask_yes_no("Do the trace are correct? y/n \n"):
-            if pb.isConnected(checker.cid):
-                pb.disconnect(checker.cid)
-            raise RuntimeError("The trace are not correct.")
+        for k, d in data.items():
+            print(f"Processing segment {k}")
+            for k, trace in d.items():
+                print(f"Processing trace {k}")
+                surface_tcps_per_trace = [t.waypoints for t in trace]
+                
+                preview_traces(checker, surface_tcps_per_trace)
+                if not ask_yes_no("Do the trace are correct? y/n \n"):
+                    if pb.isConnected(checker.cid):
+                        pb.disconnect(checker.cid)
+                    raise RuntimeError("The trace are not correct.")
 
 
-        valid_masks, surface_joints, validation_spheres = validate_and_visualize(
-            checker, robot, surface_tcps_per_trace, HOMEJ,
-        )
+                valid_masks, surface_joints, validation_spheres = validate_and_visualize(
+                    checker, robot, surface_tcps_per_trace, HOMEJ,
+                )
 
-        if not ask_yes_no("Do the trace are correct? y/n \n"):
-            if pb.isConnected(checker.cid):
-                pb.disconnect(checker.cid)
-            raise RuntimeError("The trace are not correct.")
-        
-        clear_bodies(checker.cid, validation_spheres)
+                if not ask_yes_no("Do the trace are correct? y/n \n"):
+                    if pb.isConnected(checker.cid):
+                        pb.disconnect(checker.cid)
+                    raise RuntimeError("The trace are not correct.")
+                
+                clear_bodies(checker.cid, validation_spheres)
 
-        
-        runs_per_trace, _ = split_and_visualize(checker, surface_tcps_per_trace, valid_masks)
-        validated_runs = find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_joints)
-        segments = assemble_segments(robot, checker, validated_runs, surface_joints, HOMEJ)
-        smoothing(robot, checker, segments, HOMEJ)
+                
+                runs_per_trace, _ = split_and_visualize(checker, surface_tcps_per_trace, valid_masks)
+                validated_runs = find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_joints)
+                segments = assemble_segments(robot, checker, validated_runs, surface_joints, HOMEJ)
+                smoothing(robot, checker, segments, HOMEJ)
 
-        self.ds.save_joint_segments(segments)
-        
-        if pb.isConnected(checker.cid):
-            pb.disconnect(checker.cid)
-            print("PyBullet disconnected")
+                self.ds.save_joint_segments(segments)
+                
+                if pb.isConnected(checker.cid):
+                    pb.disconnect(checker.cid)
+                    print("PyBullet disconnected")
+                return
         
                              
     def fallback():

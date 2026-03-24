@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 from src.stage import Stage
 
-def move_simple(robot: SimRobotControl | UrScript, motion, ds: DataStore = None):
+def move_simple(robot: SimRobotControl | UrScript, motion, ds: DataStore = None, multipen: bool = False):
     robot.movej(HOMEJ)
 
     # Create six empty joint lists
@@ -59,7 +59,7 @@ class Robot(Stage):
     """
     A class representing the robot in the simulation.
     """
-    def __init__(self, datastore: DataStore, robot_ip: str, begin_side: SideType, default_calibration: str = None):
+    def __init__(self, datastore: DataStore, robot_ip: str, begin_side: SideType, default_calibration: str = None, multipen: bool = False):
         """
         Initializes the Robot instance.
 
@@ -73,11 +73,14 @@ class Robot(Stage):
             The side from which the robot starts.
         default_calibration : str
             The path to the default calibration file.
+        multipen : bool
+            Whether to use multiple pen or not.
         """
         super().__init__(name="Robot", datastore=datastore)
         self.robot_ip = robot_ip
         self.side = begin_side
         self.default_calibration = default_calibration
+        self.multipen = multipen
 
     def run(self, manual_flag: bool=True):
         """

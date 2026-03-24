@@ -34,7 +34,7 @@ from URBasic.waypoint6d import TCP6D
 from src.logger import DataStore
 from src.stage import Stage
 from src.utils import ask_yes_no
-from src.segment import TCPSegment, MotionType
+from src.segment import SideType, TCPSegment, MotionType
 from src.config import DRAW_A, DRAW_V
 
 
@@ -67,26 +67,30 @@ class Conversion(Stage):
                 raise RuntimeError("You chose not to convert the traces")
 
         objtorobot = self.ds.load_transformation()
-        traces = self.ds.load_trace_segments()
-        segments = []
-        for t in traces:
-            color = t.color
-            side = t.side
-            waypoints = t.waypoints
-            segments.append(
-                TCPSegment(
-                    color=color,
-                    side=side,
-                    
-                    waypoints=[TCP6D.createFromMetersRadians( *objtorobot(p)) for p in waypoints],
-                    motion_type=MotionType.DRAW,
-                    v=DRAW_V,
-                    a=DRAW_A
-                )
-            )
+        data = self.ds.load_trace_segments()
+        conversion = {}
+        for s, d in data.items():
+            conversion[s] = {}
+            for c, trace in d.items():
+                segments = []
+                for t in trace:
+                    color = t.color
+                    side = t.side
+                    waypoints = t.waypoints
+                    segments.append(
+                        TCPSegment(
+                            color=color,
+                            side=side,
+                            
+                            waypoints=[TCP6D.createFromMetersRadians( *objtorobot(p)) for p in waypoints],
+                            motion_type=MotionType.DRAW,
+                            v=DRAW_V,
+                            a=DRAW_A
+                        )
+                    )
+                conversion[s][c] = segments
         
-        self.ds.save_tcp_segments(segments)
-        self.ds.log_tcp_segment(segments)
+        self.ds.save_tcp_segments(conversion)
     
     
     def fallback(self):

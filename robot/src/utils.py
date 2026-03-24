@@ -282,7 +282,29 @@ def ask_yes_no(prompt: str) -> bool:
         True if the user answers "y", False otherwise.
     """
     return input(prompt).strip().lower() == "y"
-    
+
+def rotation_matrix_z(deg: float) -> np.ndarray:
+    """
+    Creates a rotation matrix for rotation around the Z-axis.
+
+    Parameters
+    ----------
+    deg : float
+        The rotation angle in degrees.
+
+    Returns
+    -------
+    np.ndarray
+        The rotation matrix for rotation around the Z-axis.
+    """
+    theta = np.radians(deg)
+    R = np.array([
+        [np.cos(theta), -np.sin(theta), 0],
+        [np.sin(theta),  np.cos(theta), 0],
+        [0,              0,             1]
+    ])
+    return R
+
 class AtoB:
     """
     A similarity transform that maps points from one coordinate system to another.
