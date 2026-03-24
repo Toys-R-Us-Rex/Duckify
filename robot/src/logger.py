@@ -66,13 +66,17 @@ class DataStore:
     
         self.queue = queue.Queue()
         self.worker = threading.Thread(target=self._writer, daemon=True)
+        self.running = True
         self.worker.start()
 
     def __del__(self):
         """
         Cleanup the DataStore.
         """
+        self.running = False
         try:
+            while self.queue.empty():
+                pass
             self.worker.join()
         except Exception:
             pass
@@ -137,79 +141,6 @@ class DataStore:
         """
         self.log(f"Transformation (world => robot):\n" + str(AtoB.T_position) + "\n" + str(AtoB.T_orientation))
 
-    def log_waypoint(self, waypoints: list[TCP6D]):
-        """
-        Log the waypoints.
-        
-        Parameters
-        ----------
-        waypoints : list[TCP6D]
-            List of waypoints.
-        """
-        s = ""
-        for p in waypoints:
-            s += str(p.toList())
-            s += ", "
-        s += "\n"
-        self.log(f"Path of the robot (waypoints):\n" + s)
-
-    def log_trace_segment(self, segments: list[TraceSegment]):
-        """
-        Log the trace segments.
-        
-        Parameters
-        ----------
-        segments : list[TraceSegment]
-            List of trace segments.
-        """
-        s = ""
-        for i, seg in enumerate(segments):
-            s += f"Segment {i}, {seg.side}, {seg.color}:\n"
-            for p in seg.waypoints:
-                s += str(p)
-                s += ", "
-            s += "\n"
-        self.log(f"Path of the robot (traces):\n" + s)
-        pass
-    
-    def log_tcp_segment(self, segments: list[TCPSegment]):
-        """
-        Log the TCP segments.
-        
-        Parameters
-        ----------
-        segments : list[TCPSegment]
-            List of TCP segments.
-        """
-        s = ""
-        for i, seg in enumerate(segments):
-            s += f"Segment {i}, {seg.side}, {seg.color}:\n"
-            for p in seg.waypoints:
-                s += str(p)
-                s += ", "
-            s += "\n"
-        self.log(f"Path of the robot (tcp waypoints):\n" + s)
-        pass
-
-    def log_joint_segment(self, segments: list[JointSegment]):
-        """
-        Log the joint segments.
-        
-        Parameters
-        ----------
-        segments : list[JointSegment]
-            List of joint segments.
-        """
-        s = ""
-        for i, seg in enumerate(segments):
-            s += f"Segment {i}, {seg.side}, {seg.color}:\n"
-            for p in seg.waypoints:
-                s += str(p)
-                s += ", "
-            s += "\n"
-        self.log(f"Path of the robot (joint waypoints):\n" + s)
-        pass
-
     def log(self, message: str):
         """
         Log a message to the log file.
@@ -228,7 +159,7 @@ class DataStore:
         Background thread that writes logs in order.
         """
         with open(self.log_path, "a", encoding="utf-8") as f:
-            while self.running or not self.queue.empty():
+            while self. running or self.queue.empty():
                 try:
                     entry = self.queue.get(timeout=0.2)
                     f.write(entry + "\n")
@@ -639,18 +570,17 @@ class DataStore:
         return waypoints
 
 
-    def save_tcp_segments(self, segments: list[TCPSegment], file_path: Path=None):
+    def save_tcp_segments(self, data: dict, file_path: Path=None):
         """
         Save TCP segments data.
 
         Parameters
         ----------
-        segments : list[TCPSegment]
-            The list of TCP segments to save.
+        data : dict
+            The data to save.
         file_path : Path, optional
             The file path to save the data to.
         """
-        data = {"segments": segments}
         if file_path:
             # Ensure folder exists
             folder = file_path.parent
@@ -665,7 +595,7 @@ class DataStore:
         else:
             self.save_history("tcp_segments", data)
 
-    def load_tcp_segments(self, file_path: Path=None, index: int=-1) -> list[TCPSegment]:
+    def load_tcp_segments(self, file_path: Path=None, index: int=-1) -> dict:
         """
         Load TCP segments data.
 
@@ -678,8 +608,8 @@ class DataStore:
 
         Returns
         -------
-        list[TCPSegment]
-            The loaded TCP segments.
+        dict
+            The loaded TCP segments data.
         """
         if file_path:
             if not file_path.exists():
@@ -693,8 +623,7 @@ class DataStore:
         else:
             data = self.load_history_index("tcp_segments", index)
             
-        segments = data["segments"]
-        return segments
+        return data
 
 
     def save_joint_segments(self, segments: list[JointSegment], file_path: Path=None):
@@ -809,8 +738,7 @@ class DataStore:
         else:
             data = self.load_history_index("trace_segments", index)
             
-        segments = data["segments"]
-        return segments
+        return data
 
 
     def save_run_segments(self, segments: list[RunSegment], file_path: Path=None):

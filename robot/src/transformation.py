@@ -342,12 +342,38 @@ def test_transformation(ds: DataStore, obj2robot: AtoB, robot_ip: str, test: lis
     robot.movel(tcp)
     robot.movej(HOMEJ)
 
+def generate_custom_transforamtion(custom_transformation: tuple) -> AtoB:
+    """
+    Generates a custom transformation matrix based on the provided parameters.
+
+    Parameters
+    ----------
+    custom_transformation : tuple
+        A tuple containing the custom transformation parameters (X, Y, Z, Z_rot).
+
+    Returns
+    -------
+    AtoB
+        The resulting transformation matrix.
+    """
+    t = custom_transformation[:3]
+    R = rotation_matrix_z(custom_transformation[3])
+    T = np.eye(4)
+    T[:3, :3] = R
+    T[:3, 3] = t
+    T *= np.full((4, 4), 1.0) - 0.999 * np.eye(4)
+
+    R_normal = np.linalg.inv(R).T
+    T_normal = np.eye(4)
+    T_normal[:3, :3] = R_normal
+
+    return AtoB(T_position=T, T_orientation=T_normal)
 
 class Transformation(Stage):
     """
     A stage for performing coordinate transformations between object and robot frames.
     """
-    def __init__(self, datastore: DataStore, robot_ip: str, json_socle: Path):
+    def __init__(self, datastore: DataStore, robot_ip: str, json_socle: Path, custom_transformation: list = None):
         """
         Initialize the Transformation stage.
 
@@ -361,10 +387,14 @@ class Transformation(Stage):
             The path to the JSON file containing socle data.
         json_transformation : Path, optional
             The path to the JSON file containing transformation data.
+        custom_transformation : list, optional
+            (X, Y, Z, Z_rot)
+            A custom transformation parameters to apply during transformation.
         """
         super().__init__(name="Transformation", datastore=datastore)
         self.robot_ip = robot_ip
         self.json_socle = json_socle
+        self.custom_transformation = custom_transformation
 
     def run(self, manual_flag: bool=True):
         """
@@ -375,6 +405,12 @@ class Transformation(Stage):
         manual_flag : bool, optional
             If True, allows manual calibration. Default is True.
         """
+        if self.custom_transformation is not None:
+            obj2robot = generate_custom_transforamtion(self.custom_transformation)
+            self.ds.save_transformation(obj2robot)
+            self.ds.log_transformation(obj2robot)
+            return
+
         while True:
             if ask_yes_no("Do you have the transformation already saved? y/n \n"):
                 obj2robot = self.ds.load_transformation()

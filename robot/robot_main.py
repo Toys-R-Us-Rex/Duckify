@@ -41,7 +41,11 @@ def main(
     default_calibration: str|Path = DEFAULT_CALIBRATION_PATH,
     manual: bool = True,
     multipen: bool = False,
-    turn_degree: float = 0.0,   
+    turn_degree: float = 0.0,
+
+    x_position: float = 0.0,
+    y_position: float = 0.0,
+    z_position: float = 0.0,
 
     skip_calibration: bool = False,
     skip_transformation: bool = False,
@@ -63,7 +67,8 @@ def main(
     # Stage table: (name, skip_flag, builder, on_error)
     pipeline = [
         ("Calibration",    skip_calibration,    Calibration(ds, robot_ip, Path(default_calibration), multipen), "continue"),
-        ("Transformation", skip_transformation, Transformation(ds, robot_ip, Path(json_socle)),                 "fallback"),
+        ("Transformation", skip_transformation, Transformation(ds, robot_ip, Path(json_socle),
+                                    custom_transformation=[x_position, y_position, z_position, turn_degree]),   "fallback"),
         ("Filter",         skip_filter,         Filter(ds, Path(json_object), multipen, turn_degree),           "stop"),
         ("Conversion",     skip_conversion,     Conversion(ds),                                                 "stop"),
         ("Pathfinding",    skip_pathfinding,    Pathfinding(ds, Path(default_calibration)),                     "stop"),
@@ -154,6 +159,30 @@ if __name__ == "__main__":
         help="The turning degree of the object coordinates"
     )
 
+    parser.add_argument(
+        "--x-position",
+        type=float,
+        default=0.0,
+        metavar="<X>",
+        help="The x-position of the object coordinates"
+    )
+
+    parser.add_argument(
+        "--y-position",
+        type=float,
+        default=0.0,
+        metavar="<Y>",
+        help="The y-position of the object coordinates"
+    )
+
+    parser.add_argument(
+        "--z-position",
+        type=float,
+        default=0.0,
+        metavar="<Z>",
+        help="The z-position of the object coordinates"
+    )
+
     # Skipper
     parser.add_argument(
         "--skip",
@@ -226,6 +255,10 @@ if __name__ == "__main__":
 
         multipen=args.multipen,
         turn_degree=args.turn_degree,
+        x_position=args.x_position,
+        y_position=args.y_position,
+        z_position=args.z_position,
+
 
         # Skip
         skip_calibration=skip_calibration,

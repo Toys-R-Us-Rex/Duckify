@@ -11,20 +11,21 @@ from duckify_simulation.duckify_sim.robot_control import SimRobotControl
 from src.segment import Segment
 from src.stage import Stage
 
-def test_waypoints(waypoints: list[Segment], ds: DataStore, default_calibration: Path = None) -> bool:
+def test_waypoints(data: dict, ds: DataStore, default_calibration: Path = None, multipen: bool = False) -> bool:
     """
-    Tests the waypoints in Gazebo.
+    Tests the data in Gazebo.
 
     Parmaters
     ---------
-    waypoints : list[Segment]
-        The list of waypoints to test.
+    data : dict
+        The data to test in Gazebo.
     ds : DataStore
         The data store for managing transformation data.
     default_calibration : Path, optional
         The path to the default calibration file.
-    
-    
+    multipen : bool, optional
+        Whether to use multiple pen or not.
+
     Returns
     -------
     bool
@@ -36,7 +37,7 @@ def test_waypoints(waypoints: list[Segment], ds: DataStore, default_calibration:
         _, tcp_offset = ds.load_calibration(default_calibration)
         robot_sim.set_tcp(tcp_offset)
 
-        move_simple(robot_sim, waypoints, ds)
+        move_simple(robot_sim, data, ds, multipen=multipen)
         
         answer = input("Do the Gazebo test succed? y/n \n")
         
@@ -55,7 +56,7 @@ class Gazebo(Stage):
     """
     A stage for running Gazebo tests.
     """
-    def __init__(self, datastore: DataStore, default_calibration: Path = None):
+    def __init__(self, datastore: DataStore, default_calibration: Path = None, multipen: bool = False):
         """
         Initializes the Gazebo stage.
 
@@ -65,9 +66,12 @@ class Gazebo(Stage):
             The data store for managing transformation data.
         default_calibration : Path
             The path to the default calibration file.
+        multipen : bool
+            Whether to use multiple pen.
         """
         super().__init__(name="Gazebo", datastore=datastore)
         self.default_calibration = default_calibration
+        self.multipen = multipen
 
     def run(self, manual_flag: bool=True):
         """
@@ -81,14 +85,14 @@ class Gazebo(Stage):
         if not manual_flag:
             return
 
-        waypoints = self.ds.load_joint_segments()
+        data = self.ds.load_joint_segments()
 
         answer = input("Do you want to skip Gazebo test? y/n \n")
         if answer == 'y':
             self.ds.log("Gazebo test skipped.")
             raise RuntimeError("You can not avoid gazebot.")
 
-        gazebo = test_waypoints(waypoints, self.ds, self.default_calibration)
+        gazebo = test_waypoints(data, self.ds, self.default_calibration, self.multipen)
 
         if gazebo:
             self.ds.log("Gazebo test successed.")

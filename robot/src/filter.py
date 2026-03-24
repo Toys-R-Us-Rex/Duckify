@@ -4,31 +4,8 @@ from src.logger import DataStore
 from src.segment import TraceSegment, SideType
 from src.computation import load_traces
 from src.stage import Stage
-from src.utils import ask_yes_no
+from src.utils import ask_yes_no, rotation_matrix_z
 import numpy as np
-
-def rotation_matrix_z(deg: float) -> np.ndarray:
-    """
-    Creates a rotation matrix for rotation around the Z-axis.
-
-    Parameters
-    ----------
-    deg : float
-        The rotation angle in degrees.
-
-    Returns
-    -------
-    np.ndarray
-        The rotation matrix for rotation around the Z-axis.
-    """
-    theta = np.radians(deg)
-    R = np.array([
-        [np.cos(theta), -np.sin(theta), 0],
-        [np.sin(theta),  np.cos(theta), 0],
-        [0,              0,             1]
-    ])
-    return R
-
 
 class Filter(Stage):
     """
@@ -80,10 +57,10 @@ class Filter(Stage):
         for trace in traces:
             path = trace['path']
             color = trace['color']
+            color = color if self.multipen else 0
 
             # Rotate the coordinate
-            R = rotation_matrix_z(self.turn_degree)
-            waypoints = [(R @ np.array(pt)).tolist() + pn for pt, pn in path]
+            waypoints = [pt+ pn for pt, pn in path]
 
             ys = [pt[1] for pt in waypoints]
 
@@ -91,24 +68,16 @@ class Filter(Stage):
             # xs = [pt[2] for pt in waypoints]
             # avg_x = sum(xs) / len(xs) if xs else 0
 
-        
             if avg_y >= 0:
-                if self.multipen:
-                    left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, waypoints)]
-                else:
-                    left_traces["traces"] = left_traces.get("traces", []) + [TraceSegment(color, SideType.LEFT, waypoints)]
+                left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, waypoints)]
             else:
-                if self.multipen:
-                    right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, waypoints)]
-                else:
-                    right_traces["traces"] = right_traces.get("traces", []) + [TraceSegment(color, SideType.RIGHT, waypoints)]
+                right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, waypoints)]
 
         s = {
             "left": left_traces,
             "right": right_traces
         }
         self.ds.save_trace_segments(s)
-        self.ds.log_trace_segment(s)
     
     def fallback(self):
         raise NotImplementedError("Filter fallback method not implemented.")
