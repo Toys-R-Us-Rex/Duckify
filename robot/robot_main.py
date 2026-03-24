@@ -41,7 +41,7 @@ def main(
     default_calibration: str|Path = DEFAULT_CALIBRATION_PATH,
     manual: bool = True,
     multipen: bool = False,
-
+    turn_degree: float = 0.0,   
 
     skip_calibration: bool = False,
     skip_transformation: bool = False,
@@ -64,7 +64,7 @@ def main(
     pipeline = [
         ("Calibration",    skip_calibration,    Calibration(ds, robot_ip, Path(default_calibration), multipen), "continue"),
         ("Transformation", skip_transformation, Transformation(ds, robot_ip, Path(json_socle)),                 "fallback"),
-        ("Filter",         skip_filter,         Filter(ds, Path(json_object), multipen),                        "stop"),
+        ("Filter",         skip_filter,         Filter(ds, Path(json_object), multipen, turn_degree),           "stop"),
         ("Conversion",     skip_conversion,     Conversion(ds),                                                 "stop"),
         ("Pathfinding",    skip_pathfinding,    Pathfinding(ds, Path(default_calibration)),                     "stop"),
         ("Gazebo",         skip_gazebo,         Gazebo(ds, Path(default_calibration), multipen),                "stop"),
@@ -146,6 +146,14 @@ if __name__ == "__main__":
         help="The JSON object file: The drawing path"
     )
 
+    parser.add_argument(
+        "--turn-degree",
+        type=float,
+        default=0.0,
+        metavar="<DEGREE>",
+        help="The turning degree for the robot"
+    )
+
     # Skipper
     parser.add_argument(
         "--skip",
@@ -217,6 +225,7 @@ if __name__ == "__main__":
         json_socle=args.socle,
 
         multipen=args.multipen,
+        turn_degree=args.turn_degree,
 
         # Skip
         skip_calibration=skip_calibration,
