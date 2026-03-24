@@ -647,7 +647,7 @@ class Tracer:
         """
         pts: list[Point3D] = []
         same_face: bool = p1.face_idx == p2.face_idx
-        too_parallel_faces: bool = abs(angle_between_normals(p1.normal, p2.normal)) < self.config.parallel_angle
+        too_parallel_faces: bool = abs(self.angle_between_normals(p1.normal, p2.normal)) < self.config.parallel_angle
         if same_face or too_parallel_faces:
             return pts
         
@@ -923,9 +923,16 @@ class Tracer:
 
         return island
 
-def angle_between_normals(n1, n2):
-    dot_product = np.dot(n1, n2)
+    def angle_between_normals(n1:np.ndarray, n2:np.ndarray) -> float:
+        """Compute the angle between two normals in radian
 
-    angle_rad = np.arccos(dot_product)
+        Args:
+            n1 (np.ndarray): normal of point 1
+            n2 (np.ndarray): normal of point 2
 
-    return angle_rad
+        Returns:
+            float: angle value in radian
+        """
+        dot_product = np.dot(n1, n2)
+        angle_rad: float = np.arccos(dot_product)
+        return angle_rad
