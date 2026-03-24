@@ -368,18 +368,20 @@ class Calibration(Stage):
             If True, allows manual calibration. Default is True.
         """
         if not manual_flag:
-            if self.default_calibration:
+            self.ds.log("Run in automatic mode.")
+            if self.default_calibration.exists():
                 tcps, tcp_offset = self.ds.load_calibration(self.default_calibration)
-                if tcp_offset is None:
-                    raise RuntimeError("Failed to load default tcp calibration.")
                 self.ds.log_calibration(tcps, tcp_offset)
 
                 if self.multipen:
-                    pen_1, pen_2 = self.ds.load_pen_calibration()
-                    if pen_1 is None or pen_2 is None:
-                        raise RuntimeError("Failed to load default pen calibration.")
-                    self.ds.log_pen_calibration(pen_1)
-                    self.ds.log_pen_calibration(pen_2)
+                    if self.ds.check_pen_calibration():
+                        pen_1, pen_2 = self.ds.load_pen_calibration()
+                        self.ds.log_pen_calibration(pen_1)
+                        self.ds.log_pen_calibration(pen_2)
+                    else:
+                        raise RuntimeError("Default pen calibration not found.")
+            else:
+                raise RuntimeError("Default TCP calibration file not found.")
             return
 
         while True:
@@ -388,11 +390,12 @@ class Calibration(Stage):
                 if tcp_offset is None:
                     raise RuntimeError("Failed to load default tcp calibration.")
                 self.ds.log_calibration(tcps, tcp_offset)
-                pen_1, pen_2 = self.ds.load_pen_calibration()
-                if pen_1 is None or pen_2 is None:
-                    raise RuntimeError("Failed to load default pen calibration.")
-                self.ds.log_pen_calibration(pen_1)
-                self.ds.log_pen_calibration(pen_2)
+                if self.multipen:
+                    pen_1, pen_2 = self.ds.load_pen_calibration()
+                    if pen_1 is None or pen_2 is None:
+                        raise RuntimeError("Failed to load default pen calibration.")
+                    self.ds.log_pen_calibration(pen_1)
+                    self.ds.log_pen_calibration(pen_2)
 
             if ask_yes_no("Do you want to run a robot calibration? y/n\n"):
                 success = launch_calibration(self.robot_ip, self.ds)

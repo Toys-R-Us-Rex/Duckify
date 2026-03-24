@@ -11,7 +11,7 @@ class Filter(Stage):
     """
     Filters trace segments based on their position relative to a threshold.
     """
-    def __init__(self, dataStore: DataStore, json_path: Path, multipen: bool = False, turn_degree: float = 0.0):
+    def __init__(self, dataStore: DataStore, json_path: Path = None, multipen: bool = False):
         """
         Initializes the Filter stage.
 
@@ -19,7 +19,7 @@ class Filter(Stage):
         ----------
         dataStore : DataStore
             The data store containing the trace segments.
-        json_path : Path
+        json_path : Path, optional
             The path to the JSON file containing the trace data.
         multipen : bool, optional
             If True, allows multiple pens to be used. Default is False.
@@ -29,7 +29,6 @@ class Filter(Stage):
         super().__init__(name="Filter", datastore=dataStore)
         self.json_path = json_path
         self.multipen = multipen
-        self.turn_degree = turn_degree
 
     def run(self, manual_flag: bool=True):
         """
@@ -45,11 +44,23 @@ class Filter(Stage):
             If True, allows manual extraction of traces. Default is True.
         """
         if not manual_flag:
+            self.ds.log("Run in automatic mode.")
+            if self.ds.check_trace_segments():
+                if self.json_path.exists():
+                    self.ds.log("Existing trace segments overridden.")
+                else:
+                    self.ds.log("Using existing trace segments.")
+                    return
+            elif not self.json_path.exists():
+                self.ds.log("No existing trace segments file or no JSON file found.")
+                raise RuntimeError("No existing trace segments file or no JSON file found.")
+        else:
             if ask_yes_no("Did you already extract the traces? y/n \n"):
                 s = self.ds.load_trace_segments()
                 self.ds.log_trace_segment(s)
                 return
-        
+
+
         traces, _ = load_traces(self.json_path)
         left_traces = {}
         right_traces = {}
@@ -60,7 +71,7 @@ class Filter(Stage):
             color = color if self.multipen else 0
 
             # Rotate the coordinate
-            waypoints = [pt+ pn for pt, pn in path]
+            waypoints = [pt+ pn for pt, pn in path[::5]]
 
             ys = [pt[1] for pt in waypoints]
 

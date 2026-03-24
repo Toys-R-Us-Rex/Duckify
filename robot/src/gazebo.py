@@ -83,6 +83,7 @@ class Gazebo(Stage):
             Whether to run the test manually.
         """
         if not manual_flag:
+            self.ds.log("You can not run the Gazebo test in automatic mode.")
             return
 
         data = self.ds.load_joint_segments()

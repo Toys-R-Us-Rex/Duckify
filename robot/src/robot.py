@@ -91,6 +91,10 @@ class Robot(Stage):
         manual_flag : bool
             Whether to run the simulation manually.
         """
+        if not manual_flag:
+            self.ds.log("You can not run the robot simulation in automatic mode.")
+            return
+
         if not ask_yes_no("Do you want to run the code on the REAL robot? y/n \n"):
             self.ds.log("You chose not to run on robot")
             raise ValueError("You chose not the run on robot")
