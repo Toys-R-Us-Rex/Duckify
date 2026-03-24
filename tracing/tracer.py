@@ -136,9 +136,6 @@ class Tracer:
 
             if self.config.debug:
                 pts: np.ndarray = self.uv_to_texture(trace_2d.path, size).astype(np.intp)
-                #for pt in pts:
-                #    cv2.circle(img, pt, 3, (0, 0, 255), -1)
-
                 col = (255, 0, 255) if traces_3d is None or len(traces_3d) == 0 else (255, 255, 0)
                 cv2.polylines(img, [pts], True, col)
 
