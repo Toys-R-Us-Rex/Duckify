@@ -7,7 +7,7 @@ Copyright (c) 2026 HES-SO Valais-Wallis, Engineering Track 304
 from pathlib import Path
 import numpy as np
 
-from urbasic.URBasic.waypoint6d import Joint6D
+from URBasic.waypoint6d import Joint6D
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 ASSETS_DIR = PROJECT_DIR / "assets"
@@ -17,7 +17,15 @@ DEFAULT_TRANSFORMATION_PATH = PROJECT_DIR / "robot" / "duckify_simulation" / "de
 DEFAULT_FORCE_PATH = OUTPUT_DIR / "force_log.csv"
 DEFAULT_DATA_DIR = OUTPUT_DIR / "data"
 
+DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
+DEFAULT_JSON_SOCLE = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_socle.json"
+
 VERBOSE = True
+
+# Create a new ISCoin object
+# UR3e1 IP (closest to window): 10.30.5.158
+# UR3e2 IP: 10.30.5.159
+ROBOT_IP = "10.30.5.158"
 
 # Collision margins
 COLLISION_MARGIN = 0            # margin for obstacle collision checks

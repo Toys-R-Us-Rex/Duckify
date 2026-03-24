@@ -43,10 +43,11 @@ from src.stage import Stage
 from src.utils import *
 from src.config import *
 from src.logger import DataStore
+from src.pen import PenState
 
-from urbasic.URBasic.waypoint6d import TCP6D
-from urbasic.URBasic.urScript import UrScript
-from urbasic.URBasic.iscoin import ISCoin
+from URBasic.waypoint6d import TCP6D
+from URBasic.urScript import UrScript
+from URBasic.iscoin import ISCoin
 
 
 def collect_data(robot_arm: UrScript, num_measure: int = 20) -> list[list[float]]:
@@ -299,12 +300,45 @@ def launch_calibration(robot_ip: str, ds: DataStore) -> bool:
         ds.log(f"Calibration skipped: {e}")
         return False
 
+def launch_pen_calibration(robot_ip: str, ds: DataStore) -> bool:
+    """
+    Launch the pen calibration process for the robot at the specified IP address.
+
+    Parameters
+    ----------
+    robot_ip : str
+        The IP address of the robot to calibrate.
+    ds : DataStore
+        The data store for saving calibration results.
+
+    Returns
+    -------
+    bool
+        True if calibration is successful, False otherwise.
+    """
+    try:
+        iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
+        pen_state_1 = PenState(home=iscoin.robot_control.get_actual_tcp_pose(), robot=iscoin)
+        pen_state_2 = PenState(home=iscoin.robot_control.get_actual_tcp_pose(), robot=iscoin)
+
+        pen_state_1.record_pen_position()
+        pen_state_2.record_pen_position()
+
+        ds.log_pen_calibration(pen_state_1.support_position)
+        ds.log_pen_calibration(pen_state_2.support_position)
+        ds.save_pen_calibration(pen_state_1.support_position,pen_state_2.support_position)
+
+        return True
+    except Exception as e:
+        ds.log(f"Pen calibration skipped: {e}")
+        return False
+
 
 class Calibration(Stage):
     """
     Stage for performing robot TCP calibration.
     """
-    def __init__(self, datastore: DataStore, robot_ip: str):
+    def __init__(self, datastore: DataStore, robot_ip: str, default_calibration: Path = None, multipen: bool = False):
         """
         Initialize the Calibration stage.
 
@@ -314,40 +348,69 @@ class Calibration(Stage):
             The data store instance.
         robot_ip : str
             The IP address of the robot to calibrate.
+        default_calibration : Path
+            The path to the default calibration file.
+        multipen : bool
+            Whether to use multiple pen calibrations.
         """
         super().__init__(name="Calibration", datastore=datastore)
         self.robot_ip = robot_ip
+        self.default_calibration = default_calibration
+        self.multipen = multipen
 
-    def run(self):
+    def run(self, manual_flag: bool=True):
         """
         Run the calibration stage.
+
+        Parameters
+        ----------
+        manual_flag : bool, optional
+            If True, allows manual calibration. Default is True.
         """
+        if not manual_flag:
+            if self.default_calibration:
+                tcps, tcp_offset = self.ds.load_calibration(self.default_calibration)
+                if tcp_offset is None:
+                    raise RuntimeError("Failed to load default tcp calibration.")
+                self.ds.log_calibration(tcps, tcp_offset)
+
+                if self.multipen:
+                    pen_1, pen_2 = self.ds.load_pen_calibration()
+                    if pen_1 is None or pen_2 is None:
+                        raise RuntimeError("Failed to load default pen calibration.")
+                    self.ds.log_pen_calibration(pen_1)
+                    self.ds.log_pen_calibration(pen_2)
+            return
+
         while True:
-
-            if ask_yes_no("Do you have a calibration already saved? y/n\n"):
+            if ask_yes_no("Do you have a TCP and pen calibration already saved? y/n\n"):
                 tcps, tcp_offset = self.ds.load_calibration()
+                if tcp_offset is None:
+                    raise RuntimeError("Failed to load default tcp calibration.")
                 self.ds.log_calibration(tcps, tcp_offset)
-                if ask_yes_no("Do you want to offset the TCP offset? y/n \n"):
-                    z = input("How many do you which to slide on Z: \n")
-                    tcp_offset.z += float(z)
-                    self.ds.save_calibration(tcps, tcp_offset)
-                    self.ds.log_calibration(tcps, tcp_offset)
-                return
-
-            if ask_yes_no("Do you want to use the default? y/n\n"):
-                self.ds.log("Load default calibration.")
-                tcps, tcp_offset = self.ds.load_calibration(DEFAULT_CALIBRATION_PATH)
-                self.ds.save_calibration(tcps, tcp_offset)
-                self.ds.log_calibration(tcps, tcp_offset)
-                return
+                pen_1, pen_2 = self.ds.load_pen_calibration()
+                if pen_1 is None or pen_2 is None:
+                    raise RuntimeError("Failed to load default pen calibration.")
+                self.ds.log_pen_calibration(pen_1)
+                self.ds.log_pen_calibration(pen_2)
 
             if ask_yes_no("Do you want to run a robot calibration? y/n\n"):
                 success = launch_calibration(self.robot_ip, self.ds)
-                if success:
+                if not success:
+                    self.ds.log("Robot calibration failed.")
+            else:
+                if ask_yes_no("Do you want to use the default? y/n\n"):
+                    self.ds.log("Load default calibration.")
+                    tcps, tcp_offset = self.ds.load_calibration(DEFAULT_CALIBRATION_PATH)
+                    self.ds.save_calibration(tcps, tcp_offset)
+                    self.ds.log_calibration(tcps, tcp_offset)
                     return
-                else:
-                    self.ds.log("Calibration failed. Try again.")
-                    continue
+            
+            if ask_yes_no("Do you want to run a pen calibration? y/n\n"):
+                success = launch_pen_calibration(self.robot_ip, self.ds)
+                if not success:
+                    self.ds.log("Pen calibration failed.")
+
 
             print("Invalid input. Please answer with 'y' or 'n'.")
 
@@ -355,7 +418,9 @@ class Calibration(Stage):
         """
         Fallback method for the calibration stage.
         """
-        self.ds.log("Fall back: load default calibration.")
-        tcps, tcp_offset = self.ds.load_calibration(DEFAULT_CALIBRATION_PATH)
-        self.ds.save_calibration(tcps, tcp_offset)
-        self.ds.log_calibration(tcps, tcp_offset)
+        if False:
+            self.ds.log("Fall back: load default calibration.")
+            tcps, tcp_offset = self.ds.load_calibration(self.default_calibration)
+            self.ds.save_calibration(tcps, tcp_offset)
+            self.ds.log_calibration(tcps, tcp_offset)
+        raise NotImplementedError("TODO: Not implemented")

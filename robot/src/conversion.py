@@ -29,7 +29,7 @@ Author:     Mariéthoz Cédric, with assistance from Copilot AI (Microsoft)
 Course:     HES-SO Valais-Wallis, Engineering Track 304
 """
 
-from urbasic.URBasic.waypoint6d import TCP6D
+from URBasic.waypoint6d import TCP6D
 
 from src.logger import DataStore
 from src.stage import Stage
@@ -53,17 +53,18 @@ class Conversion(Stage):
         """
         super().__init__(name="Conversion", datastore=datastore)
 
-    def run(self):
+    def run(self, manual_flag: bool=True):
         """
         Run the conversion stage.
         """
-        if ask_yes_no("Do you have a conversion already saved? y/n\n"):
-            segments = self.ds.load_tcp_segments()
-            self.ds.log_tcp_segment(segments)
-            return
+        if manual_flag:
+            if ask_yes_no("Do you have a conversion already saved? y/n\n"):
+                segments = self.ds.load_tcp_segments()
+                self.ds.log_tcp_segment(segments)
+                return
 
-        if not ask_yes_no("Do you want to  convert the traces? y/n \n"):
-            raise RuntimeError("You chose not to convert the traces")
+            if not ask_yes_no("Do you want to  convert the traces? y/n \n"):
+                raise RuntimeError("You chose not to convert the traces")
 
         objtorobot = self.ds.load_transformation()
         traces = self.ds.load_trace_segments()

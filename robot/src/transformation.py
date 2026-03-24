@@ -46,8 +46,8 @@ from src.stage import Stage
 from src.utils import *
 from src.logger import DataStore
 
-from urbasic.URBasic.iscoin import ISCoin
-from urbasic.URBasic.urScript import UrScript
+from URBasic.iscoin import ISCoin
+from URBasic.urScript import UrScript
 from duckify_simulation.duckify_sim.duckify_sim import DuckifySim
 from duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
@@ -347,7 +347,7 @@ class Transformation(Stage):
     """
     A stage for performing coordinate transformations between object and robot frames.
     """
-    def __init__(self, datastore: DataStore, robot_ip: str, json_calibration: str):
+    def __init__(self, datastore: DataStore, robot_ip: str, json_socle: Path):
         """
         Initialize the Transformation stage.
 
@@ -357,16 +357,23 @@ class Transformation(Stage):
             The data store instance.
         robot_ip : str
             The IP address of the robot.
-        json_calibration : str
-            The path to the JSON file containing calibration data.
+        json_socle : Path
+            The path to the JSON file containing socle data.
+        json_transformation : Path, optional
+            The path to the JSON file containing transformation data.
         """
         super().__init__(name="Transformation", datastore=datastore)
         self.robot_ip = robot_ip
-        self.json_calibration = json_calibration
+        self.json_socle = json_socle
 
-    def run(self):
+    def run(self, manual_flag: bool=True):
         """
         Run the transformation stage.
+
+        Parameters
+        ----------
+        manual_flag : bool, optional
+            If True, allows manual calibration. Default is True.
         """
         while True:
             if ask_yes_no("Do you have the transformation already saved? y/n \n"):
@@ -376,7 +383,7 @@ class Transformation(Stage):
                 return
 
             if ask_yes_no("Do you want to run a robot transformation? y/n \n"):
-                obj2robot = launch_transformation(self.robot_ip, self.json_calibration, self.ds)
+                obj2robot = launch_transformation(self.robot_ip, self.json_socle, self.ds)
                 if ask_yes_no("Do you want to test transformation? y/n \n"):
                     test_transformation(self.ds, obj2robot, self.robot_ip)
                 return

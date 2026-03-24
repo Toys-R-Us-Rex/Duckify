@@ -756,18 +756,17 @@ class DataStore:
         return segments
 
 
-    def save_trace_segments(self, segments: list[TraceSegment], file_path: Path=None):
+    def save_trace_segments(self, data: dict, file_path: Path=None):
         """
         Save Trace segments data.
 
         Parameters
         ----------
-        segments : list[TraceSegment]
-            The list of Trace segments to save.
+        data : dict
+            The data to save.
         file_path : Path, optional
             The file path to save the data to.
         """
-        data = {"segments": segments}
         if file_path:
             # Ensure folder exists
             folder = file_path.parent
@@ -782,7 +781,7 @@ class DataStore:
         else:
             self.save_history("trace_segments", data)
 
-    def load_trace_segments(self, file_path: Path=None, index: int=-1) -> list[TraceSegment]:
+    def load_trace_segments(self, file_path: Path=None, index: int=-1) -> dict:
         """
         Load Trace segments data.
 
@@ -795,8 +794,8 @@ class DataStore:
 
         Returns
         -------
-        list[TraceSegment]
-            The loaded Trace segments.
+        dict
+            The loaded Trace segments data.
         """
         if file_path:
             if not file_path.exists():

@@ -31,9 +31,9 @@ class PenState():
     )
     ```
     """
-    def __init__(self, home: TCP6D, robot: ISCoin|DuckifySim):
+    def __init__(self, home: TCP6D, robot: ISCoin|DuckifySim, support_position: TCP6D = None):
         self.home = home
-        self.support_position: TCP6D = None
+        self.support_position = support_position
 
         self.active_pen_id = None
         self.robot = robot
