@@ -11,9 +11,6 @@ class TracerConfig:
     barycentric_epsilon: float = 1e-8
     """A small epsilon to account for floating-point error in barycentric tests"""
 
-    parallel_normal_epsilon: float = 0.8
-    """A small epsilon to account for floating-point error when comparing parallel face normals"""
-
     fill_slice_spacing: float = 0.005  # TODO valeur à adapter dynamiquement plus tard ?
     """Gap between filling lines (in UV coordinates)"""
 
@@ -38,5 +35,8 @@ class TracerConfig:
     contour_epsilon: float = 1e-8
     """A small epsilon to account for colinearity check in island contour cleaning"""
 
-    contour_simplification_epsilon: float = 0.01
+    contour_simplification_epsilon: float = 0.006
     """An epsilon to account for size refactoring in island contour simplification"""
+
+    parallel_angle: float = np.radians(5)
+    """Angle radius threshold when considering too parallel faces"""
