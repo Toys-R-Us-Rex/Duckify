@@ -61,12 +61,13 @@ class Pathfinding(Stage):
         )
 
         checker.set_joint_angles(HOMEJ.toList())
-
-        for k, d in data.items():
-            print(f"Processing segment {k}")
-            for k, trace in d.items():
-                print(f"Processing trace {k}")
-                surface_tcps_per_trace = [t.waypoints for t in trace]
+        joint_data = {}
+        for s, d in data.items():
+            joint_data[s] = {}
+            for c, traces in d.items():
+                self.ds.log(f"Processing {s} - {c}")
+                joint_data[s][c] = []
+                surface_tcps_per_trace = [t.waypoints for t in traces]
                 
                 preview_traces(checker, surface_tcps_per_trace)
                 if not ask_yes_no("Do the trace are correct? y/n \n") and manual_flag:
@@ -108,14 +109,14 @@ class Pathfinding(Stage):
 
 
                 input("Press Enter to continue after visualization...")
-
-                self.ds.save_joint_segments(segments)
+                joint_data[s][c].append(segments)
                 plot_joint_plan(segments, self.ds.data_path / "joint_plan.png")
 
-                if pb.isConnected(checker.cid):
-                    pb.disconnect(checker.cid)
-                    print("PyBullet disconnected")
-                return
+        if pb.isConnected(checker.cid):
+            pb.disconnect(checker.cid)
+            print("PyBullet disconnected")
+
+        self.ds.save_joint_segments(joint_data)
         
                              
     def fallback():
