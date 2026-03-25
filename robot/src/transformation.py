@@ -358,8 +358,8 @@ def generate_custom_transforamtion(custom_transformation: tuple) -> AtoB:
     """
     t = custom_transformation[:3]
     R = rotation_matrix_z(custom_transformation[3])
-    T = np.eye(4)
-    T[:3, :3] = 0.001 * R
+    T = np.eye(4) * 0.001
+    T[:3, :3] = R * 0.001
     T[:3, 3] = t
 
     R_normal = np.linalg.inv(R).T
