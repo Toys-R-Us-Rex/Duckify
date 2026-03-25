@@ -16,9 +16,6 @@ from src.stage import Stage
 
 def move_simple(robot: SimRobotControl | UrScript, motion: dict, ds: DataStore = None, multipen: bool = False):
     robot.movej(HOMEJ)
-    
-    # Create six empty joint lists
-    j1, j2, j3, j4, j5, j6 = ([] for _ in range(6))
 
     if multipen:
         pen_1, pen_2 = ds.load_pen_calibration()
@@ -52,17 +49,6 @@ def move_simple(robot: SimRobotControl | UrScript, motion: dict, ds: DataStore =
                     else:
                         ds.log(f"WARNING: Unknown waypoint type for waypoint: {m}")
                         raise TypeError(f"Unknown waypoint type for waypoint: {m}")
-    # Plot joint evolution
-    fig, axs = plt.subplots(6, sharex=True)
-    joint_lists = [j1, j2, j3, j4, j5, j6]
-
-    for i, j in enumerate(joint_lists):
-        axs[i].plot(j)
-        axs[i].set_ylabel(f"J{i+1}")
-
-    axs[-1].set_xlabel("Waypoint index")
-    plt.tight_layout()
-    plt.show()
 
 
 class Robot(Stage):
