@@ -162,7 +162,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--x-position",
         type=float,
-        default=0.0,
+        default=None,
         metavar="<X>",
         help="The x-position of the object coordinates"
     )
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--y-position",
         type=float,
-        default=0.0,
+        default=None,
         metavar="<Y>",
         help="The y-position of the object coordinates"
     )
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--z-position",
         type=float,
-        default=0.0,
+        default=None,
         metavar="<Z>",
         help="The z-position of the object coordinates"
     )

@@ -389,11 +389,15 @@ class Transformation(Stage):
         custom_transformation : list, optional
             (X, Y, Z, Z_rot)
             A custom transformation parameters to apply during transformation.
+            If all (X,Y,Z,Z_rot) are provided the custom transformation will be used.
         """
         super().__init__(name="Transformation", datastore=datastore)
         self.robot_ip = robot_ip
         self.json_socle = json_socle
-        self.custom_transformation = custom_transformation
+        if all(i is not None for i in custom_transformation):
+            self.custom_transformation = custom_transformation
+        else:
+            self.custom_transformation = None
 
     def run(self, manual_flag: bool=True):
         """
