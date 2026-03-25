@@ -10,6 +10,7 @@ dependencies = [
     "robot",
     "genai",
     "ui",
+    "pybullet-planning",
 ]
 
 [tool.uv.workspace]
@@ -25,3 +26,4 @@ genai = { workspace = true }
 tracing = { workspace = true }
 robot = { workspace = true }
 ui = { workspace = true }
+pybullet-planning = { git = "https://github.com/yijiangh/pybullet_planning", rev = "dev" }
