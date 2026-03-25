@@ -386,17 +386,17 @@ class Calibration(Stage):
 
         while True:
             if ask_yes_no("Do you have a TCP and pen calibration already saved? y/n\n"):
-                tcps, tcp_offset = self.ds.load_calibration()
-                if tcp_offset is None:
+                if not self.ds.check_calibration():
                     raise RuntimeError("Failed to load default tcp calibration.")
+                tcps, tcp_offset = self.ds.load_calibration()
                 self.ds.log_calibration(tcps, tcp_offset)
                 if self.multipen:
-                    pen_1, pen_2 = self.ds.load_pen_calibration()
-                    if pen_1 is None or pen_2 is None:
+                    if not self.ds.check_pen_calibration():
                         raise RuntimeError("Failed to load default pen calibration.")
+                    pen_1, pen_2 = self.ds.load_pen_calibration()
                     self.ds.log_pen_calibration(pen_1)
                     self.ds.log_pen_calibration(pen_2)
-
+                return
             if ask_yes_no("Do you want to run a robot calibration? y/n\n"):
                 success = launch_calibration(self.robot_ip, self.ds)
                 if not success:
