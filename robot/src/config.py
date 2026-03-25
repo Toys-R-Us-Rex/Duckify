@@ -17,7 +17,11 @@ DEFAULT_TRANSFORMATION_PATH = PROJECT_DIR / "robot" / "duckify_simulation" / "de
 DEFAULT_FORCE_PATH = OUTPUT_DIR / "force_log.csv"
 DEFAULT_DATA_DIR = OUTPUT_DIR / "data"
 
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
 DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_14_full_body_line-trace.json"
+
+
 DEFAULT_JSON_SOCLE = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_socle.json"
 
 VERBOSE = True
@@ -101,7 +105,7 @@ TCPS_20 = [
 ]
 
 # Default object-to-robot transform parameters
-OBJ2ROBOT_RZ_DEG       = 180.0
+OBJ2ROBOT_RZ_DEG       = 0.0
 OBJ2ROBOT_TRANSLATION  = (0.32, -0.4, 0.155)
 OBJ2ROBOT_SCALE        = 0.001          # mm → meters
 
