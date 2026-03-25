@@ -71,7 +71,7 @@ def main(
                                     custom_transformation=[x_position, y_position, z_position, turn_degree]),   "fallback"),
         ("Filter",         skip_filter,         Filter(ds, Path(json_object), multipen),           "stop"),
         ("Conversion",     skip_conversion,     Conversion(ds, Path(json_object)),                                                 "stop"),
-        ("Pathfinding",    skip_pathfinding,    Pathfinding(ds, Path(default_calibration), Path(json_object)),                     "stop"),
+        ("Pathfinding",    skip_pathfinding,    Pathfinding(ds, Path(default_calibration)),                     "stop"),
         ("Gazebo",         skip_gazebo,         Gazebo(ds, Path(default_calibration), multipen),                "stop"),
         ("Robot",          skip_robot,          Robot(ds, robot_ip, side, Path(default_calibration), multipen), "continue"),
     ]

@@ -9,11 +9,11 @@ from duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
 from src.safety import setup_checker
 from src.transformation import extract_pybullet_pose
-from src.pybullet_helpers import clear_bodies, find_hovers, preview_traces, split_into_runs, validate_surface_points, visualize_validation
-from src.computation import assemble_segments, smoothing
+from src.pybullet_helpers import clear_bodies, find_hovers, preview_traces, split_into_runs, validate_surface_points, visualize_validation, visualize_runs, visualize_plan, animate_plan
+from src.computation import assemble_segments, plan_travels, smoothing, plot_joint_plan
 
 class Pathfinding(Stage):
-    def __init__(self, datastore: DataStore, default_calibration: Path = None, json_path: Path = None, obstacles: list = OBSTACLE_STLS, verbose: bool = True):
+    def __init__(self, datastore: DataStore, default_calibration: Path = None, obstacles: list = OBSTACLE_STLS, verbose: bool = True):
         """
         Initialize the pathfinding stage.
 
@@ -23,8 +23,6 @@ class Pathfinding(Stage):
             The data store to use.
         default_calibration : Path, optional
             The path to the default calibration file.
-        json_path : Path, optional
-            The path to the JSON object file.
         obstacles : list, optional
             List of obstacle STL files to load.
         side : SideType, optional
@@ -34,35 +32,13 @@ class Pathfinding(Stage):
         """
         super().__init__(name="Pathfinding", datastore=datastore)
         self.default_calibration = default_calibration
-        self.json_path = json_path
         self.obstacles = obstacles
         self.verbose = verbose
     
     def run(self, manual_flag: bool=True):
-        """
-        Run the pathfinding stage.
-
-        Parameters
-        ----------
-        manual_flag : bool
-            Whether to run the stage in manual mode.
-        """
-
-        
-        if manual_flag:
-            if not ask_yes_no("Do you want to launch a pathfinding? y/n \n"):
-                self.ds.load_joint_segments()
-                return
-        else:
-            self.ds.log("Run in automatic mode.")
-            if self.ds.check_joint_segments():
-                if self.json_path.exists():
-                    self.ds.log("Existing joint path segments overridden.")
-                else:
-                    self.ds.log("Using existing joint path segments.")
-                    return
-            elif not self.ds.check_tcp_segments():
-                raise RuntimeError("No existing converted TCP segments found.")
+        if not ask_yes_no("Do you want to launch a pathfinding? y/n \n"):
+            self.ds.load_joint_segments()
+            return
         
         obj2robot = self.ds.load_transformation()
         data = self.ds.load_tcp_segments()
@@ -98,6 +74,7 @@ class Pathfinding(Stage):
                         pb.disconnect(checker.cid)
                     raise RuntimeError("The trace are not correct.")
 
+                pb.removeAllUserDebugItems(physicsClientId=checker.cid)
 
                 valid_masks, surface_joints = validate_surface_points(
                     checker, robot, surface_tcps_per_trace, HOMEJ,
@@ -113,12 +90,28 @@ class Pathfinding(Stage):
 
                 
                 runs_per_trace = split_into_runs(valid_masks)
-                validated_runs = find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_joints)
-                segments = assemble_segments(robot, checker, validated_runs, surface_joints, HOMEJ)
+                run_spheres = visualize_runs(checker, surface_tcps_per_trace, runs_per_trace)
+
+                validated_runs = find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_joints, home=HOMEJ)
+                segments = assemble_segments(robot, checker, validated_runs, surface_joints, HOMEJ, surface_tcps_per_trace)
                 smoothing(robot, checker, segments, HOMEJ)
+                plan_travels(checker, segments)
+
+
+                input("Press Enter to see visualization...")
+
+                clear_bodies(checker.cid, run_spheres)
+                pb.removeAllUserDebugItems(physicsClientId=checker.cid)
+
+                visualize_plan(checker, robot, segments, debug=True)
+                animate_plan(checker, segments, delay=0.1)
+
+
+                input("Press Enter to continue after visualization...")
 
                 self.ds.save_joint_segments(segments)
-                
+                plot_joint_plan(segments, self.ds.data_path / "joint_plan.png")
+
                 if pb.isConnected(checker.cid):
                     pb.disconnect(checker.cid)
                     print("PyBullet disconnected")

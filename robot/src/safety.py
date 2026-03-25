@@ -157,7 +157,7 @@ class CollisionChecker:
             return True, q, "", tcp
 
         if orientation_search:
-            result = self._cone_search(robot, tcp, qnear, margin, check_obstacle, max_cone_angle, cone_step)
+            result = self._cone_search(robot, tcp, qnear, margin, check_obstacle, max_cone_angle, cone_step, check_joint_jump)
             if result:
                 q, adjusted_tcp = result
                 return True, q, "", adjusted_tcp
@@ -227,7 +227,7 @@ class CollisionChecker:
         return False, None, first_reason or "IK has no solution"
 
     # Changes slightly the angle on which to search for analytical IK within a cone of angle [max_cone_angle]
-    def _cone_search(self, robot, tcp, qnear, margin, check_obstacle, max_cone_angle, cone_step):
+    def _cone_search(self, robot, tcp, qnear, margin, check_obstacle, max_cone_angle, cone_step, check_joint_jump):
         tcp_xyz = np.array([tcp.x, tcp.y, tcp.z])
         original_rot = Rotation.from_rotvec([tcp.rx, tcp.ry, tcp.rz])
 
@@ -241,7 +241,7 @@ class CollisionChecker:
                 candidate_tcp = TCP6D.createFromMetersRadians(
                     *tcp_xyz.tolist(), float(rv[0]), float(rv[1]), float(rv[2])
                 )
-                ok, q, _ = self._try_ik_and_collision(robot, candidate_tcp, qnear, margin, check_obstacle)
+                ok, q, _ = self._try_ik_and_collision(robot, candidate_tcp, qnear, margin, check_obstacle, check_joint_jump)
                 if ok:
                     return q, candidate_tcp
             tilt += cone_step
