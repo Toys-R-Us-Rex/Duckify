@@ -11,13 +11,24 @@ from models import MVAdapaterModel
 app = Flask(__name__)
 
 
-MV_ADAPTER_DIR = Path(os.getenv("MV_ADAPTER_PATH",None))
+mv_adapter_path = os.getenv("MV_ADAPTER_PATH")
+if not mv_adapter_path:
+    raise ValueError("MV_ADAPTER_PATH environment variable is required")
+
+MV_ADAPTER_DIR = Path(mv_adapter_path)
 
 if not MV_ADAPTER_DIR.exists():
-        raise ValueError(f"Le dossier MV-Adapter est introuvable : {MV_ADAPTER_DIR}")
+    raise ValueError(f"MV-Adapter directory not found: {MV_ADAPTER_DIR}")
 
 JOBS_DIR = Path("jobs_temp")
 JOBS_DIR.mkdir(exist_ok=True)
+
+TEXTURE_MODEL = MVAdapaterModel(
+    base_path=MV_ADAPTER_DIR
+)
+print("Preparing MV-Adapter Docker runtime...")
+TEXTURE_MODEL.prepare_runtime()
+print("MV-Adapter Docker runtime is ready.")
 
 @app.route("/generate", methods=["POST"])
 def generate_texture():
@@ -31,7 +42,7 @@ def generate_texture():
     guidance = float(request.form.get("guidance", 6.0))
 
     if not all([file, prompt]):
-        return jsonify({"Error":"File and prompt are required"}), 400
+        return jsonify({"error": "file and prompt are required"}), 400
 
     job_id = str(uuid.uuid4())
     current_job_path = JOBS_DIR / job_id
@@ -43,11 +54,9 @@ def generate_texture():
     input_path = current_job_path / safe_filename
     file.save(input_path)
 
-    print(f"[{job_id}] Démarrage du job SLURM | Steps: {steps} | Guidance: {guidance}")
+    print(f"[{job_id}] Starting generation (slurm+docker) | Steps: {steps} | Guidance: {guidance}")
     try:
-        texture_model = MVAdapaterModel(base_path=MV_ADAPTER_DIR,slurm_script=Path("run.slurm"))
-
-        experiment_path = texture_model.run(
+        experiment_path = TEXTURE_MODEL.run(
             text_prompt=prompt, 
             obj_file=input_path,
             negative_prompt=negative_prompt,
@@ -57,7 +66,7 @@ def generate_texture():
             HF_TOKEN=HF_TOKEN
         )
 
-        print(f"[{job_id}] Génération SLURM terminée. Préparation du zip...")
+        print(f"[{job_id}] Generation completed. Preparing zip...")
 
         memory_file = io.BytesIO()
         with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -69,7 +78,7 @@ def generate_texture():
         
         memory_file.seek(0)
 
-        print(f"[{job_id}] Succès ! Envoi du zip.")
+        print(f"[{job_id}] Success! Sending zip.")
         
         return send_file(
             memory_file,
@@ -79,7 +88,7 @@ def generate_texture():
         )
 
     except Exception as e:
-        print(f"[{job_id}] Erreur : {e}")
+        print(f"[{job_id}] Error: {e}")
         return jsonify({"error": str(e)}), 500
 
     finally:
@@ -87,14 +96,14 @@ def generate_texture():
             try:
                 shutil.rmtree(current_job_path)
             except Exception as cleanup_error:
-                print(f"[{job_id}] Erreur nettoyage upload : {cleanup_error}")
+                print(f"[{job_id}] Upload cleanup error: {cleanup_error}")
 
         if experiment_path and experiment_path.exists():
             try:
                 shutil.rmtree(experiment_path)
-                print(f"[{job_id}] Nettoyage des résultats MV-Adapter terminé.")
+                print(f"[{job_id}] MV-Adapter output cleanup completed.")
             except Exception as cleanup_error:
-                print(f"[{job_id}] Erreur nettoyage résultats : {cleanup_error}")
+                print(f"[{job_id}] Output cleanup error: {cleanup_error}")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
