@@ -420,20 +420,6 @@ class Tracer:
 
         # BB du polygone
         minx, miny, maxx, maxy = polygon.bounds
-
-        if self.config.debug:
-            llBound = shapely.points([minx, miny])
-            urBound = shapely.points([maxx, maxy])
-            lrBound = shapely.points([maxx, miny])
-            ulBound = shapely.points([minx, maxy])
-
-            fig, ax = plt.subplots()
-            plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
-            plot_points(llBound, ax=ax, color='red')
-            plot_points(urBound, ax=ax, color='red')
-            plot_points(lrBound, ax=ax, color='red')
-            plot_points(ulBound, ax=ax, color='red')
-            plt.show()
         
         # génération d'une grille de ligne à superposer/intersecter avec l'island
         lines : list[LineString] = []
@@ -449,19 +435,36 @@ class Tracer:
             for line in lines
             if line.intersects(polygon)
         ]  # type: ignore
-
+        
         if self.config.debug:
-            print(f"L'îlot : {polygon} est en cours d'affichage")
-            print(f"La surface de cet îlot est :{shapely.area(polygon)}")
-            fig, ax = plt.subplots()
-            plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+
+            fig.canvas.manager.set_window_title('Fill slicing process')
+
+            llBound = shapely.points([minx, miny])
+            urBound = shapely.points([maxx, maxy])
+            lrBound = shapely.points([maxx, miny])
+            ulBound = shapely.points([minx, maxy])
+
+            plot_polygon(polygon, ax=ax1, facecolor='lightblue', edgecolor='blue', alpha=0.5)
+            plot_points(llBound, ax=ax1, color='red')
+            plot_points(urBound, ax=ax1, color='red')
+            plot_points(lrBound, ax=ax1, color='red')
+            plot_points(ulBound, ax=ax1, color='red')
+
+            ax1.set_title("Before the filling")
+
+            plot_polygon(polygon, ax=ax2, facecolor='lightblue', edgecolor='blue', alpha=0.5)
             for fill_line in fill_lines:
                 if isinstance(fill_line, LineString):
-                    plot_line(fill_line, ax=ax, color='green', linewidth=1)
+                    plot_line(fill_line, ax=ax2, color='green', linewidth=1)
                 elif isinstance(fill_line, (MultiLineString, GeometryCollection)):
                     for part in fill_line.geoms:
                         if isinstance(part, LineString):
-                            plot_line(part, ax=ax, color='red', linewidth=1)
+                            plot_line(part, ax=ax2, color='red', linewidth=1)
+            ax2.set_title("After the filling")
+
+            plt.tight_layout()
             plt.show()
         
         # Tri entre LineString et MultiLineString et ajout à la variable de retour
