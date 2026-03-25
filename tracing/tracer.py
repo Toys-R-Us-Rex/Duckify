@@ -418,6 +418,9 @@ class Tracer:
         
         polygon = Polygon(island.outer_border, island.inner_borders)
 
+        if not polygon.is_valid:
+            polygon = shapely.make_valid(polygon)
+
         # BB du polygone
         minx, miny, maxx, maxy = polygon.bounds
         

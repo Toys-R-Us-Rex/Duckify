@@ -11,7 +11,7 @@ class TracerConfig:
     barycentric_epsilon: float = 1e-8
     """A small epsilon to account for floating-point error in barycentric tests"""
 
-    fill_slice_spacing: float = 0.005
+    fill_slice_spacing: float = 0.05
     """Gap between filling lines (in UV coordinates)"""
 
     min_segment_length: float = 1
@@ -29,7 +29,7 @@ class TracerConfig:
     image_size: tuple[int,int] = (800,800)
     """Size format for the loaded texture image"""
 
-    min_island_surface: int = 20
+    min_island_surface: int = 100
     """Island's surface as treshold to block too small one's"""
 
     contour_epsilon: float = 1e-8
