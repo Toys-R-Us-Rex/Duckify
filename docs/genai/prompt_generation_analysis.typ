@@ -145,13 +145,44 @@ This document will regroup a serie of prompt tests run during the equivalent of 
 
 #pc("12_ninja_special_eye/example.jpg", 10%, "Illustration of what sharigan is (Source: https://pngtree.com/freepng/sharingan-eyes-of-uchiha-from-naruto-vector_15322284.html")
 #pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
-#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
-#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
-#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
-#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
-#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
-#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
-#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
-#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
-#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_2.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_3.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_4.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_5.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_6.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_7.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_8.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_9.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_10.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
 
+#pagebreak()
+== Cheetah
+
+
+
+#pc("13_cheetah/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a cheetah")
+#pc("13_cheetah/textured_duck_uv_v2_2.png", 80%, "Prompt: A rubber duck disguised as a cheetah")
+#pc("13_cheetah/textured_duck_uv_v2_3.png", 80%, "Prompt: A rubber duck disguised as a cheetah")
+#pc("13_cheetah/textured_duck_uv_v2_4.png", 80%, "Prompt: A rubber duck disguised as a cheetah")
+#pc("13_cheetah/textured_duck_uv_v2_5.png", 80%, "Prompt: A rubber duck disguised as a cheetah")
+#pc("13_cheetah/textured_duck_uv_v2_6.png", 80%, "Prompt: A rubber duck disguised as a cheetah")
+#pc("13_cheetah/textured_duck_uv_v2_7.png", 80%, "Prompt: A rubber duck disguised as a cheetah")
+#pc("13_cheetah/textured_duck_uv_v2_8.png", 80%, "Prompt: A rubber duck disguised as a cheetah")
+#pc("13_cheetah/textured_duck_uv_v2_9.png", 80%, "Prompt: A rubber duck disguised as a cheetah")
+#pc("13_cheetah/textured_duck_uv_v2_10.png", 80%, "Prompt: A rubber duck disguised as a cheetah")
+
+#pagebreak()
+== Rubik's cube
+
+
+
+#pc("14_rubik_cube/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck with the texture of a rubik cube, with only white, yellow, red, blue, green, pink")
+#pc("14_rubik_cube/textured_duck_uv_v2_2.png", 80%, "Prompt: A rubber duck with the texture of a rubik cube, with only white, yellow, red, blue, green, pink")
+#pc("14_rubik_cube/textured_duck_uv_v2_3.png", 80%, "Prompt: A rubber duck with the texture of a rubik cube, with only white, yellow, red, blue, green, pink")
+#pc("14_rubik_cube/textured_duck_uv_v2_4.png", 80%, "Prompt: A rubber duck with the texture of a rubik cube, with only white, yellow, red, blue, green, pink")
+#pc("14_rubik_cube/textured_duck_uv_v2_5.png", 80%, "Prompt: A rubber duck with the texture of a rubik cube, with only white, yellow, red, blue, green, pink")
+#pc("14_rubik_cube/textured_duck_uv_v2_6.png", 80%, "Prompt: A rubber duck with the texture of a rubik cube, with only white, yellow, red, blue, green, pink")
+#pc("14_rubik_cube/textured_duck_uv_v2_7.png", 80%, "Prompt: A rubber duck with the texture of a rubik cube, with only white, yellow, red, blue, green, pink")
+#pc("14_rubik_cube/textured_duck_uv_v2_8.png", 80%, "Prompt: A rubber duck with the texture of a rubik cube, with only white, yellow, red, blue, green, pink")
+#pc("14_rubik_cube/textured_duck_uv_v2_9.png", 80%, "Prompt: A rubber duck with the texture of a rubik cube, with only white, yellow, red, blue, green, pink")
+#pc("14_rubik_cube/textured_duck_uv_v2_10.png", 80%, "Prompt: A rubber duck with the texture of a rubik cube, with only white, yellow, red, blue, green, pink")
