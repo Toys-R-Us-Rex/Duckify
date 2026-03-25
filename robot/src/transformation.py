@@ -359,9 +359,8 @@ def generate_custom_transforamtion(custom_transformation: tuple) -> AtoB:
     t = custom_transformation[:3]
     R = rotation_matrix_z(custom_transformation[3])
     T = np.eye(4)
-    T[:3, :3] = R
+    T[:3, :3] = 0.001 * R
     T[:3, 3] = t
-    T *= np.full((4, 4), 1.0) - 0.999 * np.eye(4)
 
     R_normal = np.linalg.inv(R).T
     T_normal = np.eye(4)
@@ -407,18 +406,15 @@ class Transformation(Stage):
         """
         if not manual_flag:
             self.ds.log("Run in automatic mode.")
-            if self.ds.check_transformation():
-                obj2robot = self.ds.load_transformation()
-                self.ds.log("Using existing transformation.")
-                self.ds.log_transformation(obj2robot)
-                return
-            if self.custom_transformation is not None:
-                self.ds.log("Using custom provided transformation.")
+            if self.custom_transformation is not None and any(v != 0.0 for v in self.custom_transformation):
                 obj2robot = generate_custom_transforamtion(self.custom_transformation)
                 self.ds.save_transformation(obj2robot)
                 self.ds.log_transformation(obj2robot)
                 return
-            self.log("No existing transformation found.")
+            if self.ds.check_transformation():
+                obj2robot = self.ds.load_transformation()
+                self.ds.log_transformation(obj2robot)
+                return
             raise RuntimeError("No existing transformation found.")
 
         if self.custom_transformation is not None:
