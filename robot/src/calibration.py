@@ -369,10 +369,15 @@ class Calibration(Stage):
         """
         if not manual_flag:
             self.ds.log("Run in automatic mode.")
+            if self.ds.check_calibration():
+                self.ds.log("Using existing calibration.")
+                tcps, tcp_offset = self.ds.load_calibration()
+                self.ds.log_calibration(tcps, tcp_offset)
+                return
             if self.default_calibration.exists():
                 tcps, tcp_offset = self.ds.load_calibration(self.default_calibration)
+                self.ds.save_calibration(tcps, tcp_offset)
                 self.ds.log_calibration(tcps, tcp_offset)
-
                 if self.multipen:
                     if self.ds.check_pen_calibration():
                         pen_1, pen_2 = self.ds.load_pen_calibration()
