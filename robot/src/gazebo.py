@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from src.utils import ask_yes_no
 from src.logger import DataStore
 from src.robot import move_simple
 
@@ -86,12 +87,12 @@ class Gazebo(Stage):
             self.ds.log("You can not run the Gazebo test in automatic mode.")
             return
 
-        data = self.ds.load_joint_segments()
 
-        answer = input("Do you want to skip Gazebo test? y/n \n")
-        if answer == 'y':
+        if ask_yes_no("Do you want to skip Gazebo test? y/n \n"):
             self.ds.log("Gazebo test skipped.")
             raise RuntimeError("You can not avoid gazebot.")
+
+        data = self.ds.load_joint_segments()
 
         gazebo = test_waypoints(data, self.ds, self.default_calibration, self.multipen)
 

@@ -66,7 +66,6 @@ class Pathfinding(Stage):
             joint_data[s] = {}
             for c, traces in d.items():
                 self.ds.log(f"Processing {s} - {c}")
-                joint_data[s][c] = []
                 surface_tcps_per_trace = [t.waypoints for t in traces]
                 
                 preview_traces(checker, surface_tcps_per_trace)
@@ -109,7 +108,7 @@ class Pathfinding(Stage):
 
 
                 input("Press Enter to continue after visualization...")
-                joint_data[s][c].append(segments)
+                joint_data[s][c] = segments
                 plot_joint_plan(segments, self.ds.data_path / "joint_plan.png")
 
         if pb.isConnected(checker.cid):
