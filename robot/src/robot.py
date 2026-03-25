@@ -9,39 +9,49 @@ from duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
 from src.config import *
 from src.utils import ask_yes_no
-
+from src.pen import PenState
 import matplotlib.pyplot as plt
 
 from src.stage import Stage
 
-def move_simple(robot: SimRobotControl | UrScript, motion, ds: DataStore = None, multipen: bool = False):
+def move_simple(robot: SimRobotControl | UrScript, motion: dict, ds: DataStore = None, multipen: bool = False):
     robot.movej(HOMEJ)
-
+    
     # Create six empty joint lists
     j1, j2, j3, j4, j5, j6 = ([] for _ in range(6))
 
-    for s, segment in enumerate(motion):
-        for i, m in enumerate(segment.waypoints):
-            print(s, i, type(m), Joint6D)
-            if isinstance(m, TCP6D):
-                if not robot.movel(m, wait=True) and ds:
-                    ds.log("TCP not reached: " + str(m))
+    if multipen:
+        pen_1, pen_2 = ds.load_pen_calibration()
+        MAX_PEN_BY_RACK = 4
+        pen_state_1 = PenState(HOMEJ, robot, pen_1)
+        pen_state_2 = PenState(HOMEJ, robot, pen_2)
 
-            elif isinstance(m, Joint6D):
-                # Collect joint values
-                j1.append(m.j1)
-                j2.append(m.j2)
-                j3.append(m.j3)
-                j4.append(m.j4)
-                j5.append(m.j5)
-                j6.append(m.j6)
+    for s, d in motion.items():
+        for c, traces in d.items():
+            c_idx = c.split("_")[-1]
+            if multipen:
+                if MAX_PEN_BY_RACK <= c_idx < 2 * MAX_PEN_BY_RACK:
+                    pen_motion = pen_state_2.change_pen(c_idx%MAX_PEN_BY_RACK)
+                    pen_state_2.run_moves(pen_motion)
+                elif 0 <= c_idx < MAX_PEN_BY_RACK:
+                    pen_motion = pen_state_1.change_pen(c_idx)
+                    pen_state_1.run_moves(pen_motion)
+                else:
+                    ds.log(f"WARNING: Invalid pen index for color: {c_idx}")
 
-                if not robot.movej(m, wait=True) and ds:
-                    ds.log("JOINT not reached: " + str(m))
-
-            else:
-                raise NotImplementedError("Only TCP6D or Joint6D points allowed.")
-
+            ds.log(f"Processing motion side: {s} - color: {c_idx}")
+            for trace in traces:
+                motion = trace.waypoints
+                for m in motion:
+                    if isinstance(m, Joint6D):
+                        if not robot.movej(m):
+                            ds.log(f"ERROR: Position not reached for waypoint: {m}")
+                    elif isinstance(m, TCP6D):
+                        if not robot.movel(m):
+                            ds.log(f"ERROR: Position not reached for waypoint: {m}")
+                    else:
+                        ds.log(f"WARNING: Unknown waypoint type for waypoint: {m}")
+                        raise TypeError(f"Unknown waypoint type for waypoint: {m}")
     # Plot joint evolution
     fig, axs = plt.subplots(6, sharex=True)
     joint_lists = [j1, j2, j3, j4, j5, j6]
@@ -105,7 +115,7 @@ class Robot(Stage):
         _, tcp_offset = self.ds.load_calibration(self.default_calibration)
         robot.set_tcp(tcp_offset)
 
-        waypoint = self.ds.load_waypoints()
+        motion = self.ds.load_joint_segments()
 
         if manual_flag:
             force_active = ask_yes_no("Do you want to start force logging? y/n \n")
@@ -117,7 +127,7 @@ class Robot(Stage):
             force.start_logging()
 
         try:
-            move_simple(robot, waypoint, self.ds)
+            move_simple(robot, motion, self.ds)
         except Exception as e:
             self.ds.log(f"Exception with robot: {e}")
             raise
