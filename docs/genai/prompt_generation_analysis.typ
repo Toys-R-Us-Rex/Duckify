@@ -96,7 +96,7 @@ This document will regroup a serie of prompt tests run during the equivalent of 
 #pc("7_soldier_camouflage/textured_official_model_1.png", 80%, "Prompt: A rubber duck disguised as a military soldier with camouflage clothes patern and a green face")
 #pc("7_soldier_camouflage/textured_official_model_2.png", 80%, "Prompt: A rubber duck disguised as a military soldier with camouflage clothes patern and a green face")
 
-
+#pagebreak
 == Doctor 
 
 #pc("8_doctor/textured_official_model_1.png", 80%, "Prompt: A rubber duck disguised as a doctor with white blouse, blue wings and a stethoscope around his neck and a blue cap on his head")
@@ -111,4 +111,47 @@ This document will regroup a serie of prompt tests run during the equivalent of 
 #pc("8_doctor/textured_official_model_10.png", 80%, "Prompt: A rubber duck disguised as a doctor with white blouse, blue wings and a stethoscope around his neck and a blue cap on his head")
 #pc("8_doctor/textured_official_model_11.png", 80%, "Prompt: A rubber duck disguised as a doctor with white blouse, blue wings and a stethoscope around his neck and a blue cap on his head")
 
+#pagebreak()
 == Pharaon
+
+#pc("9_pharaon/textured_official_model_1.png", 80%, "Prompt: A rubber duck disguised as a pharaon")
+#pc("9_pharaon/textured_official_model_2.png", 80%, "Prompt: A rubber duck disguised as a pharaon")
+#pc("9_pharaon/textured_official_model_3.png", 80%, "Prompt: A rubber duck disguised as a pharaon")
+#pc("9_pharaon/textured_official_model_4.png", 80%, "Prompt: A rubber duck disguised as a pharaon")
+#pc("9_pharaon/textured_official_model_5.png", 80%, "Prompt: A rubber duck disguised as a pharaon")
+#pc("9_pharaon/textured_official_model_6.png", 80%, "Prompt: A rubber duck disguised as a pharaon")
+#pc("9_pharaon/textured_official_model_7.png", 80%, "Prompt: A rubber duck disguised as a pharaon")
+#pc("9_pharaon/textured_official_model_8.png", 80%, "Prompt: A rubber duck disguised as a pharaon")
+#pc("9_pharaon/textured_official_model_9.png", 80%, "Prompt: A rubber duck disguised as a pharaon")
+#pc("9_pharaon/textured_official_model_10.png", 80%, "Prompt: A rubber duck disguised as a pharaon")
+
+
+#pagebreak()
+== Bee
+
+#pc("11_bee/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a bee with yellow and black patern")
+#pc("11_bee/textured_duck_uv_v2_2.png", 80%, "Prompt: A rubber duck disguised as a bee with yellow and black patern")
+#pc("11_bee/textured_duck_uv_v2_3.png", 80%, "Prompt: A rubber duck disguised as a bee with yellow and black patern")
+#pc("11_bee/textured_duck_uv_v2_4.png", 80%, "Prompt: A rubber duck disguised as a bee with yellow and black patern")
+#pc("11_bee/textured_duck_uv_v2_5.png", 80%, "Prompt: A rubber duck disguised as a bee with yellow and black patern")
+#pc("11_bee/textured_duck_uv_v2_6.png", 80%, "Prompt: A rubber duck disguised as a bee with yellow and black patern")
+#pc("11_bee/textured_duck_uv_v2_7.png", 80%, "Prompt: A rubber duck disguised as a bee with yellow and black patern")
+#pc("11_bee/textured_duck_uv_v2_8.png", 80%, "Prompt: A rubber duck disguised as a bee with yellow and black patern")
+#pc("11_bee/textured_duck_uv_v2_9.png", 80%, "Prompt: A rubber duck disguised as a bee with yellow and black patern")
+#pc("11_bee/textured_duck_uv_v2_10.png", 80%, "Prompt: A rubber duck disguised as a bee with yellow and black patern")
+
+#pagebreak()
+== Special texture from manga
+
+#pc("12_ninja_special_eye/example.jpg", 10%, "Illustration of what sharigan is (Source: https://pngtree.com/freepng/sharingan-eyes-of-uchiha-from-naruto-vector_15322284.html")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+#pc("12_ninja_special_eye/textured_duck_uv_v2_1.png", 80%, "Prompt: A rubber duck disguised as a ninja of Naruto anime with sharigan on his eyes")
+
