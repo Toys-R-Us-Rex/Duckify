@@ -12,7 +12,7 @@ from src.calibration import Calibration
 from src.transformation import Transformation
 from src.filter import Filter
 from src.conversion import Conversion
-from src.pathfinding_ import Pathfinding
+from robot.src.pathfinding import Pathfinding
 from src.gazebo import Gazebo
 from src.robot import Robot
 
