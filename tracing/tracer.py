@@ -932,6 +932,6 @@ class Tracer:
         Returns:
             float: angle value in radian
         """
-        dot_product = np.dot(n1, n2)
+        dot_product = np.clip(np.dot(n1, n2), -1.0, 1.0)
         angle_rad: float = np.arccos(dot_product)
         return angle_rad
