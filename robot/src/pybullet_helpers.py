@@ -10,6 +10,7 @@ Author: All pybullet animations have been created with the help from ClaudeAI (A
 
 import time
 import pybullet as pb
+from scipy.spatial.transform import Rotation
 
 from src.computation import _validate_surface_points, _split_into_runs, _find_valid_hover
 from src.computation import MotionType
@@ -42,6 +43,17 @@ def draw_sphere(cid, position, color, radius=0.0008):
                               physicsClientId=cid)
 
 
+def draw_tcp_marker(cid, tcp, color, radius=0.0004):
+    pos = [tcp.x, tcp.y, tcp.z]
+    bid = draw_sphere(cid, pos, color, radius=radius)
+    rotvec = [tcp.rx, tcp.ry, tcp.rz]
+    z_axis = -Rotation.from_rotvec(rotvec).as_matrix()[:, 2]
+    end = [pos[k] + z_axis[k] * 3 * radius for k in range(3)]
+    pb.addUserDebugLine(pos, end, color, lineWidth=1, physicsClientId=cid)
+    return bid
+
+
+#TODO: remove dead code ( check first )
 def draw_line_strip(cid, waypoints, color, width=2):
     for i in range(len(waypoints) - 1):
         a = [waypoints[i].x, waypoints[i].y, waypoints[i].z]
@@ -67,8 +79,8 @@ def preview_traces(checker, surface_tcps_per_trace):
         pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1, physicsClientId=cid)
 
     print(f"\nShowing {len(surface_tcps_per_trace)} traces as orange lines.")
-    input("Press ENTER to continue to validation...")
-    pb.removeAllUserDebugItems(physicsClientId=cid)
+    # input("Press ENTER to continue to validation...")
+    # pb.removeAllUserDebugItems(physicsClientId=cid)
 
 def validate_surface_points(checker, robot, surface_tcps_per_trace, home):
     valid_masks_per_trace = []
@@ -101,9 +113,8 @@ def visualize_validation(checker, surface_tcps_per_trace, valid_masks_per_trace)
     for trace_i, (surface_pts, valid_mask) in enumerate(zip(surface_tcps_per_trace, valid_masks_per_trace)):
         pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0, physicsClientId=cid)
         for wp, ok in zip(surface_pts, valid_mask):
-            pos_wp = wp.toList()[:3]
             color = [1, 1, 0] if ok else [1, 0, 0]
-            bid = draw_sphere(cid, pos_wp, color)
+            bid = draw_tcp_marker(cid, wp, color)
             sphere_ids.append(bid)
         pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1, physicsClientId=cid)
 
@@ -141,9 +152,14 @@ def visualize_runs(checker, surface_tcps_per_trace, runs_per_trace):
         pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0, physicsClientId=cid)
         for run_start, run_end in runs:
             color = RUN_COLORS[global_run_idx % len(RUN_COLORS)]
-            for wp in surface_pts[run_start:run_end + 1]:
-                bid = draw_sphere(cid, wp.toList()[:3], color)
+            run_wps = surface_pts[run_start:run_end + 1]
+            for j, wp in enumerate(run_wps):
+                bid = draw_tcp_marker(cid, wp, color)
                 sphere_ids.append(bid)
+                if j > 0:
+                    prev = run_wps[j - 1].toList()[:3]
+                    cur = wp.toList()[:3]
+                    pb.addUserDebugLine(prev, cur, color, lineWidth=1, physicsClientId=cid)
             print(f"    Run {global_run_idx} ({run_start}-{run_end}): color {color}")
             global_run_idx += 1
         pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1, physicsClientId=cid)
@@ -151,10 +167,11 @@ def visualize_runs(checker, surface_tcps_per_trace, runs_per_trace):
     return sphere_ids
 
 # For each run search a non colliding hover point, if not , trim the run
-def find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_joints_per_trace):
+def find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_joints_per_trace, home=None):
     cid = checker.cid
     validated_runs = []
     hover_run_idx = 0
+    prev_q = home
 
     for trace_i, (surface_pts, runs) in enumerate(zip(surface_tcps_per_trace, runs_per_trace)):
         trace_joints = surface_joints_per_trace[trace_i]
@@ -166,6 +183,7 @@ def find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_
             print(f"  Trace {trace_i} run ({run_start}-{run_end}) entry: ", end="", flush=True)
             h_entry, q_entry, entry_trim = _find_valid_hover(
                 checker, robot, run_surface, run_joints, from_end=False,
+                qnear_override=prev_q,
             )
             if h_entry is None:
                 print(f"FAILED, discarding run")
@@ -197,10 +215,11 @@ def find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_
 
             print(f"OK - {len(trimmed_surface)} draw pts")
 
-            draw_sphere(cid, h_entry.toList()[:3], run_color, radius=0.001)
-            draw_sphere(cid, h_exit.toList()[:3], run_color, radius=0.001)
+            draw_tcp_marker(cid, h_entry, run_color)
+            draw_tcp_marker(cid, h_exit, run_color)
 
             validated_runs.append((trace_i, new_run_start, new_run_end, h_entry, h_exit, trimmed_surface, q_entry, q_exit))
+            prev_q = q_exit
             hover_run_idx += 1
 
     print(f"\n{len(validated_runs)} run(s) ready for planning.")
@@ -209,20 +228,28 @@ def find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_
 
 def visualize_plan(checker, robot, segments, debug=True):
     cid = checker.cid
+
     print("\nVisualizing final plan step by step...")
     print("  TRAVEL = blue, APPROACH = orange, DRAW = green\n")
+
+    pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0, physicsClientId=cid)
 
     for i, seg in enumerate(segments):
         color = SEGMENT_COLORS[seg.motion_type]
         width = 3 if seg.motion_type == MotionType.DRAW else 2
         label = seg.motion_type.name
-        if seg.tcp_waypoints:
-            tcp_wps = seg.tcp_waypoints
-        else:
-            tcp_wps = [robot.get_fk(q) for q in seg.waypoints]
+        tcp_wps = [robot.get_fk(q) for q in seg.waypoints]
         print(f"  Segment {i}: {label} ({len(tcp_wps)} wps)  "
               f"{fmt_tcp(tcp_wps[0])} -> {fmt_tcp(tcp_wps[-1])}")
-        draw_line_strip(cid, tcp_wps, color, width)
+
+        for j, tcp in enumerate(tcp_wps):
+            draw_tcp_marker(cid, tcp, color)
+            if j > 0:
+                prev = [tcp_wps[j - 1].x, tcp_wps[j - 1].y, tcp_wps[j - 1].z]
+                pos = [tcp.x, tcp.y, tcp.z]
+                pb.addUserDebugLine(prev, pos, color, lineWidth=width, physicsClientId=cid)
+
+    pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1, physicsClientId=cid)
 
     print(f"\n  {len(segments)} segments visualized")
 

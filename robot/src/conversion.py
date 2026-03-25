@@ -84,7 +84,7 @@ class Conversion(Stage):
                 else:
                     self.ds.log("Using existing converted TCP segments.")
                     return
-            elif self.ds.check_trace_segments():
+            elif not self.ds.check_trace_segments():
                 raise RuntimeError("No existing trace segments found.")
 
 

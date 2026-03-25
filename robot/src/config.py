@@ -45,12 +45,6 @@ GRIPPER_LENGTH = 0.101
 PEN_LENGTH = 0.128
 # PEN_POS_0 =  [-0.3, -0.172, MINIMAL_DISTANCE] # Position of pen at index 0
 
-# Pathfinding parameters
-SAFE_MARGIN = 0.005
-PUSH_STEP   = 0.005    # midpoint push increment
-MAX_DEPTH   = 10
-MAX_PUSH    = 0.05
-SURFACE_MARGIN = 0.01  # above mesh surface
 
 # Free-space travel constraints
 TCP_Y_MAX        = 0.0      # TCP must stay at Y ≤ 0
