@@ -57,7 +57,6 @@ class Filter(Stage):
         else:
             if ask_yes_no("Did you already extract the traces? y/n \n"):
                 s = self.ds.load_trace_segments()
-                self.ds.log_trace_segment(s)
                 return
 
 
