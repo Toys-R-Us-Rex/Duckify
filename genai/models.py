@@ -8,6 +8,7 @@ class MVAdapaterModel:
     def __init__(
         self,
         base_path: Path,
+        slurm_script: Path,
         docker_image: str = "mv-adapter:latest",
         docker_auto_build: bool = True,
         docker_container_name: str = "mv-adapter-runtime",
@@ -16,7 +17,7 @@ class MVAdapaterModel:
         self.docker_image = docker_image
         self.docker_auto_build = docker_auto_build
         self.docker_container_name = docker_container_name
-        self.slurm_script = (self.base_path / "run.slurm").resolve()
+        self.slurm_script = slurm_script.resolve()
         dockerfile_path = self.base_path / "Dockerfile"
         if not dockerfile_path.exists() and self.docker_auto_build:
             raise FileNotFoundError(

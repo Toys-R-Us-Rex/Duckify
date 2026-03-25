@@ -24,7 +24,8 @@ JOBS_DIR = Path("jobs_temp")
 JOBS_DIR.mkdir(exist_ok=True)
 
 TEXTURE_MODEL = MVAdapaterModel(
-    base_path=MV_ADAPTER_DIR
+    base_path=MV_ADAPTER_DIR,
+    slurm_script=Path(__file__).resolve().parent / "run.slurm"
 )
 print("Preparing MV-Adapter Docker runtime...")
 TEXTURE_MODEL.prepare_runtime()
