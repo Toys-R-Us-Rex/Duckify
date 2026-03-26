@@ -2,7 +2,7 @@ from pathlib import Path
 
 from src.config import *
 from src.pen import PenState
-from src.utils import ask_yes_no
+from src.utils import *
 from src.logger import DataStore
 from src.robot import move_simple
 
@@ -92,7 +92,8 @@ def test_waypoints(data: dict, ds: DataStore, default_calibration: Path = None, 
     try:
         duckify_sim = DuckifySim()
         robot_sim = duckify_sim.robot_control
-        _, tcp_offset = ds.load_calibration(default_calibration)
+
+        tcp_offset = return_tcp_offset(ds, default_calibration)
         robot_sim.set_tcp(tcp_offset)
 
         if ask_yes_no("Do you want to avoid the DRAW path? y/n \n"):

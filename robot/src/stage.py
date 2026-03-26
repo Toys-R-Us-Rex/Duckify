@@ -82,8 +82,13 @@ def run_stage(stage_obj: Stage, on_error="stop", manual_flag: bool=False):
             return
 
         if on_error == "fallback":
+            if not manual_flag:
+                print("Not running in manual mode. Skipping fallback.")
+                print(f"Process stop at {stage_obj.name}:\n{e}")
+                stage_obj.ds.log(f"Process stop at {stage_obj.name}: {e}")
+                return
             print(f"Attempting fallback for {stage_obj.name}:\n{e}")
-            stage_obj.ds.log(f"Attempting fallback for {stage_obj.name}")
+            stage_obj.ds.log(f"Attempting fallback for {stage_obj.name}: {e}")
             stage_obj.fallback()
             return
 

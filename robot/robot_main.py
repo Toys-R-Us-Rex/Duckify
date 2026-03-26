@@ -38,7 +38,6 @@ def main(
 
     side: SideType,
 
-    default_transformation: str|Path = None,
     default_calibration: str|Path = DEFAULT_CALIBRATION_PATH,
 
     multipen: bool = False,
@@ -115,11 +114,11 @@ if __name__ == "__main__":
         help="Override the default socle JSON file"
     )
     parser.add_argument(
-        "--transformation",
+        "--calibration",
         type=str,
         default=None,
         metavar="<FILE>",
-        help="Override the default transformation JSON file"
+        help="Override the default calibration JSON file"
     )
     parser.add_argument(
         "--multipen",
@@ -255,9 +254,11 @@ if __name__ == "__main__":
     main(
         robot_ip=args.robot_ip,
         output_dir=args.output_dir,
-        side=side_enum,
         json_object=args.object,
         json_socle=args.socle,
+        
+        side=side_enum,
+        default_calibration=args.calibration,
 
         manual=args.manual,
         multipen=args.multipen,

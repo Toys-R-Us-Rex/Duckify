@@ -270,7 +270,7 @@ def validate_calibration(robot_arm: UrScript, rot: float = 0.2) -> list[TCP6D]:
     return motion
 
 
-def launch_calibration(robot_ip: str, ds: DataStore) -> bool:
+def launch_calibration(robot_ip: str, ds: DataStore):
     """
     Launch the calibration process for the robot at the specified IP address.
 
@@ -280,11 +280,6 @@ def launch_calibration(robot_ip: str, ds: DataStore) -> bool:
         The IP address of the robot to calibrate.
     ds : DataStore
         The data store for saving calibration results.
-
-    Returns
-    -------
-    bool
-        True if calibration is successful, False otherwise.
     """
     try:
         iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
@@ -295,12 +290,11 @@ def launch_calibration(robot_ip: str, ds: DataStore) -> bool:
         ds.save_calibration(tcps, tcp_offset)
         ds.log_calibration(tcps, tcp_offset)
 
-        return True
     except Exception as e:
-        ds.log(f"Calibration skipped: {e}")
-        return False
+        ds.log(f"Calibration failed: {e}")
+        raise e
 
-def launch_pen_calibration(robot_ip: str, ds: DataStore) -> bool:
+def launch_pen_calibration(robot_ip: str, ds: DataStore, default_calibration: Path):
     """
     Launch the pen calibration process for the robot at the specified IP address.
 
@@ -310,25 +304,14 @@ def launch_pen_calibration(robot_ip: str, ds: DataStore) -> bool:
         The IP address of the robot to calibrate.
     ds : DataStore
         The data store for saving calibration results.
-
-    Returns
-    -------
-    bool
-        True if calibration is successful, False otherwise.
+    default_calibration : Path
+        The path to the default calibration file.
     """
     try:
-        print("DEBUG: --------- we are in launch pen calibration")
-
         # TODO: Find a better name that iscoin
         iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
 
-        if ds.check_calibration():
-            _, tcp_offset = ds.load_calibration()
-        else:
-            ds.log(f"Pen calibration skipped: no valid TCP calibration")
-            raise RuntimeError("No valid TCP calibration")
-
-        print("DEBUG: after tcp setup")
+        tcp_offset = return_tcp_offset(ds, default_calibration)
 
         iscoin.robot_control.set_tcp(tcp_offset)
 
@@ -342,10 +325,9 @@ def launch_pen_calibration(robot_ip: str, ds: DataStore) -> bool:
         ds.log_pen_calibration(pen_state_2.support_position)
         ds.save_pen_calibration(pen_state_1.support_position,pen_state_2.support_position)
 
-        return True
     except Exception as e:
-        ds.log(f"Pen calibration skipped: {e}")
-        return False
+        ds.log(f"Pen calibration failed: {e}")
+        raise e
 
 
 class Calibration(Stage):
@@ -425,21 +407,17 @@ class Calibration(Stage):
                 return
             
             if ask_yes_no("Do you want to run a robot calibration? y/n\n"):
-                if not launch_calibration(self.robot_ip, self.ds):
-                    print("Robot calibration failed.")
-                    self.ds.log("Robot calibration failed.")
+                launch_calibration(self.robot_ip, self.ds)
             else:
                 if ask_yes_no("Do you want to use the default? y/n\n"):
                     print("Using default calibration.")
                     self.ds.log("Load default calibration.")
-                    tcps, tcp_offset = self.ds.load_calibration(DEFAULT_CALIBRATION_PATH)
+                    tcps, tcp_offset = self.ds.load_calibration(self.default_calibration)
                     self.ds.save_calibration(tcps, tcp_offset)
                     self.ds.log_calibration(tcps, tcp_offset)
             
             if ask_yes_no("Do you want to run a pen calibration? y/n\n"):
-                if not launch_pen_calibration(self.robot_ip, self.ds):
-                    print("Pen calibration failed.")
-                    self.ds.log("Pen calibration failed.")
+                launch_pen_calibration(self.robot_ip, self.ds, self.default_calibration)
 
 
     def fallback(self):

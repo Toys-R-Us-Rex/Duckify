@@ -8,7 +8,7 @@ from URBasic.waypoint6d import TCP6D, Joint6D
 from duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
 from src.config import *
-from src.utils import ask_yes_no
+from src.utils import *
 from src.pen import PenState
 import matplotlib.pyplot as plt
 
@@ -100,7 +100,7 @@ class Robot(Stage):
         iscoin = ISCoin(host=self.robot_ip, opened_gripper_size_mm=40)
         robot = iscoin.robot_control
 
-        _, tcp_offset = self.ds.load_calibration(self.default_calibration)
+        tcp_offset = return_tcp_offset(self.ds, self.default_calibration)
         robot.set_tcp(tcp_offset)
 
         motion = self.ds.load_joint_segments()
