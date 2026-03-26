@@ -387,6 +387,13 @@ class Calibration(Stage):
                 self.ds.log("Using existing calibration.")
                 tcps, tcp_offset = self.ds.load_calibration()
                 self.ds.log_calibration(tcps, tcp_offset)
+                if self.multipen:
+                    if self.ds.check_pen_calibration():
+                        pen_1, pen_2 = self.ds.load_pen_calibration()
+                        self.ds.log_pen_calibration(pen_1)
+                        self.ds.log_pen_calibration(pen_2)
+                    else:
+                        raise RuntimeError("Default pen calibration not found.")
                 return
             if self.default_calibration.exists():
                 tcps, tcp_offset = self.ds.load_calibration(self.default_calibration)
@@ -416,25 +423,24 @@ class Calibration(Stage):
                     self.ds.log_pen_calibration(pen_1)
                     self.ds.log_pen_calibration(pen_2)
                 return
+            
             if ask_yes_no("Do you want to run a robot calibration? y/n\n"):
-                success = launch_calibration(self.robot_ip, self.ds)
-                if not success:
+                if not launch_calibration(self.robot_ip, self.ds):
+                    print("Robot calibration failed.")
                     self.ds.log("Robot calibration failed.")
             else:
                 if ask_yes_no("Do you want to use the default? y/n\n"):
+                    print("Using default calibration.")
                     self.ds.log("Load default calibration.")
                     tcps, tcp_offset = self.ds.load_calibration(DEFAULT_CALIBRATION_PATH)
                     self.ds.save_calibration(tcps, tcp_offset)
                     self.ds.log_calibration(tcps, tcp_offset)
-                    return
             
             if ask_yes_no("Do you want to run a pen calibration? y/n\n"):
-                success = launch_pen_calibration(self.robot_ip, self.ds)
-                if not success:
+                if not launch_pen_calibration(self.robot_ip, self.ds):
+                    print("Pen calibration failed.")
                     self.ds.log("Pen calibration failed.")
 
-
-            print("Invalid input ( Inside calibration Run ). Please answer with 'y' or 'n'.")
 
     def fallback(self):
         """
