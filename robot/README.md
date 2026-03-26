@@ -41,10 +41,10 @@ docker images | grep iscoin
 
 ## 2. Start the simulator
 
-The `docker-compose.yml` is inside `robot/.docker/`, not at the repo root.
+The `docker-compose.yml` is inside `robot/docker/`, not at the repo root.
 
 ```bash
-cd ./robot/.docker
+cd ./robot/docker
 docker compose run --rm --name iscoin_simulator cpu
 ```
 

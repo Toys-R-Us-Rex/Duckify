@@ -1,6 +1,6 @@
 services:
   cpu:
-    image: ghcr.io/toys-r-us-rex/duckify:iscoin-simulator
+    image: ghcr.io/toys-r-us-rex/iscoin-simulator:v1.0.0
     container_name: iscoin_simulator
     privileged: true
     network_mode: host
@@ -12,7 +12,7 @@ services:
       QT_X11_NO_MITSHM: 1
       DISPLAY: $DISPLAY
   gpu:
-    image: ghcr.io/toys-r-us-rex/duckify:iscoin-simulator
+    image: ghcr.io/toys-r-us-rex/iscoin-simulator:v1.0.0
     container_name: iscoin_simulator
     privileged: true
     network_mode: host
