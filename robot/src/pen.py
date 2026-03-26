@@ -52,7 +52,7 @@ class PenState():
             self.robot.gripper.close()
 
         while ask_yes_no("Confirm point? y/n \n"):
-            pass
+            continue
         self.support_position = self.robot.robot_control.get_actual_tcp_pose()
             
         print(f"Support position: {self.support_position}")

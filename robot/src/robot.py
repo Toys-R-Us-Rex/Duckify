@@ -24,6 +24,8 @@ def move_simple(robot: SimRobotControl | UrScript, motion: dict, ds: DataStore =
         pen_state_2 = PenState(HOMEJ, robot, pen_2)
 
     for s, d in motion.items():
+        if not ask_yes_no(f"Draw on side {s}"):
+            continue
         for c, traces in d.items():
             c_idx = c.split("_")[-1]
             if multipen:

@@ -446,6 +446,8 @@ def plan_travels(checker, segments):
             checker.robot_id, checker.joint_indices, end_conf,
             obstacles=checker.obstacle_ids,
             self_collisions=True,
+            resolutions=[0.02, 0.02, 0.02, 0.02, 0.02, 0.02],
+            weights=[0.5, 0.5, 0.5, 1, 1, 1]
         )
 
         if path is not None:
@@ -583,3 +585,12 @@ def plot_joint_plan(segments, save_path):
     plt.show()
     plt.close()
     print(f"Joint plan plot saved to {save_path}")
+
+
+
+def correct_bottom_value(waypoints):
+    # TODO : to implement
+    return waypoints
+
+
+

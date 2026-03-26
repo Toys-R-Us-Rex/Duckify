@@ -18,8 +18,10 @@ DEFAULT_FORCE_PATH = OUTPUT_DIR / "force_log.csv"
 DEFAULT_DATA_DIR = OUTPUT_DIR / "data"
 
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
-DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_14_full_body_line-trace.json"
+DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_11_long_line-trace.json"
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_4_triangle_on_bill-trace.json"
 
 
 DEFAULT_JSON_SOCLE = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_socle.json"
@@ -34,7 +36,7 @@ ROBOT_IP = "10.30.5.158"
 # Collision margins
 COLLISION_MARGIN = 0            # margin for obstacle collision checks
 SELF_COLLISION_MARGIN = 0.01   # margin for self-collision checks
-MAX_JOINT_JUMP = 1.0           # max allowed single-joint difference from qnear in radians
+MAX_JOINT_JUMP = 0.5           # max allowed single-joint difference from qnear in radians
 
 
 # Default home position

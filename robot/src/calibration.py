@@ -317,7 +317,21 @@ def launch_pen_calibration(robot_ip: str, ds: DataStore) -> bool:
         True if calibration is successful, False otherwise.
     """
     try:
+        print("DEBUG: --------- we are in launch pen calibration")
+
+        # TODO: Find a better name that iscoin
         iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
+
+        if ds.check_calibration():
+            _, tcp_offset = ds.load_calibration()
+        else:
+            ds.log(f"Pen calibration skipped: no valid TCP calibration")
+            raise RuntimeError("No valid TCP calibration")
+
+        print("DEBUG: after tcp setup")
+
+        iscoin.robot_control.set_tcp(tcp_offset)
+
         pen_state_1 = PenState(home=iscoin.robot_control.get_actual_tcp_pose(), robot=iscoin)
         pen_state_2 = PenState(home=iscoin.robot_control.get_actual_tcp_pose(), robot=iscoin)
 
@@ -420,7 +434,7 @@ class Calibration(Stage):
                     self.ds.log("Pen calibration failed.")
 
 
-            print("Invalid input. Please answer with 'y' or 'n'.")
+            print("Invalid input ( Inside calibration Run ). Please answer with 'y' or 'n'.")
 
     def fallback(self):
         """
