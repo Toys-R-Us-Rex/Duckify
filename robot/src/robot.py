@@ -5,7 +5,7 @@ from URBasic.iscoin import ISCoin
 from URBasic.urScript import UrScript
 from URBasic.waypoint6d import TCP6D, Joint6D
 
-from duckify_simulation.duckify_sim.robot_control import SimRobotControl
+from duckify_simulation.duckify_sim import DuckifySim
 
 from src.config import *
 from src.utils import *
@@ -14,8 +14,9 @@ import matplotlib.pyplot as plt
 
 from src.stage import Stage
 
-def move_simple(robot: SimRobotControl | UrScript, motion: dict, ds: DataStore = None, multipen: bool = False):
-    robot.movej(HOMEJ)
+def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, multipen: bool = False):
+    robot_ctr = robot.robot_control
+    robot_ctr.movej(HOMEJ)
 
     if multipen:
         pen_1, pen_2 = ds.load_pen_calibration()
@@ -24,10 +25,10 @@ def move_simple(robot: SimRobotControl | UrScript, motion: dict, ds: DataStore =
         pen_state_2 = PenState(HOMEJ, robot, pen_2)
 
     for s, d in motion.items():
-        if not ask_yes_no(f"Draw on side {s}"):
+        if not ask_yes_no(f"Draw on side {s}? y/n \n"):
             continue
         for c, traces in d.items():
-            c_idx = c.split("_")[-1]
+            c_idx = int(c.split("_")[-1])
             if multipen:
                 if MAX_PEN_BY_RACK <= c_idx < 2 * MAX_PEN_BY_RACK:
                     pen_motion = pen_state_2.change_pen(c_idx%MAX_PEN_BY_RACK)
@@ -39,14 +40,17 @@ def move_simple(robot: SimRobotControl | UrScript, motion: dict, ds: DataStore =
                     ds.log(f"WARNING: Invalid pen index for color: {c_idx}")
 
             ds.log(f"Processing motion side: {s} - color: {c_idx}")
+            if not ask_yes_no(f"Proceed with color {c_idx}? y/n \n"):
+                ds.log(f"User chose not to proceed motion: (side: {s} , color: {c_idx})")
+                raise RuntimeError(f"User chose not to proceed motion: (side: {s} , color: {c_idx})")
             for trace in traces:
                 motion = trace.waypoints
                 for m in motion:
                     if isinstance(m, Joint6D):
-                        if not robot.movej(m):
+                        if not robot_ctr.movej(m):
                             ds.log(f"ERROR: Position not reached for waypoint: {m}")
                     elif isinstance(m, TCP6D):
-                        if not robot.movel(m):
+                        if not robot_ctr.movel(m):
                             ds.log(f"ERROR: Position not reached for waypoint: {m}")
                     else:
                         ds.log(f"WARNING: Unknown waypoint type for waypoint: {m}")
@@ -98,10 +102,9 @@ class Robot(Stage):
             raise ValueError("You chose not the run on robot")
 
         iscoin = ISCoin(host=self.robot_ip, opened_gripper_size_mm=40)
-        robot = iscoin.robot_control
 
         tcp_offset = self.ds.return_tcp_offset(self.default_calibration)
-        robot.set_tcp(tcp_offset)
+        iscoin.robot_control.set_tcp(tcp_offset)
 
         motion = self.ds.load_joint_segments()
 
@@ -111,11 +114,11 @@ class Robot(Stage):
             force_active = False
 
         if force_active:
-            force = DataStoreForce(robot)
+            force = DataStoreForce(iscoin)
             force.start_logging()
 
         try:
-            move_simple(robot, motion, self.ds)
+            move_simple(iscoin, motion, self.ds)
         except Exception as e:
             self.ds.log(f"Exception with robot: {e}")
             raise

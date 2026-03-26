@@ -39,8 +39,8 @@ from src.config import DEFAULT_DATA_DIR, DEFAULT_FORCE_PATH
 from src.segment import *
 from src.utils import AtoB
 
-from URBasic.urScript import UrScript
-from duckify_simulation.duckify_sim.robot_control import SimRobotControl
+from URBasic.iscoin import ISCoin
+from duckify_simulation.duckify_sim.duckify_sim import DuckifySim
 
 
 class DataStore:
@@ -1043,13 +1043,13 @@ class DataStoreForce:
     """
     A class for managing force logging data.
     """
-    def __init__(self, robot: UrScript|SimRobotControl):
+    def __init__(self, robot: ISCoin | DuckifySim):
         """
         Initialize the DataStoreForce.
 
         Parameters
         ----------
-        robot : UrScript | SimRobotControl
+        robot : ISCoin | DuckifySim
             The robot instance to log force data for.
         """
         self.robot = robot
@@ -1100,13 +1100,13 @@ class DataStoreForce:
         self.stop_event = None
         self.current_file_path = None
 
-    def _log_force(self, robot: UrScript | SimRobotControl, stop_event: threading.Event, file_path: Path):
+    def _log_force(self, robot: ISCoin | DuckifySim, stop_event: threading.Event, file_path: Path):
         """
         Log force data.
         
         Parameters
         ----------
-        robot : UrScript | SimRobotControl
+        robot : ISCoin | DuckifySim
             The robot instance to log force data for.
         stop_event : threading.Event
             The event to signal when to stop logging.
@@ -1114,6 +1114,7 @@ class DataStoreForce:
             The file path to save the force data to.
         """
         time_start = time.time()
+        robot_ctr = robot.robot_control
 
         # Open file once and keep it open
         with file_path.open("w", newline="") as f:
@@ -1121,9 +1122,9 @@ class DataStoreForce:
             writer.writerow(["time", "Fx", "Fy", "Fz", "Tx", "Ty", "Tz", "Force"])
 
             while not stop_event.is_set():
-                tcp = robot.get_actual_tcp_pose(wait=False)
-                wrench = robot.get_tcp_force(wait=False)
-                magnitude = robot.force(wait=False)
+                tcp = robot_ctr.get_actual_tcp_pose(wait=False)
+                wrench = robot_ctr.get_tcp_force(wait=False)
+                magnitude = robot_ctr.force(wait=False)
                 timestamp = time.time() - time_start
 
                 row = [timestamp] + tcp.toList() + wrench + [magnitude]

@@ -6,23 +6,21 @@ from src.utils import *
 from src.logger import DataStore
 from src.robot import move_simple
 
-from URBasic.urScript import UrScript
 from URBasic.waypoint6d import TCP6D, Joint6D
 
 from duckify_simulation.duckify_sim import DuckifySim
-from duckify_simulation.duckify_sim.robot_control import SimRobotControl
-from src.segment import MotionType, Segment
+from src.segment import MotionType
 from src.stage import Stage
 
 
-def move_simple_gazebo(robot: SimRobotControl, motion: dict, ds: DataStore = None, multipen: bool = False):
+def move_simple_gazebo(robot: DuckifySim, motion: dict, ds: DataStore = None, multipen: bool = False):
     """
     Moves the robot in Gazebo according to the specified motion.
 
     Parameters
     ----------
-    robot : SimRobotControl
-        The robot control instance.
+    robot : DuckifySim
+        The robot instance.
     motion : dict
         The motion data.
     ds : DataStore, optional
@@ -30,7 +28,8 @@ def move_simple_gazebo(robot: SimRobotControl, motion: dict, ds: DataStore = Non
     multipen : bool, optional
         Whether to use multiple pen or not.
     """
-    robot.movej(HOMEJ)
+    robot_ctr = robot.robot_control
+    robot_ctr.movej(HOMEJ)
 
     if multipen:
         pen_1, pen_2 = ds.load_pen_calibration()
@@ -40,7 +39,7 @@ def move_simple_gazebo(robot: SimRobotControl, motion: dict, ds: DataStore = Non
 
     for s, d in motion.items():
         for c, traces in d.items():
-            c_idx = c.split("_")[-1]
+            c_idx = int(c.split("_")[-1])
             if multipen:
                 if MAX_PEN_BY_RACK <= c_idx < 2 * MAX_PEN_BY_RACK:
                     pen_motion = pen_state_2.change_pen(c_idx%MAX_PEN_BY_RACK)
@@ -52,6 +51,9 @@ def move_simple_gazebo(robot: SimRobotControl, motion: dict, ds: DataStore = Non
                     ds.log(f"WARNING: Invalid pen index for color: {c_idx}")
 
             ds.log(f"Processing motion side: {s} - color: {c_idx}")
+            if not ask_yes_no(f"Proceed with color {c_idx}? y/n \n"):
+                robot_ctr.movej(HOMEJ)
+                continue
             for trace in traces:
                 motion_type = trace.motion_type
                 ds.log(f"\tProcessing motion type: {motion_type}")
@@ -60,10 +62,10 @@ def move_simple_gazebo(robot: SimRobotControl, motion: dict, ds: DataStore = Non
                 motion = trace.waypoints
                 for m in motion:
                     if isinstance(m, Joint6D):
-                        if not robot.movej(m):
+                        if not robot_ctr.movej(m):
                             ds.log(f"ERROR: Position not reached for waypoint: {m}")
                     elif isinstance(m, TCP6D):
-                        if not robot.movel(m):
+                        if not robot_ctr.movel(m):
                             ds.log(f"ERROR: Position not reached for waypoint: {m}")
                     else:
                         ds.log(f"WARNING: Unknown waypoint type for waypoint: {m}")
@@ -91,15 +93,14 @@ def test_waypoints(data: dict, ds: DataStore, default_calibration: Path = None, 
     """
     try:
         duckify_sim = DuckifySim()
-        robot_sim = duckify_sim.robot_control
 
         tcp_offset = ds.return_tcp_offset(default_calibration)
-        robot_sim.set_tcp(tcp_offset)
+        duckify_sim.robot_control.set_tcp(tcp_offset)
 
         if ask_yes_no("Do you want to avoid the DRAW path? y/n \n"):
-            move_simple_gazebo(robot_sim, data, ds, multipen=multipen)
+            move_simple_gazebo(duckify_sim, data, ds, multipen=multipen)
         else:
-            move_simple(robot_sim, data, ds, multipen=multipen)    
+            move_simple(duckify_sim, data, ds, multipen=multipen)
 
         return ask_yes_no("Do the Gazebo test succeed? y/n \n")
     except Exception as e:

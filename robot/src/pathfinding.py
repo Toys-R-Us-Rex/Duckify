@@ -64,7 +64,7 @@ class Pathfinding(Stage):
         checker.set_joint_angles(HOMEJ.toList())
         joint_data = {}
         for s, d in data.items():
-            if not ask_yes_no(f"Draw on side {s}"):
+            if not ask_yes_no(f"Draw on side {s}? y/n \n"):
                 continue
 
 

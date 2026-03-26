@@ -160,20 +160,16 @@ class PenState():
             TCP6DDescriptor(side_of_pen, v=v)
         ]
 
-        waypoints_home = [
-            TCP6DDescriptor(self.home, v=v),
-        ]
-
         move_list.append(waypoints_to_target_pen)
         move_list.append(GripperAction.CLOSE)
         move_list.append(waypoints_move_out_target_pen)
-        move_list.append(waypoints_home)
+        move_list.append(self.home)
 
         # set new active pen
         self.active_pen_id = target_pen_id
         return move_list
     
-    def run_moves(self, move_list: list[list[TCP6DDescriptor | GripperAction]]):
+    def run_moves(self, move_list: list[list[TCP6DDescriptor | GripperAction | Joint6D]]):
         """
         move_list: list[list[TCP6DDescriptor]]
         Usage:
@@ -187,5 +183,7 @@ class PenState():
             elif m is GripperAction.OPEN:
                 self.robot.gripper.open()
                 time.sleep(1)
+            elif isinstance(m, Joint6D):
+                self.robot.robot_control.movej(m)
             else:
                 self.robot.robot_control.movel_waypoints(m, wait=True)
