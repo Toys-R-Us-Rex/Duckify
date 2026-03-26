@@ -263,7 +263,7 @@ def load_obj2robot(record: DataStore, rz_deg: float = OBJ2ROBOT_RZ_DEG):
     return build_manual_transform(rz_deg=rz_deg, translation=translation)
 
 
-def launch_transformation(robot_ip: str, file_path: str, ds: DataStore) -> AtoB:
+def launch_transformation(robot_ip: str, file_path: str, ds: DataStore, z_rotation: float = 0) -> AtoB:
     """
     Launches the transformation process.
 
@@ -275,6 +275,8 @@ def launch_transformation(robot_ip: str, file_path: str, ds: DataStore) -> AtoB:
         The path to the JSON file containing calibration data.
     ds : DataStore
         The data store for managing transformation data.
+    z_rotation : float
+        Additional rotation angle around the Z-axis in degrees.
 
     Returns
     -------
@@ -296,14 +298,15 @@ def launch_transformation(robot_ip: str, file_path: str, ds: DataStore) -> AtoB:
         ds.log_worldtcp(p_world,p_tcps)
 
         obj2robot = create_transformation(p_world, p_tcps)
+        if z_rotation != 0:
+            obj2robot = rotate_transformation(obj2robot, z_rotation)
 
         ds.save_transformation(obj2robot)
         ds.log_transformation(obj2robot)
-        return obj2robot
 
     except Exception as e:
         ds.log(f"Transforamtion skiped: {e}")
-        raise
+        raise e
 
 def test_transformation(ds: DataStore, obj2robot: AtoB, robot_ip: str, test: list = TEST_TRANSFORMATION):
     """
@@ -376,6 +379,29 @@ def generate_custom_transforamtion(custom_transformation: tuple) -> AtoB:
 
     return AtoB(T_position=T, T_orientation=T_normal)
 
+def rotate_transformation(transformation: AtoB, angle: float) -> AtoB:
+    """
+    Rotates a transformation matrix around the Z-axis.
+
+    Parameters
+    ----------
+    transformation : AtoB
+        The transformation matrix to rotate.
+    angle : float
+        The angle of rotation in degrees around the Z-axis.
+
+    Returns
+    -------
+    AtoB
+        The rotated transformation matrix.
+    """
+    R = rotation_matrix_z(angle)
+    T_position = transformation.T_position
+    T_position[:3, :3] = R @ T_position[:3, :3]
+    T_orientation = transformation.T_orientation
+    T_orientation[:3, :3] = R @ T_orientation[:3, :3]
+    return AtoB(T_position=T_position, T_orientation=T_orientation)
+
 class Transformation(Stage):
     """
     A stage for performing coordinate transformations between object and robot frames.
@@ -396,6 +422,7 @@ class Transformation(Stage):
             The path to the JSON file containing transformation data.
         custom_transformation : list, optional
             (X, Y, Z, Z_rot)
+            Unities: X,Y,Z are in meters, Z_rot in degree.
             A custom transformation parameters to apply during transformation.
             If all (X,Y,Z,Z_rot) are provided the custom transformation will be used.
         """
@@ -404,8 +431,13 @@ class Transformation(Stage):
         self.json_socle = json_socle
         if all(i is not None for i in custom_transformation):
             self.custom_transformation = custom_transformation
+            self.z_rotation = 0
         else:
             self.custom_transformation = None
+            if custom_transformation[-1] and custom_transformation[-1] is not None and len(custom_transformation) == 4:
+                self.z_rotation = custom_transformation[-1]
+            else:
+                self.z_rotation = 0
 
     def run(self, manual_flag: bool=True):
         """
@@ -442,8 +474,8 @@ class Transformation(Stage):
                     test_transformation(self.ds, obj2robot, self.robot_ip)
                 return
 
-            if ask_yes_no("Do you want to run a robot transformation? ( verify remote mode ) y/n \n"):
-                obj2robot = launch_transformation(self.robot_ip, self.json_socle, self.ds)
+            if ask_yes_no("Do you want to run a robot transformation? y/n \n"):
+                launch_transformation(self.robot_ip, self.json_socle, self.ds, z_rotation=self.z_rotation)
                 if ask_yes_no("Do you want to test transformation? y/n \n"):
                     test_transformation(self.ds, obj2robot, self.robot_ip)
                 return
