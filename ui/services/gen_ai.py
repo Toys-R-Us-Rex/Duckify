@@ -19,6 +19,7 @@ class GenAIRequest:
 @dataclass
 class GenAIResult:
     texture_path: Optional[Path]
+    error: Optional[str] = None
 
 
 class GenAIService:
@@ -51,7 +52,9 @@ class GenAIService:
         )
 
     def run(self, request: GenAIRequest) -> GenAIResult:
-        texture_path: Optional[Path] = self.client.generate(
+        texture_path: Optional[Path]
+        error: Optional[str]
+        texture_path, error = self.client.generate(
             obj_path=request.model_path,
             prompt=request.prompt,
             output_dir=request.output_dir,
@@ -61,7 +64,7 @@ class GenAIService:
             guidance=request.guidance,
         )
 
-        return GenAIResult(texture_path)
+        return GenAIResult(texture_path, error)
 
     def test_ssh_connection(self) -> bool:
         return self.client.test_ssh_connection()

@@ -4,15 +4,16 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-from PyQt6.QtCore import QModelIndex, QObject, pyqtSignal
+from PyQt6.QtCore import QModelIndex, QObject, QThreadPool, pyqtSignal
 from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
-from PyQt6.QtWidgets import QFileDialog
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
 
 from ui.assets import AssetRegistry
 from ui.mesh_visualizer import MeshVisualizer
 from ui.services.gen_ai import GenAIRequest, GenAIResult, GenAIService
 from ui.settings_manager import Settings, SettingsManager
-from ui.utils import populate_combobox
+from ui.utils.misc import populate_combobox
+from ui.utils.worker import Worker
 from ui.workspace import WorkspaceManager
 
 if TYPE_CHECKING:
@@ -85,9 +86,31 @@ class GenAIController(QObject):
             guidance=settings.genAI.guidance,
             output_dir=self.assets.output_dir,
         )
-        result: GenAIResult = self.service.run(request)
-        if result.texture_path is not None:
-            self.add_result(result.texture_path)
+        worker = Worker(self.service.run, request)
+        self.ui.genAIGenerate.setDisabled(True)
+        self.ui.genAIProgress.setRange(0, 0)
+        worker.signals.finished.connect(self.on_done)
+        worker.signals.error.connect(self.on_error)
+        QThreadPool.globalInstance().start(worker)  # type: ignore
+
+    def on_done(self, result: GenAIResult):
+        if result.texture_path is None:
+            self.on_error(result.error)
+            return
+        self.add_result(result.texture_path)
+        self.ui.genAIGenerate.setDisabled(False)
+        self.ui.genAIProgress.setRange(0, 1)
+        self.ui.genAIProgress.setValue(1)
+    
+    def on_error(self, err):
+        self.ui.genAIGenerate.setDisabled(False)
+        self.ui.genAIProgress.setRange(0, 1)
+        self.ui.genAIProgress.setValue(0)
+        QMessageBox.critical(
+            self.ui,
+            "Error",
+            f"The following error occured:\n{err}",
+        )
 
     def set_results(self, results: list[Path]):
         for result in results:

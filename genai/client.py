@@ -65,12 +65,13 @@ class GenAIClient:
         prompt_wrapper: str = "",
         steps: int = 30,
         guidance: float = 6.0,
-    ) -> Optional[Path]:
+    ) -> tuple[Optional[Path], Optional[str]]:
         output_dir = output_dir.resolve()
         with self.open_tunnel() as tunnel:
             if tunnel is None:
-                self.logger.error("Error while opening SSH tunnel")
-                return None
+                err = "Error while opening SSH tunnel"
+                self.logger.error(err)
+                return None, err
 
             self.logger.info("SSH tunnel opened")
             api_url = f"http://{self.remote_host}:{tunnel.local_bind_port}/generate"
@@ -88,8 +89,9 @@ class GenAIClient:
                 response = requests.post(api_url, files=files, data=data.model_dump())
 
             if response.status_code != 200:
-                self.logger.error(f"API Error: {response.text}")
-                return None
+                err = f"API Error: {response.text}"
+                self.logger.error(err)
+                return None, err
 
             zip_path: Path = output_dir / "texture_result.zip"
             with open(zip_path, "wb") as f:
@@ -99,10 +101,11 @@ class GenAIClient:
             result_dir: Path = self._extract_result(zip_path, output_dir)
 
             if not output_dir.exists():
-                self.logger.error(f"Extracted directory doesn't exist: {output_dir}")
-                return None
+                err = f"Extracted directory doesn't exist: {output_dir}"
+                self.logger.error(err)
+                return None, err
 
-            return result_dir / "texture.png"
+            return result_dir / "texture.png", None
 
     def _extract_result(self, zip_path: Path, output_dir: Path) -> Path:
         timestamp: str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")

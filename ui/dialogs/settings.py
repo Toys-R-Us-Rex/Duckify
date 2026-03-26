@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QColorDialog, QDialog, QFileDialog, QLabel, QListWid
 from genai.client import GenAIClient
 from ui.settings_manager import GenAISettings, RobotSettings, Settings, TracingSettings
 from ui.ui.settings_ui import Ui_Dialog
-from ui.utils import ping
+from ui.utils.misc import ping
 
 
 class SettingsDialog(QDialog, Ui_Dialog):
