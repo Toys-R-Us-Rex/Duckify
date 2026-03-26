@@ -382,6 +382,31 @@ class DataStore:
             return file_path.exists()
         else:
             return self.check_history("calibration", index)
+    
+    def return_tcp_offset(self, default_calibration: Path =None) -> TCP6D:
+        """
+        Returns the TCP offset based on the available calibration.
+
+        Parameters
+        ----------
+        default_calibration : Path, optional
+            The path to the default calibration file.
+
+        Returns
+        -------
+        TCP6D
+            The TCP offset.
+        """
+        if not self.check_calibration() and default_calibration is not None:
+            _, tcp_offset = self.load_calibration(default_calibration)
+        elif self.check_calibration():
+            _, tcp_offset = self.load_calibration()
+        elif default_calibration is not None:
+            _, tcp_offset = self.load_calibration(default_calibration)
+        else:
+            raise ValueError("No valid calibration found.")
+        
+        return tcp_offset
 
     def save_pen_calibration(self, first_pen_position: TCP6D, second_pen_position: TCP6D, file_path: Path=None):
         """

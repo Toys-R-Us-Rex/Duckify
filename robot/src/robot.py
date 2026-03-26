@@ -100,7 +100,7 @@ class Robot(Stage):
         iscoin = ISCoin(host=self.robot_ip, opened_gripper_size_mm=40)
         robot = iscoin.robot_control
 
-        tcp_offset = return_tcp_offset(self.ds, self.default_calibration)
+        tcp_offset = self.ds.return_tcp_offset(self.default_calibration)
         robot.set_tcp(tcp_offset)
 
         motion = self.ds.load_joint_segments()

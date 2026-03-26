@@ -44,7 +44,7 @@ class Pathfinding(Stage):
         obj2robot = self.ds.load_transformation()
         data = self.ds.load_tcp_segments()
         
-        tcp_offset = return_tcp_offset(self.ds, self.default_calibration)
+        tcp_offset = self.ds.return_tcp_offset(self.default_calibration)
 
         robot = SimRobotControl()
         robot.set_tcp(tcp_offset)

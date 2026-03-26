@@ -311,7 +311,7 @@ def launch_pen_calibration(robot_ip: str, ds: DataStore, default_calibration: Pa
         # TODO: Find a better name that iscoin
         iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
 
-        tcp_offset = return_tcp_offset(ds, default_calibration)
+        tcp_offset = ds.return_tcp_offset(default_calibration)
 
         iscoin.robot_control.set_tcp(tcp_offset)
 
