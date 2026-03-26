@@ -65,7 +65,6 @@ class GenAIClient:
         prompt_wrapper: str = "",
         steps: int = 30,
         guidance: float = 6.0,
-        num_generations: int = 1,
     ) -> Optional[Path]:
         output_dir = output_dir.resolve()
         with self.open_tunnel() as tunnel:
@@ -85,7 +84,6 @@ class GenAIClient:
                     steps=steps,
                     guidance=guidance,
                     hf_token=self.hf_token,
-                    num_generations=num_generations,
                 )
                 response = requests.post(api_url, files=files, data=data.model_dump())
 

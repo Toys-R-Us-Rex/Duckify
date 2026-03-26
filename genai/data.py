@@ -10,4 +10,3 @@ class GenerationRequest(BaseModel):
     steps: int
     guidance: float
     hf_token: Optional[str] = None
-    num_generations: int = 1

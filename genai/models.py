@@ -37,7 +37,6 @@ class MVAdapaterModel:
         steps: int = 30,
         guidance: float = 6.0,
         hf_token: Optional[str] = "",
-        num_generations:int = 1
     ) -> Path:
         if not glb_file.exists():
             raise FileNotFoundError(f"Could not find 3D model: {glb_file}")
@@ -65,7 +64,6 @@ class MVAdapaterModel:
         env["MV_STEPS"] = str(steps)
         env["MV_GUIDANCE"] = str(guidance)
         env["MV_NEGATIVE_PROMPT"] = negative_prompt
-        env["NUM_GENERATIONS"] = str(num_generations)
         if hf_token is not None:
             env["HF_TOKEN"] = hf_token
 
@@ -84,5 +82,8 @@ class MVAdapaterModel:
 
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Error : {e.stderr}")
+
+        texture_path: Path = output_dir / f"{save_name}_uv.png"
+        shutil.copy(texture_path, output_dir / "texture.png")
 
         return output_dir
