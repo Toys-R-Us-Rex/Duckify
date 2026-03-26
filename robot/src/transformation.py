@@ -251,7 +251,7 @@ def load_obj2robot(record: DataStore, rz_deg: float = OBJ2ROBOT_RZ_DEG):
     AtoB
         The loaded transformation matrix.
     """
-    a = record.load_transformation(DEFAULT_TRANSFORMATION_PATH)
+    a = record.load_transformation(TEST_TRANSFORMATION_PATH)
     T_loaded = a.T_position
     if T_loaded is not None:
         translation = tuple(T_loaded[:3, 3])
@@ -288,7 +288,7 @@ def launch_transformation(robot_ip: str, file_path: str, ds: DataStore, z_rotati
             data = json.load(f)
         
         iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
-        _, tcp_offset = ds.load_calibration()
+        tcp_offset = return_tcp_offset(ds)
         iscoin.robot_control.set_tcp(tcp_offset)
 
         p_world = np.array(data["calibration"])
@@ -299,7 +299,7 @@ def launch_transformation(robot_ip: str, file_path: str, ds: DataStore, z_rotati
 
         obj2robot = create_transformation(p_world, p_tcps)
         if z_rotation != 0:
-            obj2robot = rotate_transformation(obj2robot, z_rotation)
+            obj2robot = apply_z_rotation(obj2robot, z_rotation)
 
         ds.save_transformation(obj2robot)
         ds.log_transformation(obj2robot)
@@ -330,7 +330,7 @@ def test_transformation(ds: DataStore, obj2robot: AtoB, robot_ip: str, test: lis
     if not ask_yes_no("Do you want to test on Gazebo? y/n \n"):
         return
 
-    _, tcp_offset = ds.load_calibration()
+    tcp_offset = return_tcp_offset(ds)
     
     duckify_sim = DuckifySim()
     robot_sim = duckify_sim.robot_control
@@ -379,21 +379,21 @@ def generate_custom_transforamtion(custom_transformation: tuple) -> AtoB:
 
     return AtoB(T_position=T, T_orientation=T_normal)
 
-def rotate_transformation(transformation: AtoB, angle: float) -> AtoB:
+def apply_z_rotation(transformation: AtoB, angle: float) -> AtoB:
     """
-    Rotates a transformation matrix around the Z-axis.
+    Applies a rotation around the Z-axis to a transformation class.
 
     Parameters
     ----------
     transformation : AtoB
-        The transformation matrix to rotate.
+        The transformation class to rotate.
     angle : float
         The angle of rotation in degrees around the Z-axis.
 
     Returns
     -------
     AtoB
-        The rotated transformation matrix.
+        The rotated transformation class.
     """
     R = rotation_matrix_z(angle)
     T_position = transformation.T_position
@@ -494,7 +494,9 @@ class Transformation(Stage):
 
         if ask_yes_no("Use default transformation (test only)? y/n \n"):
             self.ds.log("WARNING: Loading default transformation (test only).")
-            obj_to_robot = self.ds.load_transformation(DEFAULT_TRANSFORMATION_PATH)
+            obj_to_robot = self.ds.load_transformation(TEST_TRANSFORMATION_PATH)
+            if self.z_rotation != 0:
+                obj_to_robot = apply_z_rotation(obj_to_robot, self.z_rotation)
             self.ds.save_transformation(obj_to_robot)
             self.ds.log_transformation(obj_to_robot)
             return

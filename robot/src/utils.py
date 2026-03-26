@@ -34,8 +34,11 @@ Co-Author:  Savioz Pierre-Yves, with assistance from Claude AI (Anthropic)
 Course:     HES-SO Valais-Wallis, Engineering Track 304
 """
 
+from pathlib import Path
+
 import numpy as np
 from URBasic import TCP6D
+from robot.src.logger import DataStore
 
 def normal_to_rotvec(n: np.ndarray|list) -> np.ndarray:
     """
@@ -353,3 +356,31 @@ class AtoB:
         r_new = normal_to_rotvec(n_new)
 
         return [*p_new[:3], *r_new]
+    
+
+def return_tcp_offset(ds: DataStore, default_calibration: Path =None) -> TCP6D:
+    """
+    Returns the TCP offset based on the available calibration.
+
+    Parameters
+    ----------
+    ds : DataStore
+        The data store containing calibration information.
+    default_calibration : Path, optional
+        The path to the default calibration file.
+
+    Returns
+    -------
+    TCP6D
+        The TCP offset.
+    """
+    if ds.check_calibration() and default_calibration is not None:
+        _, tcp_offset = ds.load_calibration(default_calibration)
+    elif ds.check_calibration():
+        _, tcp_offset = ds.load_calibration()
+    elif default_calibration is not None:
+        _, tcp_offset = ds.load_calibration(default_calibration)
+    else:
+        raise ValueError("No valid calibration found.")
+    
+    return tcp_offset

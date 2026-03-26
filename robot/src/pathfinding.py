@@ -2,7 +2,7 @@ import pybullet as pb
 
 from src.stage import Stage
 from src.logger import DataStore
-from src.utils import ask_yes_no
+from src.utils import *
 from src.config import *
 
 from duckify_simulation.duckify_sim.robot_control import SimRobotControl
@@ -37,13 +37,14 @@ class Pathfinding(Stage):
     
     def run(self, manual_flag: bool=True):
         if not ask_yes_no("Do you want to launch a pathfinding? y/n \n"):
-            self.ds.load_joint_segments()
+            if not self.ds.check_joint_segments():
+                raise ValueError("No joint segments found.")
             return
         
         obj2robot = self.ds.load_transformation()
         data = self.ds.load_tcp_segments()
         
-        _, tcp_offset = self.ds.load_calibration(self.default_calibration)
+        tcp_offset = return_tcp_offset(self.ds, self.default_calibration)
 
         robot = SimRobotControl()
         robot.set_tcp(tcp_offset)

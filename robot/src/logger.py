@@ -308,7 +308,7 @@ class DataStore:
     #                SAVE / LOAD DATA
     # ----------------------------------------------------
 
-    def save_calibration(self, tcps: list[float], tcp_offset: float, file_path: Path=None):
+    def save_calibration(self, tcps: list[float], tcp_offset: TCP6D, file_path: Path=None):
         """
         Save calibration data.
 
@@ -316,7 +316,7 @@ class DataStore:
         ----------
         tcps : list[float]
             The TCP positions.
-        tcp_offset : float
+        tcp_offset : TCP6D
             The TCP offset.
         file_path : Path, optional
             The file path to save the data to.
@@ -333,7 +333,7 @@ class DataStore:
         else:
             self.save_history("calibration", data)
 
-    def load_calibration(self, file_path: Path=None, index: int=-1) -> tuple[list[float], float]:
+    def load_calibration(self, file_path: Path=None, index: int=-1) -> tuple[list[float], TCP6D]:
         """
         Load calibration data.
 
@@ -346,7 +346,7 @@ class DataStore:
 
         Returns
         -------
-        tuple[list[float], float] or tuple[None, None]
+        tuple[list[float], TCP6D] or tuple[None, None]
             The loaded TCP positions and offset, or (None, None) if not found.
         """
         if file_path:
