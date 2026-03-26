@@ -100,6 +100,9 @@ def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list
             robot_arm.end_freedrive_mode()
             raise Exception("Wrong calibration; exit")
 
+    robot_arm.freedrive_mode()
+    while not ask_yes_no("Are you done collecting measurements? (Robot close to home position) y/n \n"):
+        pass
     robot_arm.end_freedrive_mode()
 
     return np.array(tcps)
@@ -320,12 +323,15 @@ def test_transformation(ds: DataStore, obj2robot: AtoB, robot_ip: str, test: lis
     tcp = TCP6D.createFromMetersRadians( *obj2robot(test))
     ds.log(f"Conversion test; {test} give {tcp}")
     print(f"Conversion test; {test} give {tcp}")
+    print("We suggest using the pathfinding module visual to confirm transformation.")
     if not ask_yes_no("Do you want to test on Gazebo? y/n \n"):
         return
+
+    _, tcp_offset = ds.load_calibration()
     
     duckify_sim = DuckifySim()
     robot_sim = duckify_sim.robot_control
-    _, tcp_offset = ds.load_calibration()
+
     robot_sim.set_tcp(tcp_offset)
     robot_sim.movej(HOMEJ)
     robot_sim.movel(tcp)
@@ -333,6 +339,8 @@ def test_transformation(ds: DataStore, obj2robot: AtoB, robot_ip: str, test: lis
     
     if not ask_yes_no("Do you want to test on robot? y/n \n"):
         return
+    print("Testing on robot, would be too dangerous in is current state.")
+    return
 
     iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
     robot = iscoin.robot_control
