@@ -1,21 +1,6 @@
 # Duckify — Robot Setup Guide
 
-## 1. Load the Gazebo Simulator Docker Image
-
-### Using the .zip
-Find the docker image [here](https://www.swisstransfer.com/d/fc9eed52-3be8-40a9-a09c-c213bb549d4e)
-
-```bash
-docker load < iscoin-simulator-0.1.0.tar.gz
-```
-
-Verify it loaded:
-
-```bash
-docker images | grep iscoin
-```
-
-### Using GHCR
+## 1. Load the Gazebo Simulator Docker Image using GHCR
 
 First you need to create a (**classic**, not fine grained) personal access token [here](https://github.com/settings/tokens).
 
