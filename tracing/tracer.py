@@ -188,6 +188,10 @@ class Tracer:
             raise FileNotFoundError(f"The file {path} does not exist")
 
         im = Image.open(path).convert("RGB")
+
+        if self.config.enable_inputs_visualisation:
+            c_img_arr = np.array(im.convert("RGB"))
+            cv2.imshow("input texture image", cv2.cvtColor(c_img_arr, cv2.COLOR_RGB2BGR))
         return im.resize(self.config.image_size)
 
     def load_model(self, path: Path) -> Trimesh:
@@ -207,7 +211,7 @@ class Tracer:
 
         mesh = trimesh.load_mesh(path)
 
-        if self.config.debug:
+        if self.config.enable_inputs_visualisation:
             mesh.show(resolution = (800,600))
 
         return mesh
@@ -258,8 +262,7 @@ class Tracer:
 
         output_img = Image.fromarray(output_arr.astype(np.uint8), "RGB")
 
-        if self.config.debug:
-            cv2.imshow("input texture image", cv2.cvtColor(c_img_arr, cv2.COLOR_RGB2BGR))
+        if self.config.enable_texture_transformation_visualisation:
             cv2.imshow("palettized texture image", cv2.cvtColor(output_arr, cv2.COLOR_RGB2BGR))
             cv2.waitKey(-1)
             cv2.destroyAllWindows()
@@ -290,7 +293,7 @@ class Tracer:
             mask_img = Image.fromarray((mask * 255).astype(np.uint8))
             images.append(mask_img)
 
-            if self.config.debug:
+            if self.config.enable_texture_transformation_visualisation:
                 cv2.imshow(f"splitted color image {color}", np.array(mask_img))
                 cv2.waitKey(-1)
                 cv2.destroyAllWindows()
@@ -327,7 +330,7 @@ class Tracer:
                 approx = cv2.approxPolyDP(contour, self.config.contour_simplification_epsilon * peri, True)
                 contours_cleaned.append((approx, hierarchy, idx))
 
-                if self.config.debug:
+                if self.config.enable_reduction_visualisation:
                         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
                         fig.canvas.manager.set_window_title('Contour simplification (reduction of points)')
 
@@ -344,7 +347,7 @@ class Tracer:
             else:
                 contours_too_small.append((contour, hierarchy))
 
-        if self.config.debug:
+        if self.config.enable_island_selection_visualisation:
             cv2.imshow('Islands in the layer', layer)
             with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
             cv2.drawContours(with_contours, contours, -1, (0, 255, 0), 2)
@@ -362,7 +365,7 @@ class Tracer:
         if hierarchy is not None:
             for contour, values, idx in contours_cleaned:
                 if contour.shape[0] < 4:
-                    if self.config.debug:
+                    if self.config.enable_island_selection_visualisation:
                         self.logger.debug(f"The island with contour : {contour} has been dismissed, because it's too small")
                     continue
                 hierarch: Hierarchy = Hierarchy (
@@ -872,7 +875,7 @@ class Tracer:
         cv2.fillPoly(mask, uv_faces, 255)
         masked_texture = cv2.bitwise_and(np_img, np_img, mask=mask)
         
-        if self.config.debug:
+        if self.config.enable_texture_transformation_visualisation:
             cv2.namedWindow('Mask', cv2.WINDOW_KEEPRATIO)
             cv2.imshow('Mask', mask)
             cv2.resizeWindow('Mask', 600, 600)

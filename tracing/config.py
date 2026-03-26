@@ -40,3 +40,15 @@ class TracerConfig:
 
     parallel_angle: float = np.radians(1)
     """Angle radius threshold when considering too parallel faces"""
+
+    enable_reduction_visualisation: bool = True
+    """Whether reduction's visualisations should be displayed"""
+
+    enable_inputs_visualisation: bool = True
+    """Whether input's visualisations should be displayed"""
+
+    enable_texture_transformation_visualisation: bool = True
+    """Whether texture transformation's (mask, palettization, color split) visualisations should be displayed"""
+
+    enable_island_selection_visualisation: bool = True
+    """Whether island selsection's visualisations should be displayed"""
