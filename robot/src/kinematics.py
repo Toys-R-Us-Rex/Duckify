@@ -325,7 +325,9 @@ def select_closest_ik(solutions, qnear, joint_limits=None):
             if not valid:
                 continue
 
-        dist = np.sum((sol - qnear) ** 2)
+        diff = sol - qnear
+        diff = (diff + np.pi) % (2 * np.pi) - np.pi
+        dist = np.sum(diff ** 2)
         if dist < best_dist:
             best_dist = dist
             best = sol
