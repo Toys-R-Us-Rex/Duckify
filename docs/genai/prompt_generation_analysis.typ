@@ -5,12 +5,11 @@
 
 = Prompt Analysis
 
-This document will regroup a serie of prompt tests run during the equivalent of a half day. The objective of this serie of prompt was to test a new approach of prompt and also give more time for the former GenAI team to work on other element.
-
+This document will regroup a serie of prompt tests run during the equivalent of a half day. The objective of this serie of prompt was to test a new approach of prompt and also give more time for the former GenAI team to work on other element. The main add I did in the prompt was to add an initiale statement : "A rubber duck disguised as". Maybe it could help the process to signify that what we provide a duck as entry. 
 
  == Police officer
 
-
+What we can intuit from our perception of what is a police officer. Their uniform are mainly black or dark blue : at least in the dark tune
 
  #pc("1_policeman/textured_official_model_1.png", 80%, "Prompt: A rubber duck disguised as a police officer")
  #pc("1_policeman/textured_official_model_2.png", 80%, "Prompt: A rubber duck disguised as a police officer with only red yellow blue white")
@@ -43,6 +42,9 @@ This document will regroup a serie of prompt tests run during the equivalent of 
  #pc("2_cow/textured_official_model_27.png", 80%, "Prompt: A rubber duck disguised as a cow with white skin and black stain using only black and white")
 
 == Video game character
+
+We tested some classic superheroes (superman and batman) and the result were relatively accurate. So I wondered if the result could be the same for characters from video game. I choosed 2 that I consider well-known enough so I could expect that MV-Adapter could know them. In fact it's not the case as you can see in the following picture. 
+
 
 #pagebreak()
 === Mario
