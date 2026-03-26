@@ -3,22 +3,25 @@ name = "duckify"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "jupyter>=1.1.1",
     "tracing",
+    "robot",
     "genai",
     "ui",
 ]
 
 [tool.uv.workspace]
 members = [
-    "genai",
     "tracing",
+    "robot",
+    "genai",
     "ui",
 ]
 
 [tool.uv.sources]
 genai = { workspace = true }
 tracing = { workspace = true }
+robot = { workspace = true }
 ui = { workspace = true }

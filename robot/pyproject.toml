@@ -1,0 +1,51 @@
+[project]
+name = "robot"
+version = "0.1.0"
+description = "Starter code for Engineering Track 304 course"
+authors = [
+    { name = "AMA", email = "axel.amand@hevs.ch" },
+    { name = "RIU", email = "murielle.richard@hevs.ch" },
+    { name = "AZL", email = "loic.azzalini@hevs.ch" },
+]
+requires-python = ">=3.11"
+readme = "README.md"
+license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "ipykernel>=7.2.0",
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.3",
+    "opencv-python>=4.13.0.92",
+    "pillow>=12.1.1",
+    "pyb-utils>=2.4.2",
+    "pybullet>=3.2.7",
+    "requests>=2.32.5",
+    "rtree>=1.4.1",
+    "scipy>=1.17.1",
+    "setuptools>=67.0.0",
+    "trimesh>=4.11.4",
+    "urbasic>=0.0.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+urbasic = { path = "urbasic", editable = true }
+
+[dependency-groups]
+dev = ["pytest>=8.0,<9"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[build-system]
+requires = ["uv_build>=0.8.23,<0.9.0"]
+build-backend = "uv_build"
