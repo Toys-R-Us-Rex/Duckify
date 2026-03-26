@@ -9,10 +9,7 @@ import logging
 import numpy as np
 
 from src.segment import JointSegment, MotionType, SideType, TCPSegment
-from src.config import (
-    DRAW_V, DRAW_A, APPROACH_V, APPROACH_A, TRAVEL_V, TRAVEL_A,
-    HOVER_OFFSET,
-)
+from src.config import *
 from src.utils import *
 
 log = logging.getLogger(__name__)
@@ -592,7 +589,7 @@ def correct_bottom_values(waypoints):
 
     for waypoint in waypoints:
 
-        if waypoint[2] > 10:
+        if waypoint[2] > MIN_HEIGHT_NORMAL_CORRECTION_MM:
             continue
         normal = np.array([waypoint[3], waypoint[4], waypoint[5]])
         vertical = np.array([0,0,1])
@@ -602,5 +599,13 @@ def correct_bottom_values(waypoints):
 
     return waypoints
 
+def hotfix_j6_correction(segments):
 
+    for seg in segments:
+        for waypoint in seg.waypoints:
+            waypoint[5] = HOMEJ[5]
+
+    # input("in hotfix correction")
+
+    return segments
 
