@@ -588,8 +588,25 @@ def plot_joint_plan(segments, save_path):
 
 
 
-def correct_bottom_value(waypoints):
-    # TODO : to implement
+def correct_bottom_values(waypoints):
+
+    for waypoint in waypoints:
+
+        print(waypoint[2])
+
+        if waypoint[2] > 10:
+            continue
+        normal = np.array([waypoint[3], waypoint[4], waypoint[5]])
+        vertical = np.array([0,0,1])
+
+        if np.acos(np.dot(normal, vertical) / ( np.linalg.norm(normal) * np.linalg.norm(vertical)) > np.pi / 2):
+            waypoint[5] = 0.0
+
+    # print(waypoints[0])
+    #
+    # input("WE are in correction part -----------")
+    #
+    # # TODO : to implement
     return waypoints
 
 
