@@ -288,7 +288,7 @@ def launch_transformation(robot_ip: str, file_path: str, ds: DataStore, z_rotati
             data = json.load(f)
         
         iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
-        tcp_offset = return_tcp_offset(ds)
+        tcp_offset = ds.return_tcp_offset()
         iscoin.robot_control.set_tcp(tcp_offset)
 
         p_world = np.array(data["calibration"])
@@ -330,7 +330,7 @@ def test_transformation(ds: DataStore, obj2robot: AtoB, robot_ip: str, test: lis
     if not ask_yes_no("Do you want to test on Gazebo? y/n \n"):
         return
 
-    tcp_offset = return_tcp_offset(ds)
+    tcp_offset = ds.return_tcp_offset()
     
     duckify_sim = DuckifySim()
     robot_sim = duckify_sim.robot_control

@@ -93,7 +93,7 @@ def test_waypoints(data: dict, ds: DataStore, default_calibration: Path = None, 
         duckify_sim = DuckifySim()
         robot_sim = duckify_sim.robot_control
 
-        tcp_offset = return_tcp_offset(ds, default_calibration)
+        tcp_offset = ds.return_tcp_offset(default_calibration)
         robot_sim.set_tcp(tcp_offset)
 
         if ask_yes_no("Do you want to avoid the DRAW path? y/n \n"):

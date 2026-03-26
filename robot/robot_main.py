@@ -116,7 +116,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--calibration",
         type=str,
-        default=None,
+        default=DEFAULT_CALIBRATION_PATH,
         metavar="<FILE>",
         help="Override the default calibration JSON file"
     )
