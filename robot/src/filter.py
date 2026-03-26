@@ -2,7 +2,7 @@ from pathlib import Path
 
 from src.logger import DataStore
 from src.segment import TraceSegment, SideType
-from src.computation import load_traces
+from src.computation import load_traces, correct_bottom_values
 from src.stage import Stage
 from src.utils import ask_yes_no, rotation_matrix_z
 import numpy as np
@@ -69,8 +69,14 @@ class Filter(Stage):
             color = trace['color']
             color = color if self.multipen else 0
 
+
             # Rotate the coordinate
-            waypoints = [pt+ pn for pt, pn in path[::5]]
+            # waypoints = [pt+ pn for pt, pn in path[::5]]
+            waypoints = [pt+ pn for pt, pn in path]
+
+            waypoints = correct_bottom_values(waypoints)
+
+            # waypoints = waypoints[2:-2]
 
             ys = [pt[1] for pt in waypoints]
 

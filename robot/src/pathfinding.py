@@ -63,6 +63,10 @@ class Pathfinding(Stage):
         checker.set_joint_angles(HOMEJ.toList())
         joint_data = {}
         for s, d in data.items():
+            if not ask_yes_no(f"Draw on side {s}"):
+                continue
+
+
             joint_data[s] = {}
             for c, traces in d.items():
                 self.ds.log(f"Processing {s} - {c}")
@@ -109,7 +113,10 @@ class Pathfinding(Stage):
 
                 input("Press Enter to continue after visualization...")
                 joint_data[s][c] = segments
-                plot_joint_plan(segments, self.ds.data_path / "joint_plan.png")
+                plot_index = 0
+                while (self.ds.data_path / f"joint_plan_{plot_index}.png").exists():
+                    plot_index += 1
+                plot_joint_plan(segments, self.ds.data_path / f"joint_plan_{plot_index}.png")
 
         if pb.isConnected(checker.cid):
             pb.disconnect(checker.cid)

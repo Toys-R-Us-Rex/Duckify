@@ -434,7 +434,7 @@ class Transformation(Stage):
                     test_transformation(self.ds, obj2robot, self.robot_ip)
                 return
 
-            if ask_yes_no("Do you want to run a robot transformation? y/n \n"):
+            if ask_yes_no("Do you want to run a robot transformation? ( verify remote mode ) y/n \n"):
                 obj2robot = launch_transformation(self.robot_ip, self.json_socle, self.ds)
                 if ask_yes_no("Do you want to test transformation? y/n \n"):
                     test_transformation(self.ds, obj2robot, self.robot_ip)
