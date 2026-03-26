@@ -444,7 +444,7 @@ def plan_travels(checker, segments):
             obstacles=checker.obstacle_ids,
             self_collisions=True,
             resolutions=[0.02, 0.02, 0.02, 0.02, 0.02, 0.02],
-            weights=[0.5, 0.5, 0.5, 1, 1, 1]
+            # weights=[0.5, 0.5, 0.5, 1, 0.1, 0.1]
         )
 
         if path is not None:
@@ -609,3 +609,19 @@ def hotfix_j6_correction(segments):
 
     return segments
 
+def add_angle_continuity(segments):
+    prev_wp = None
+
+    for seg in segments:
+        if not seg.waypoints:
+            continue
+        for waypoint in seg.waypoints:
+            if prev_wp is not None:
+                for j in range(6):
+                    while waypoint[j] - prev_wp[j] > np.pi:
+                        waypoint[j] -= 2 * np.pi
+                    while waypoint[j] - prev_wp[j] < -np.pi:
+                        waypoint[j] += 2 * np.pi
+            prev_wp = waypoint
+
+    return segments

@@ -10,7 +10,7 @@ from duckify_simulation.duckify_sim.robot_control import SimRobotControl
 from src.safety import setup_checker
 from src.transformation import extract_pybullet_pose
 from src.pybullet_helpers import clear_bodies, find_hovers, preview_traces, split_into_runs, validate_surface_points, visualize_validation, visualize_runs, visualize_plan, animate_plan
-from src.computation import assemble_segments, plan_travels, smoothing, plot_joint_plan, hotfix_j6_correction
+from src.computation import assemble_segments, plan_travels, smoothing, plot_joint_plan, hotfix_j6_correction, add_angle_continuity
 
 class Pathfinding(Stage):
     def __init__(self, datastore: DataStore, default_calibration: Path = None, obstacles: list = OBSTACLE_STLS, verbose: bool = True):
@@ -99,8 +99,16 @@ class Pathfinding(Stage):
 
                 validated_runs = find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_joints, home=HOMEJ)
                 segments = assemble_segments(robot, checker, validated_runs, surface_joints, HOMEJ, surface_tcps_per_trace)
+
+                segments = add_angle_continuity(segments)
+
                 smoothing(robot, checker, segments, HOMEJ)
+
                 plan_travels(checker, segments)
+
+                segments = add_angle_continuity(segments)
+
+                smoothing(robot, checker, segments, HOMEJ)
 
 
                 segments = hotfix_j6_correction(segments)

@@ -25,6 +25,7 @@ DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_11_long_line-trace
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_4_triangle_on_bill-trace.json"
 
 
+
 DEFAULT_JSON_SOCLE = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_socle.json"
 
 VERBOSE = True
