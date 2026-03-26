@@ -7,7 +7,7 @@ Copyright (c) 2026 HES-SO Valais-Wallis, Engineering Track 304
 from pathlib import Path
 import numpy as np
 
-from URBasic.waypoint6d import Joint6D
+from URBasic.waypoint6d import TCP6D, Joint6D
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 ASSETS_DIR = PROJECT_DIR / "assets"
@@ -41,6 +41,9 @@ MAX_JOINT_JUMP = 0.5           # max allowed single-joint difference from qnear 
 
 # Default home position
 HOMEJ = Joint6D.createFromRadians(1.8859, -1.4452, 1.2389, -1.3639, -1.5693, -0.3849)
+FIRST_SIMULATION_PEN_SUPPORT = TCP6D.createFromMetersRadians(-0.31030073427776544, -0.12772318658605364, 0.1691221791937419, -3.123526746656135, 0.06494033931935389, 0.0007571664234476744)
+SECOND_SIMULATION_PENSUPPORT = TCP6D.createFromMetersRadians(-0.37030073427776544, -0.12772318658605364, 0.1691221791937419, -3.123526746656135, 0.06494033931935389, 0.0007571664234476744)
+
 
 MINIMAL_DISTANCE = 0.164
 LEGNTH_BETWEEN_PENS = 0.05 # This distance comes from the design of the wood support for pen.

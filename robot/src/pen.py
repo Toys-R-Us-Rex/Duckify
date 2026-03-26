@@ -39,28 +39,37 @@ class PenState():
         self.robot = robot
 
     def record_pen_position(self):
-        if ask_yes_no("In simulation? y/n \n"):
-            # TODO: CHANGE THIS - The support position should be saved in a file and reused
+        if isinstance(self.robot, DuckifySim):
             self.robot.gripper.open()
+            if ask_yes_no("Does it is the first pen support? y/n \n"):
+                self.support_position = FIRST_SIMULATION_PEN_SUPPORT
+            else:
+                self.support_position = SECOND_SIMULATION_PENSUPPORT
             self.support_position = TCP6D.createFromMetersRadians(-0.31030073427776544, -0.12772318658605364, 0.1691221791937419, -3.123526746656135, 0.06494033931935389, 0.0007571664234476744)
             return
         
         self.robot.robot_control.freedrive_mode()
 
-        self.robot.gripper.open()
-        if ask_yes_no("Pen in gripper ? y/n \n"):
+        if not ask_yes_no("Does the pen is in the gripper? (WARNING: Gripper will open) y/n \n"):
+            self.robot.gripper.open()
+
+            while not ask_yes_no("Did you place the pen in the gripper? (WARNING: Gripper will close) y/n \n"):
+                pass
+
             self.robot.gripper.close()
 
-        while ask_yes_no("Confirm point? y/n \n"):
-            continue
+        while not ask_yes_no("Are you in the correct position for calibration on the support? y/n \n"):
+            pass
+
         self.support_position = self.robot.robot_control.get_actual_tcp_pose()
             
         print(f"Support position: {self.support_position}")
 
-        self.robot.gripper.open()
+        while not ask_yes_no("Does the robot is close to the home position? y/n \n"):
+            pass
 
-        if ask_yes_no("Reset arm? y/n \n"):
-            self.robot.robot_control.end_freedrive_mode()
+        self.robot.robot_control.end_freedrive_mode()
+
 
     def get_pen_by_id(self, pen_id: int):
         """
