@@ -127,7 +127,8 @@ TEST_TRANSFORMATION = [0, 0, 2, 0, 0, -1]  # x, y, z, n1, n2, n3
 # Scene for pybullet collision testing
 OBSTACLE_STLS = [
     {
-        'path': ASSETS_DIR / 'models/duck_uv.stl',
+        # 'path': ASSETS_DIR / 'models/duck_uv.stl',
+        'path': ASSETS_DIR / 'models/duck_uv_low_poly.stl',
         'scale': [0.001, 0.001, 0.001],
     },
     {
@@ -143,4 +144,4 @@ OBSTACLE_STLS = [
     },
 ]
 
-DRAWING_ANGLE = 25
+DRAWING_ANGLE = 45
