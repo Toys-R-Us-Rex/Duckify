@@ -8,7 +8,7 @@ import logging
 
 import numpy as np
 
-from src.segment import JointSegment, MotionType, SideType, TCPSegment
+from src.segment import JointSegment, MotionType, SideType
 from src.config import *
 from src.utils import *
 
@@ -36,22 +36,6 @@ def points_to_tcps(points_robot, normals_robot):
         rv = normal_to_rotvec(n)
         tcps.append(TCP6D.createFromMetersRadians(pt[0], pt[1], pt[2], rv[0], rv[1], rv[2]))
     return tcps
-
-def trace_to_tcp(trace, obj2robot, max_pts=None):
-    from URBasic import TCP6D
-
-    path = trace["path"]
-    if max_pts is not None:
-        path = path[:max_pts]
-
-    surface_tcps = []
-    for entry in path:
-        position_obj, normal_obj = entry[0], entry[1]
-        robot_pose = obj2robot((*np.array(position_obj), *np.array(normal_obj)))
-        x, y, z, rx, ry, rz = robot_pose
-        surface_tcps.append(TCP6D.createFromMetersRadians(x, y, z, rx, ry, rz))
-
-    return surface_tcps
 
 
 # ---------------------------------------------------------------------------
@@ -122,162 +106,6 @@ def _find_valid_hover(checker, robot, run_surface, surface_joints,
     return None, None, n
 
 
-#TODO: remove dead code ( check first )
-def plan_drawing(robot, checker, traces, obj2robot,
-                       start_tcp=None, home_joints=None,
-                       hover_offset=None, max_pts=None):
-
-    segments = []
-    skip_report = []
-    current_tcp = start_tcp
-
-    if current_tcp is None and home_joints is not None:
-        current_tcp = robot.get_fk(home_joints)
-
-    for trace_idx, trace in enumerate(traces):
-        surface_pts = trace_to_tcp(
-            trace, obj2robot, max_pts=max_pts,
-        )
-        if not surface_pts:
-            continue
-
-        # Per-point validation (no obstacle collision for surface points)
-        valid_checklist, reasons, surface_joints = _validate_surface_points(
-            checker, robot, surface_pts,
-        )
-
-        # Build skip report for this trace
-        skipped_indices = [i for i, ok in enumerate(valid_checklist) if not ok]
-        skipped_reasons = [reasons[i] for i in skipped_indices]
-        report = {
-            "trace": trace_idx,
-            "skipped_indices": skipped_indices,
-            "reasons": skipped_reasons,
-            "original_count": len(surface_pts),
-            "drawn_count": sum(valid_checklist),
-        }
-        skip_report.append(report)
-
-        if skipped_indices:
-            log.warning(
-                "Trace %d: skipping %d/%d points: %s",
-                trace_idx, len(skipped_indices), len(surface_pts),
-                skipped_reasons,
-            )
-
-        # Split into consecutive valid runs
-        runs = _split_into_runs(valid_checklist)
-        if not runs:
-            log.warning("Trace %d: no valid points, skipping entire trace",
-                        trace_idx)
-            continue
-
-        for run_start, run_end in runs:
-            run_surface = surface_pts[run_start:run_end + 1]
-            run_joints = surface_joints[run_start:run_end + 1]
-
-            # Trim inward to find valid hover entry
-            h_entry, _, entry_trim = _find_valid_hover(
-                checker, robot, run_surface, run_joints,
-                from_end=False, hover_offset=hover_offset,
-            )
-            if h_entry is None:
-                log.warning(
-                    "Trace %d run (%d-%d): no valid hover entry after "
-                    "trimming all %d pts, discarding run",
-                    trace_idx, run_start, run_end, len(run_surface),
-                )
-                continue
-
-            # Trim inward to find valid hover exit
-            h_exit, _, exit_trim = _find_valid_hover(
-                checker, robot, run_surface, run_joints,
-                from_end=True, hover_offset=hover_offset,
-            )
-            if h_exit is None:
-                log.warning(
-                    "Trace %d run (%d-%d): no valid hover exit after "
-                    "trimming all %d pts, discarding run",
-                    trace_idx, run_start, run_end, len(run_surface),
-                )
-                continue
-
-            # Apply trimming
-            trimmed = run_surface[entry_trim:len(run_surface) - exit_trim]
-            if not trimmed:
-                log.warning(
-                    "Trace %d run (%d-%d): entry/exit trims overlap "
-                    "(%d+%d >= %d), discarding run",
-                    trace_idx, run_start, run_end,
-                    entry_trim, exit_trim, len(run_surface),
-                )
-                continue
-
-            if entry_trim or exit_trim:
-                log.info(
-                    "Trace %d run (%d-%d): trimmed %d entry + %d exit pts, "
-                    "%d pts remain",
-                    trace_idx, run_start, run_end,
-                    entry_trim, exit_trim, len(trimmed),
-                )
-
-            run_surface = trimmed
-
-            # TRAVEL to hover entry
-            if current_tcp is not None:
-                travel_wps, _ = compute_positioning_motion(
-                    robot, checker, current_tcp, h_entry,
-                )
-                segments.append(TCPSegment(
-                    motion_type=MotionType.TRAVEL,
-                    waypoints=travel_wps,
-                    v=TRAVEL_V,
-                    a=TRAVEL_A,
-                ))
-
-            # APPROACH pen-down
-            segments.append(TCPSegment(
-                motion_type=MotionType.APPROACH,
-                waypoints=[h_entry, run_surface[0]],
-                v=APPROACH_V,
-                a=APPROACH_A,
-            ))
-
-            # DRAW on surface
-            segments.append(TCPSegment(
-                motion_type=MotionType.DRAW,
-                waypoints=run_surface,
-                v=DRAW_V,
-                a=DRAW_A,
-            ))
-
-            # APPROACH pen-up
-            segments.append(TCPSegment(
-                motion_type=MotionType.APPROACH,
-                waypoints=[run_surface[-1], h_exit],
-                v=APPROACH_V,
-                a=APPROACH_A,
-            ))
-
-            current_tcp = h_exit
-
-    # Final TRAVEL back home
-    if home_joints is not None and current_tcp is not None:
-        home_tcp = robot.get_fk(home_joints)
-        travel_wps, _ = compute_positioning_motion(
-            robot, checker, current_tcp, home_tcp,
-        )
-        segments.append(TCPSegment(
-            motion_type=MotionType.TRAVEL,
-            waypoints=travel_wps,
-            v=TRAVEL_V,
-            a=TRAVEL_A,
-        ))
-
-    return segments, skip_report
-
-
-#TODO: remove dead code ( check first )
 def load_traces(json_path):
     """Load trace JSON and normalize v1 → v2 format.
 
@@ -298,30 +126,6 @@ def load_traces(json_path):
 
     return traces, data
 
-
-def load_and_convert_to_tcp(json_path, obj2robot, max_pts=None):
-    traces, data = load_traces(json_path)
-    surface_tcps_per_trace = []
-    for t in traces:
-        surface_tcps_per_trace.append(trace_to_tcp(t, obj2robot, max_pts=max_pts))
-    return surface_tcps_per_trace, traces, data
-
-
-#TODO: remove dead code ( check first )
-def load_and_plan(robot, checker, json_path, obj2robot,
-                  start_tcp=None, home_joints=None,
-                  hover_offset=None, max_pts=None):
-    """Load trace JSON and build drawing plan.
-
-    Returns (segments, skip_report).
-    """
-    traces, _ = load_traces(json_path)
-
-    return plan_drawing(
-        robot, checker, traces, obj2robot,
-        start_tcp=start_tcp, home_joints=home_joints,
-        hover_offset=hover_offset, max_pts=max_pts,
-    )
 
 
 def assemble_segments(robot, checker, validated_runs, surface_joints_per_trace, home,
@@ -448,10 +252,33 @@ def plan_travels(checker, segments):
         )
 
         if path is not None:
+            path = simplify_path(path)
             seg.waypoints = [Joint6D.createFromRadians(*conf) for conf in path]
             print(f"  Segment {seg_i}: TRAVEL planned ({len(seg.waypoints)} wps)")
         else:
             print(f"  Segment {seg_i}: TRAVEL FAILED (keeping placeholder)")
+
+
+def simplify_path(path, tolerance=0.05):
+    if len(path) <= 2:
+        return path
+
+    keep = [0]
+
+    for i in range(1, len(path) - 1):
+        a = np.array(path[keep[-1]])
+        b = np.array(path[i])
+        c = np.array(path[i + 1])
+
+        t = np.dot(b - a, c - a) / max(np.dot(c - a, c - a), 1e-10)
+        t = np.clip(t, 0, 1)
+        projected = a + t * (c - a)
+
+        if np.linalg.norm(b - projected) > tolerance:
+            keep.append(i)
+
+    keep.append(len(path) - 1)
+    return [path[i] for i in keep]
 
 
 def smoothing(robot, checker, segments, home):

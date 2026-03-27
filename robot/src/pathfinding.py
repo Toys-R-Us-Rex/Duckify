@@ -106,6 +106,8 @@ class Pathfinding(Stage):
 
                 plan_travels(checker, segments)
 
+
+
                 # segments = add_angle_continuity(segments)
 
                 # smoothing(robot, checker, segments, HOMEJ)
