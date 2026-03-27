@@ -100,15 +100,15 @@ class Pathfinding(Stage):
                 validated_runs = find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_joints, home=HOMEJ)
                 segments = assemble_segments(robot, checker, validated_runs, surface_joints, HOMEJ, surface_tcps_per_trace)
 
-                segments = add_angle_continuity(segments)
+                # segments = add_angle_continuity(segments)
 
                 smoothing(robot, checker, segments, HOMEJ)
 
                 plan_travels(checker, segments)
 
-                segments = add_angle_continuity(segments)
+                # segments = add_angle_continuity(segments)
 
-                smoothing(robot, checker, segments, HOMEJ)
+                # smoothing(robot, checker, segments, HOMEJ)
 
 
                 segments = hotfix_j6_correction(segments)

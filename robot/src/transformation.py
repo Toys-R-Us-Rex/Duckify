@@ -39,6 +39,7 @@ Course:     HES-SO Valais-Wallis, Engineering Track 304
 
 import json
 import numpy as np
+from jupyter_console.ptshell import ask_yes_no
 from scipy.spatial.transform import Rotation as Rot
 
 from src.config import *
@@ -479,6 +480,16 @@ class Transformation(Stage):
                 if ask_yes_no("Do you want to test transformation? y/n \n"):
                     test_transformation(self.ds, obj2robot, self.robot_ip)
                 return
+
+            if ask_yes_no("Do you want to apply a z rotation? y/n \n"):
+                obj_to_robot = self.ds.load_transformation()
+                if self.z_rotation != 0:
+                    obj_to_robot = apply_z_rotation(obj_to_robot, self.z_rotation)
+                    self.ds.log(f"Applying z-rotation to transformation: {self.z_rotation}")
+                    self.ds.save_transformation(obj_to_robot)
+                    self.ds.log_transformation(obj_to_robot)
+                return
+
 
             if ask_yes_no("You don't have a transformation or can't run one? y/n \n"):
                 self.ds.log("No transformation available.")

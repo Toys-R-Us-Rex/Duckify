@@ -118,7 +118,7 @@ class Robot(Stage):
             force.start_logging()
 
         try:
-            move_simple(iscoin, motion, self.ds)
+            move_simple(iscoin, motion, self.ds, self.multipen)
         except Exception as e:
             self.ds.log(f"Exception with robot: {e}")
             raise
