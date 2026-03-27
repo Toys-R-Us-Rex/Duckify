@@ -321,9 +321,8 @@ def launch_pen_calibration(robot_ip: str, ds: DataStore, default_calibration: Pa
         pen_state_1.record_pen_position()
         pen_state_2.record_pen_position()
 
-        ds.log_pen_calibration(pen_state_1.support_position)
-        ds.log_pen_calibration(pen_state_2.support_position)
-        ds.save_pen_calibration(pen_state_1.support_position,pen_state_2.support_position)
+        ds.log_pen_calibration(pen_state_1.support_position, pen_state_2.support_position)
+        ds.save_pen_calibration(pen_state_1.support_position, pen_state_2.support_position)
 
     except Exception as e:
         ds.log(f"Pen calibration failed: {e}")
@@ -372,8 +371,7 @@ class Calibration(Stage):
                 if self.multipen:
                     if self.ds.check_pen_calibration():
                         pen_1, pen_2 = self.ds.load_pen_calibration()
-                        self.ds.log_pen_calibration(pen_1)
-                        self.ds.log_pen_calibration(pen_2)
+                        self.ds.log_pen_calibration(pen_1, pen_2)
                     else:
                         raise RuntimeError("Default pen calibration not found.")
                 return
@@ -384,8 +382,7 @@ class Calibration(Stage):
                 if self.multipen:
                     if self.ds.check_pen_calibration():
                         pen_1, pen_2 = self.ds.load_pen_calibration()
-                        self.ds.log_pen_calibration(pen_1)
-                        self.ds.log_pen_calibration(pen_2)
+                        self.ds.log_pen_calibration(pen_1, pen_2)
                     else:
                         raise RuntimeError("Default pen calibration not found.")
             else:
@@ -402,8 +399,7 @@ class Calibration(Stage):
                     if not self.ds.check_pen_calibration():
                         raise RuntimeError("Failed to load default pen calibration.")
                     pen_1, pen_2 = self.ds.load_pen_calibration()
-                    self.ds.log_pen_calibration(pen_1)
-                    self.ds.log_pen_calibration(pen_2)
+                    self.ds.log_pen_calibration(pen_1, pen_2)
                 return
             
             if ask_yes_no("Do you want to run a robot calibration? y/n\n"):
@@ -418,6 +414,15 @@ class Calibration(Stage):
             
             if ask_yes_no("Do you want to run a pen calibration? y/n\n"):
                 launch_pen_calibration(self.robot_ip, self.ds, self.default_calibration)
+            else:
+                print("#############################")
+                if ask_yes_no("Do you want to use the test pen calibration? y/n\n"):
+                    print("WARNING: Use test pen calibration")
+                    self.ds.log("WARNING: Use test pen calibration")
+                    pen_1, pen_2 = self.ds.load_pen_calibration(TEST_PEN_CALIBRATION_PATH)
+                    self.ds.save_pen_calibration(pen_1, pen_2)
+                    self.ds.log_pen_calibration(pen_1, pen_2)
+                print("#############################")
 
 
     def fallback(self):
