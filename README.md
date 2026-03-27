@@ -36,6 +36,22 @@ uv run start
    uv run build-ui
    ```
 
+## Docker
+
+### Env
+
+add to `.env` file:
+```sh
+COMPOSE_FILE=docker/docker-compose.yml
+```
+
+```sh
+# To use the CPU in the Gazebo simulation
+docker compose --profile cpu up -d
+# To use the GPU in the Gazebo simulation
+docker compose --profile gpu up -d
+```
+
 ## Authors
 - Alexandre Venturi ([@mastermeter](https://github.com/mastermeter))
 - Cédric Mariéthoz ([@mariethoz](https://github.com/mariethoz))

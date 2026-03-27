@@ -1,0 +1,56 @@
+services:
+  # --- Duckify UI Service ---
+  duckify:
+    build:
+      context: ..
+      dockerfile: docker/duckify.Dockerfile
+    container_name: duckify_ui
+    privileged: true
+    network_mode: host
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - $XAUTHORITY:/root/.Xauthority
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - LIBGL_ALWAYS_SOFTWARE=1
+
+  simulator_cpu:
+    profiles: ["cpu"]
+    image: ghcr.io/toys-r-us-rex/iscoin-simulator:v1.0.0
+    container_name: iscoin_simulator_cpu
+    privileged: true
+    network_mode: host
+    stdin_open: true
+    tty: true
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - $XAUTHORITY:/root/.Xauthority
+    environment:
+    - DISPLAY=${DISPLAY}
+    - QT_X11_NO_MITSHM=1
+
+  simulator_gpu:
+    profiles: ["gpu"]
+    image: ghcr.io/toys-r-us-rex/iscoin-simulator:v1.0.0
+    container_name: iscoin_simulator_gpu
+    privileged: true
+    network_mode: host
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - $XAUTHORITY:/root/.Xauthority
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
