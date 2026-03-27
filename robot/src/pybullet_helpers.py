@@ -52,15 +52,6 @@ def draw_tcp_marker(cid, tcp, color, radius=0.0004):
     pb.addUserDebugLine(pos, end, color, lineWidth=1, physicsClientId=cid)
     return bid
 
-
-#TODO: remove dead code ( check first )
-def draw_line_strip(cid, waypoints, color, width=2):
-    for i in range(len(waypoints) - 1):
-        a = [waypoints[i].x, waypoints[i].y, waypoints[i].z]
-        b = [waypoints[i + 1].x, waypoints[i + 1].y, waypoints[i + 1].z]
-        pb.addUserDebugLine(a, b, color, lineWidth=width, physicsClientId=cid)
-
-
 def clear_bodies(cid, body_ids):
     pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0, physicsClientId=cid)
     for bid in body_ids:
