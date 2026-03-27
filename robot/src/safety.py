@@ -178,7 +178,7 @@ class CollisionChecker:
             for c in candidates:
                 diff = np.array(c.toList()) - qnear_arr
                 distances.append(np.sum(diff ** 2))
-            candidates = [c for _, c in sorted(zip(distances, candidates))]
+            candidates = [c for _, c in sorted(zip(distances, candidates), key=lambda t: t[0])]
 
         first_reason = None
         for q in candidates:

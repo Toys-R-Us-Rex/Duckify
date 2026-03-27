@@ -105,7 +105,6 @@ def _find_valid_hover(checker, robot, run_surface, surface_joints,
             return h_used, q, trim
     return None, None, n
 
-
 def load_traces(json_path):
     """Load trace JSON and normalize v1 → v2 format.
 
@@ -125,7 +124,6 @@ def load_traces(json_path):
             trace["path"] = [[pt, trace["face"]] for pt in trace["path"]]
 
     return traces, data
-
 
 
 def assemble_segments(robot, checker, validated_runs, surface_joints_per_trace, home,
