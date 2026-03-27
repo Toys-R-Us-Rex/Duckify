@@ -33,7 +33,7 @@ VERBOSE = True
 # Create a new ISCoin object
 # UR3e1 IP (closest to window): 10.30.5.158
 # UR3e2 IP: 10.30.5.159
-ROBOT_IP = "10.30.5.158"
+ROBOT_IP = "10.30.5.159"
 
 # Collision margins
 COLLISION_MARGIN = 0            # margin for obstacle collision checks
@@ -49,7 +49,11 @@ FIRST_SIMULATION_PEN_SUPPORT = TCP6D.createFromMetersRadians(-0.3103007342777654
 SECOND_SIMULATION_PENSUPPORT = TCP6D.createFromMetersRadians(-0.37030073427776544, -0.12772318658605364, 0.1691221791937419, -3.123526746656135, 0.06494033931935389, 0.0007571664234476744)
 
 
-MINIMAL_DISTANCE = 0.164
+# MINIMAL_DISTANCE = 0.164
+MINIMAL_DISTANCE = 0.018
+
+# PEN_LENGTH = 0.
+
 LEGNTH_BETWEEN_PENS = 0.05 # This distance comes from the design of the wood support for pen.
 FACING_DOWN = (np.pi, 0, 0) # To maintain the gripper facing down
 SECURITY_APPROACH = 0.075
