@@ -40,7 +40,9 @@ from src.segment import *
 from src.utils import AtoB
 
 from URBasic.iscoin import ISCoin
+from URBasic.urScript import UrScript
 from duckify_simulation.duckify_sim.duckify_sim import DuckifySim
+from duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
 
 class DataStore:
@@ -99,16 +101,19 @@ class DataStore:
         self.log(f"Calibration measure:\n" + s)
         self.log(f"Calibred offset:" + str(tcp_offset))
     
-    def log_pen_calibration(self, first_pen_position: TCP6D):
+    def log_pen_calibration(self, first_pen_position: TCP6D, second_pen_position: TCP6D):
         """
         Log the pen calibration position.
 
         Parameters
         ----------
-        pen_position : TCP6D
-            The calibrated pen position.
+        first_pen_position : TCP6D
+            The position of the first pen.
+        second_pen_position : TCP6D
+            The position of the second pen.
         """
         self.log(f"Pen calibration position: {first_pen_position}")
+        self.log(f"Pen calibration position: {second_pen_position}")
 
     def log_worldtcp(self, pworld: list[TCP6D], tcps: list[TCP6D]):
         """
@@ -1038,6 +1043,72 @@ class DataStore:
         else:
             return self.check_history("run_segments", index)
 
+
+class DataStoreForce_2:
+    def __init__(self, robot_control: UrScript | SimRobotControl, file_path: Path = None):
+        self.robot_ctr = robot_control
+        self.thread = None
+        self.stop_thread = None
+        self.file_path = file_path
+        self._lock = threading.Lock()
+
+    def __del__(self):
+        try:
+            self.stop_measures()
+        except Exception:
+            pass
+
+    def start_measures(self, file_path: Path = DEFAULT_FORCE_PATH):
+        with self._lock:
+            if self.thread is not None and self.thread.is_alive():
+                raise RuntimeError(
+                    f"Logging already running, writing to: {self.file_path}"
+                )
+
+            if not isinstance(file_path, Path):
+                raise TypeError("file_path must be a pathlib.Path")
+
+            self.stop_thread = threading.Event()
+            self.file_path = file_path
+
+            self.thread = threading.Thread(
+                target=self._measures,
+                daemon=True
+            )
+            self.thread.start()
+
+    def stop_measures(self):
+        with self._lock:
+            if self.stop_thread is None:
+                return  # Already stopped or never started
+
+            self.stop_thread.set()
+
+            if self.thread is not None and self.thread.is_alive():
+                self.thread.join(timeout=2)
+
+            # Reset state
+            self.thread = None
+            self.stop_thread = None
+
+    def _measures(self):
+        time_start = time.time()
+
+        with self.file_path.open("w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["time", "Fx", "Fy", "Fz", "Tx", "Ty", "Tz", "Force"])
+
+            while not self.stop_thread.is_set():
+                tcp = self.robot_ctr.get_actual_tcp_pose(wait=False)
+                wrench = self.robot_ctr.get_tcp_force(wait=False)
+                magnitude = self.robot_ctr.force(wait=False)
+                timestamp = time.time() - time_start
+
+                row = [timestamp] + tcp.toList() + wrench + [magnitude]
+                writer.writerow(row)
+                f.flush()
+
+                time.sleep(0.1)
 
 class DataStoreForce:
     """
