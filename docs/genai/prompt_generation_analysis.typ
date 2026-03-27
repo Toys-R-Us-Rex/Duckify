@@ -51,7 +51,7 @@ We tested some classic superheroes (superman and batman) and the result were rel
 
 
 
-#pc("3_Mario/Mario.png", 20%, " Character model example (Source : https://allgsn.blogspot.com/2017/01/what-was-profession-of-iconic-video.html")
+#pc("3_Mario/Mario.jpg", 20%, " Character model example")
 #pc("3_Mario/textured_official_model_1.png", 80%, "Prompt: A rubber duck disguised as Mario")
 #pc("3_Mario/textured_official_model_2.png", 80%, "Prompt: A rubber duck disguised as Mario")
 #pc("3_Mario/textured_official_model_3.png", 80%, "Prompt: A rubber duck disguised as Mario")
@@ -68,7 +68,7 @@ We tested some classic superheroes (superman and batman) and the result were rel
 
 
 
-#pc("4_Link/Link.jpg", 20%, "Character model example (Source : https://freepngimg.com/png/21552-zelda-link)")
+#pc("4_Link/Link.jpg", 20%, "Character model example")
 #pc("4_Link/textured_official_model_1.png", 80%, "Prompt: A rubber duck disguised as Link the main character of the video game serie Zelda")
 #pc("4_Link/textured_official_model_2.png", 80%, "Prompt: A rubber duck disguised as Link the main character of the video game serie Zelda")
 
