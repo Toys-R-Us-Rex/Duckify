@@ -1,4 +1,4 @@
-from robot.src.computation import simplify_path
+from src.computation import simplify_path
 from src.safety import setup_checker
 from src.transformation import extract_pybullet_pose
 from pybullet_planning import plan_joint_motion
@@ -117,7 +117,7 @@ def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, 
                 continue
 
             if ask_yes_no("Do you want to test calibration? y/n \n"):
-                intermediar_calibration_tcp_test(robot_ctr, ds)
+                intermediar_calibration_joint_test(robot_ctr, ds)
 
             # Conversion in waypoint
             for trace in traces:
@@ -138,13 +138,13 @@ def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, 
                         ds.log(f"WARNING: Unknown waypoint type for waypoint: {type(m)}")
                         raise TypeError(f"Unknown waypoint type for waypoint: {type(m)}")
 
-            if isinstance(waypoints[0], Joint6DDescriptor):
-                robot_ctr.movej_waypoints(waypoints)
-            elif isinstance(waypoints[0], TCP6DDescriptor):
-                robot_ctr.movel_waypoints(waypoints)
-            else:
-                ds.log(f"WARNING: Unknown waypoint type for waypoints: {type(waypoints[0])}")
-                raise TypeError(f"Unknown waypoint type: {type(waypoints[0])}")
+                if isinstance(waypoints[0], Joint6DDescriptor):
+                    robot_ctr.movej_waypoints(waypoints)
+                elif isinstance(waypoints[0], TCP6DDescriptor):
+                    robot_ctr.movel_waypoints(waypoints)
+                else:
+                    ds.log(f"WARNING: Unknown waypoint type for waypoints: {type(waypoints[0])}")
+                    raise TypeError(f"Unknown waypoint type: {type(waypoints[0])}")
 
 
 class Robot(Stage):

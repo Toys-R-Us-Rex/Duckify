@@ -1175,7 +1175,7 @@ class DataStoreForce_2:
 
         with self.file_path.open("w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["time", "Fx", "Fy", "Fz", "Tx", "Ty", "Tz", "Force"])
+            writer.writerow(["time", "Fx", "Fy", "Fz", "Tx", "Ty", "Tz", "Wrench", "Magnitude"])
 
             while not self.stop_thread.is_set():
                 tcp = self.robot_ctr.get_actual_tcp_pose(wait=False)
@@ -1183,7 +1183,7 @@ class DataStoreForce_2:
                 magnitude = self.robot_ctr.force(wait=False)
                 timestamp = time.time() - time_start
 
-                row = [timestamp] + tcp.toList() + wrench + [magnitude]
+                row = [timestamp] + tcp.toList() + [wrench] + [magnitude]
                 writer.writerow(row)
                 f.flush()
 
