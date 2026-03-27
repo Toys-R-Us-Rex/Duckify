@@ -146,6 +146,17 @@ class DataStore:
         """
         self.log(f"Transformation (world => robot):\n" + str(AtoB.T_position) + "\n" + str(AtoB.T_orientation))
 
+    def log_test_position(self, position: TCP6D):
+        """
+        Log the test position.
+
+        Parameters
+        ----------
+        position : TCP6D
+            The test position.
+        """
+        self.log(f"Test position: {position}")
+
     def log(self, message: str):
         """
         Log a message to the log file.
@@ -1043,6 +1054,74 @@ class DataStore:
         else:
             return self.check_history("run_segments", index)
 
+    def save_test_position(self, position: TCP6D, file_path: Path = None):
+        """
+        Save the test position.
+
+        Parameters
+        ----------
+        position : TCP6D
+            The test position to save.
+        file_path : Path, optional
+            The file path to save the data to.
+        """
+        data = {"position": position}
+        if file_path:
+            with file_path.open("wb") as f:
+                pickle.dump(data, f)
+        else:
+            self.save_history("test_position", data)
+
+    def load_test_position(self, file_path: Path=None, index: int=-1) -> TCP6D:
+        """
+        Load the test position.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to load the data from.
+        index : int, optional
+            The index of the history entry to load.
+
+        Returns
+        -------
+        TCP6D
+            The loaded test position.
+        """
+        if file_path:
+            if not file_path.exists():
+                self.log(f"Test position data file not found {file_path}")
+                raise RuntimeError(f"Test position data file not found: {file_path}")
+
+            with file_path.open("rb") as f:
+                data = pickle.load(f)
+        else:
+            data = self.load_history_index("test_position", index)
+
+        position = data["position"]
+        self.log(f"Loaded test position from file {file_path}")
+        return position
+
+    def check_test_position(self, file_path: Path=None, index: int=-1) -> bool:
+        """
+        Check if Test position data exists.
+
+        Parameters
+        ----------
+        file_path : Path, optional
+            The file path to check.
+        index : int, optional
+            The index of the history entry to check.
+
+        Returns
+        -------
+        bool
+            True if the Test position data exists, False otherwise.
+        """
+        if file_path:
+            return file_path.exists()
+        else:
+            return self.check_history("test_position", index)
 
 class DataStoreForce_2:
     def __init__(self, robot_control: UrScript | SimRobotControl, file_path: Path = None):

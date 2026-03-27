@@ -328,6 +328,29 @@ def launch_pen_calibration(robot_ip: str, ds: DataStore, default_calibration: Pa
         ds.log(f"Pen calibration failed: {e}")
         raise e
 
+def launch_test_position(robot_ip: str, ds: DataStore, default_calibration: Path):
+    try:
+        iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
+        robot_ctr = iscoin.robot_control
+        tcp_offset = ds.return_tcp_offset(default_calibration)
+        robot_ctr.set_tcp(tcp_offset)
+
+        robot_ctr.freedrive_mode()
+        while not ask_yes_no("Do you want to save the current test position? y/n\n"):
+            pass
+        test_position = iscoin.robot_control.get_actual_tcp_pose()
+        ds.save_test_position(test_position)
+        ds.log_test_position(test_position)
+
+        while not ask_yes_no("Are you close to home position? y/n\n"):
+            pass
+
+        robot_ctr.end_freedrive_mode()
+
+    except Exception as e:
+        ds.log(f"Test position failed: {e}")
+        raise e
+
 
 class Calibration(Stage):
     """
@@ -423,6 +446,9 @@ class Calibration(Stage):
                     self.ds.save_pen_calibration(pen_1, pen_2)
                     self.ds.log_pen_calibration(pen_1, pen_2)
                 print("#############################")
+            
+            if ask_yes_no("Do you want to run a test position? y/n\n"):
+                launch_test_position(self.robot_ip, self.ds, self.default_calibration)
 
 
     def fallback(self):

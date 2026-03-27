@@ -1,3 +1,7 @@
+from robot.src.computation import simplify_path
+from src.safety import setup_checker
+from src.transformation import extract_pybullet_pose
+from pybullet_planning import plan_joint_motion
 from src.segment import SideType
 from src.logger import DataStore, DataStoreForce_2
 
@@ -44,6 +48,43 @@ def intermediar_calibration_tcp_test(robot_ctr: UrScript | SimRobotControl, ds: 
             pass
         robot_ctr.movel(move_above)
         robot_ctr.movel(actual_tcp)
+
+def intermediar_calibration_joint_test(robot_ctr: UrScript | SimRobotControl, ds: DataStore):
+    j = robot_ctr.get_actual_joint_positions()
+    if any(j.toList() != HOMEJ.toList()):
+        ds.log(f"Joint positions are not at home: {j} - {HOMEJ}")
+    elif ds.check_test_position():
+        robot_ctr.movej(HOMEJ)
+        test_pos = ds.load_test_position()
+
+        tcp_offset = ds.return_tcp_offset()
+
+        robot = SimRobotControl()
+        robot.set_tcp(tcp_offset)
+        obj2robot = ds.load_transformation()
+        pos, quat, scale = extract_pybullet_pose(obj2robot)
+        obstacles = OBSTACLE_STLS
+        for obs in obstacles:
+            if 'position' not in obs:
+                obs['position'] = pos
+                obs['orientation'] = quat
+        checker = setup_checker(obstacles, gui=False)
+        checker.set_joint_angles(HOMEJ.toList())
+        path = plan_joint_motion(
+            checker.robot_id, checker.joint_indices, test_pos,
+            obstacles=checker.obstacle_ids,
+            self_collisions=True,
+            resolutions=[0.02, 0.02, 0.02, 0.02, 0.02, 0.02],
+            # weights=[0.5, 0.5, 0.5, 1, 0.1, 0.1]
+        )
+        if path is not None:
+            path = simplify_path(path)
+            w = [Joint6D.createFromRadians(*conf) for conf in path]
+            waypoints = Joint6DDescriptor.createFromJointsList(w)
+            robot_ctr.movej_waypoints(waypoints)
+
+    else:
+        ds.log("ERROR: No test position found.")
 
 def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, multipen: bool = False):
     robot_ctr = robot.robot_control
