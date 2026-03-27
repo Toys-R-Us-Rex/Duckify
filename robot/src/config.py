@@ -12,9 +12,9 @@ from URBasic.waypoint6d import TCP6D, Joint6D
 PROJECT_DIR = Path(__file__).parent.parent.parent
 ASSETS_DIR = PROJECT_DIR / "assets"
 OUTPUT_DIR = PROJECT_DIR / "output"
-DEFAULT_CALIBRATION_PATH = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_default.pkl"
-TEST_PEN_CALIBRATION_PATH = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_pen_test.pkl"
-TEST_TRANSFORMATION_PATH = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "transformation_test.pkl"
+DEFAULT_CALIBRATION_PATH =  PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_default.pkl"
+TEST_PEN_CALIBRATION_PATH = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "pen_calibration_test.pkl"
+TEST_TRANSFORMATION_PATH =  PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "transformation_test.pkl"
 DEFAULT_FORCE_PATH = OUTPUT_DIR / "force_log.csv"
 DEFAULT_DATA_DIR = OUTPUT_DIR / "data"
 
@@ -51,8 +51,6 @@ SECOND_SIMULATION_PENSUPPORT = TCP6D.createFromMetersRadians(-0.3703007342777654
 
 # MINIMAL_DISTANCE = 0.164
 MINIMAL_DISTANCE = 0.018
-
-# PEN_LENGTH = 0.
 
 LEGNTH_BETWEEN_PENS = 0.05 # This distance comes from the design of the wood support for pen.
 FACING_DOWN = (np.pi, 0, 0) # To maintain the gripper facing down
