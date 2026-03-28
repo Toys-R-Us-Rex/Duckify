@@ -10,7 +10,6 @@ from URBasic.urScript import UrScript
 from URBasic.waypoint6d import TCP6D, Joint6D, Joint6DDescriptor, TCP6DDescriptor
 
 from duckify_simulation.duckify_sim import DuckifySim
-from duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
 from src.config import *
 from src.utils import *
@@ -19,7 +18,7 @@ import matplotlib.pyplot as plt
 
 from src.stage import Stage
 
-def intermediar_calibration_tcp_test(robot_ctr: UrScript | SimRobotControl, ds: DataStore):
+def intermediar_calibration_tcp_test(robot_ctr: UrScript, ds: DataStore):
     j = robot_ctr.get_actual_joint_positions()
     if any(j.toList() != HOMEJ.toList()):
         ds.log(f"Joint positions are not at home: {j} - {HOMEJ}")
@@ -49,7 +48,7 @@ def intermediar_calibration_tcp_test(robot_ctr: UrScript | SimRobotControl, ds: 
         robot_ctr.movel(move_above)
         robot_ctr.movel(actual_tcp)
 
-def intermediar_calibration_joint_test(robot_ctr: UrScript | SimRobotControl, ds: DataStore):
+def intermediar_calibration_joint_test(robot_ctr: UrScript, ds: DataStore):
     j = robot_ctr.get_actual_joint_positions()
     if any(j.toList() != HOMEJ.toList()):
         ds.log(f"Joint positions are not at home: {j} - {HOMEJ}")
@@ -57,10 +56,6 @@ def intermediar_calibration_joint_test(robot_ctr: UrScript | SimRobotControl, ds
         robot_ctr.movej(HOMEJ)
         test_pos = ds.load_test_position()
 
-        tcp_offset = ds.return_tcp_offset()
-
-        robot = SimRobotControl()
-        robot.set_tcp(tcp_offset)
         obj2robot = ds.load_transformation()
         pos, quat, scale = extract_pybullet_pose(obj2robot)
         obstacles = OBSTACLE_STLS
@@ -126,14 +121,8 @@ def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, 
                 for m in motion:
                     if isinstance(m, Joint6D):
                         waypoints.append(Joint6DDescriptor(m, a=DRAW_A, v=DRAW_V))
-                        continue
-                        if not robot_ctr.movej(m):
-                            ds.log(f"ERROR: Position not reached for waypoint: {m}")
                     elif isinstance(m, TCP6D):
                         waypoints.append(TCP6DDescriptor(m, a=DRAW_A, v=DRAW_V))
-                        continue
-                        if not robot_ctr.movel(m):
-                            ds.log(f"ERROR: Position not reached for waypoint: {m}")
                     else:
                         ds.log(f"WARNING: Unknown waypoint type for waypoint: {type(m)}")
                         raise TypeError(f"Unknown waypoint type for waypoint: {type(m)}")
