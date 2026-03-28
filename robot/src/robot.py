@@ -87,7 +87,7 @@ def intermediar_calibration_joint_test(robot_ctr: UrScript | SimRobotControl, ds
         ds.log("ERROR: No test position found.")
 
 def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, multipen: bool = False):
-    robot_ctr = robot.robot_control
+    robot_ctr = robot.robot_control_
     robot_ctr.movej(HOMEJ)
 
     if multipen:
