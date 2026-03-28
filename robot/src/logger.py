@@ -175,7 +175,7 @@ class DataStore:
         Background thread that writes logs in order.
         """
         with open(self.log_path, "a", encoding="utf-8") as f:
-            while self. running or self.queue.empty():
+            while self.running or not self.queue.empty():
                 try:
                     entry = self.queue.get(timeout=0.2)
                     f.write(entry + "\n")

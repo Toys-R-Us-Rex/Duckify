@@ -14,34 +14,6 @@ from src.utils import *
 
 log = logging.getLogger(__name__)
 
-def compute_draw_motion(trace, obj2robot, hover_offset=None, max_pts=None):
-    from URBasic import TCP6D
-
-    if hover_offset is None:
-        hover_offset = HOVER_OFFSET
-
-    path = trace["path"]
-    if max_pts is not None:
-        path = path[:max_pts]
-    points = np.array([entry[0] for entry in path])
-    normals = np.array([entry[1] for entry in path])
-    return points, normals
-
-
-def points_to_tcps(points_robot, normals_robot):
-    from URBasic import TCP6D
-
-    tcps = []
-    for pt, n in zip(points_robot, normals_robot):
-        rv = normal_to_rotvec(n)
-        tcps.append(TCP6D.createFromMetersRadians(pt[0], pt[1], pt[2], rv[0], rv[1], rv[2]))
-    return tcps
-
-
-# ---------------------------------------------------------------------------
-# Helpers for drawing pipeline
-# ---------------------------------------------------------------------------
-
 def _hover_tcp(surface_tcp, hover_offset=None):
     from URBasic import TCP6D
 
@@ -56,14 +28,14 @@ def _hover_tcp(surface_tcp, hover_offset=None):
     )
 
 
-def _validate_surface_points(checker, robot, surface_tcps, qnear=None):
+def _validate_surface_points(checker, tcp_offset, model_correction, surface_tcps, qnear=None):
     valid_checklist = []
     reasons = []
     joint_solutions = []
 
     for tcp in surface_tcps:
         ok, q, reason, _ = checker.validate_tcp(
-            robot, tcp, qnear=qnear, check_obstacle=False,
+            tcp_offset, model_correction, tcp, qnear=qnear, check_obstacle=False,
             orientation_search=True, check_joint_jump=False,
         )
         valid_checklist.append(ok)
@@ -89,7 +61,7 @@ def _split_into_runs(valid_checklist):
     return runs
 
 
-def _find_valid_hover(checker, robot, run_surface, surface_joints,
+def _find_valid_hover(checker, tcp_offset, model_correction, run_surface, surface_joints,
                       from_end, hover_offset=None, qnear_override=None):
     n = len(run_surface)
     indices = range(n - 1, -1, -1) if from_end else range(n)
@@ -98,7 +70,7 @@ def _find_valid_hover(checker, robot, run_surface, surface_joints,
         h_tcp = _hover_tcp(run_surface[i], hover_offset)
         qnear = qnear_override if qnear_override is not None else (surface_joints[i] if surface_joints is not None else None)
         ok, q, reason, h_used = checker.validate_tcp(
-            robot, h_tcp, qnear=qnear,
+            tcp_offset, model_correction, h_tcp, qnear=qnear,
             check_obstacle=True, orientation_search=True, check_joint_jump=False,
         )
         if ok:
@@ -126,15 +98,16 @@ def load_traces(json_path):
     return traces, data
 
 
-def assemble_segments(robot, checker, validated_runs, surface_joints_per_trace, home,
+def assemble_segments(tcp_offset, model_correction, checker, validated_runs, surface_joints_per_trace, home,
                       surface_tcps_per_trace=None):
+    from src.kinematics import get_fk
 
     print("\nAssembling segments...")
 
     segments = []
     current_joints = home
     current_label = "HOME"
-    home_tcp = robot.get_fk(home)
+    home_tcp = get_fk(home, tcp_offset, model_correction)
     prev_h_exit = home_tcp
 
     for run_i, (trace_i, run_start, run_end, h_entry, h_exit, run_surface, q_entry, q_exit) in enumerate(validated_runs):
@@ -279,7 +252,7 @@ def simplify_path(path, tolerance=0.05):
     return [path[i] for i in keep]
 
 
-def smoothing(robot, checker, segments, home):
+def smoothing(tcp_offset, model_correction, checker, segments, home):
 
     qnear = home
     total_updated = 0
@@ -297,7 +270,7 @@ def smoothing(robot, checker, segments, home):
         for wp_i, tcp in enumerate(seg.tcp_waypoints):
             check_obs = seg.motion_type == MotionType.TRAVEL
             ok, q, reason, _ = checker.validate_tcp(
-                robot, tcp, qnear=qnear, orientation_search=True,
+                tcp_offset, model_correction, tcp, qnear=qnear, orientation_search=True,
                 check_obstacle=check_obs,
             )
             if ok:
@@ -332,14 +305,6 @@ def smoothing(robot, checker, segments, home):
         seg.waypoints = new_waypoints
 
     print(f"\nSmoothing done: {total_updated} updated, {total_failed} kept original")
-
-def collect_joint_waypoints(segments):
-    all_joint_waypoints = []
-    for seg in segments:
-        for jw in seg.waypoints:
-            all_joint_waypoints.append(jw)
-    return all_joint_waypoints
-
 
 def plot_joint_plan(segments, save_path):
     import matplotlib.pyplot as plt

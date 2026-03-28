@@ -1,11 +1,11 @@
+import numpy as np
 import pybullet as pb
 
 from src.stage import Stage
 from src.logger import DataStore
 from src.utils import *
 from src.config import *
-
-from duckify_simulation.duckify_sim.robot_control import SimRobotControl
+from src.kinematics import pose_to_matrix
 
 from src.safety import setup_checker
 from src.transformation import extract_pybullet_pose
@@ -46,8 +46,8 @@ class Pathfinding(Stage):
         
         tcp_offset = self.ds.return_tcp_offset(self.default_calibration)
 
-        robot = SimRobotControl()
-        robot.set_tcp(tcp_offset)
+        tcp_offset_mat = pose_to_matrix(tcp_offset)
+        model_correction_mat = np.eye(4)
 
         pos, quat, scale = extract_pybullet_pose(obj2robot)
         for obs in self.obstacles:
@@ -82,7 +82,7 @@ class Pathfinding(Stage):
                 pb.removeAllUserDebugItems(physicsClientId=checker.cid)
 
                 valid_masks, surface_joints = validate_surface_points(
-                    checker, robot, surface_tcps_per_trace, HOMEJ,
+                    checker, tcp_offset_mat, model_correction_mat, surface_tcps_per_trace, HOMEJ,
                 )
                 validation_spheres = visualize_validation(checker, surface_tcps_per_trace, valid_masks)
 
@@ -97,12 +97,12 @@ class Pathfinding(Stage):
                 runs_per_trace = split_into_runs(valid_masks)
                 run_spheres = visualize_runs(checker, surface_tcps_per_trace, runs_per_trace)
 
-                validated_runs = find_hovers(checker, robot, surface_tcps_per_trace, runs_per_trace, surface_joints, home=HOMEJ)
-                segments = assemble_segments(robot, checker, validated_runs, surface_joints, HOMEJ, surface_tcps_per_trace)
+                validated_runs = find_hovers(checker, tcp_offset_mat, model_correction_mat, surface_tcps_per_trace, runs_per_trace, surface_joints, home=HOMEJ)
+                segments = assemble_segments(tcp_offset_mat, model_correction_mat, checker, validated_runs, surface_joints, HOMEJ, surface_tcps_per_trace)
 
                 # segments = add_angle_continuity(segments)
 
-                smoothing(robot, checker, segments, HOMEJ)
+                smoothing(tcp_offset_mat, model_correction_mat, checker, segments, HOMEJ)
 
                 plan_travels(checker, segments)
 
@@ -110,7 +110,7 @@ class Pathfinding(Stage):
 
                 # segments = add_angle_continuity(segments)
 
-                # smoothing(robot, checker, segments, HOMEJ)
+                # smoothing(tcp_offset_mat, model_correction_mat, checker, segments, HOMEJ)
 
 
                 segments = hotfix_j6_correction(segments)
@@ -121,7 +121,7 @@ class Pathfinding(Stage):
                 clear_bodies(checker.cid, run_spheres)
                 pb.removeAllUserDebugItems(physicsClientId=checker.cid)
 
-                visualize_plan(checker, robot, segments, debug=True)
+                visualize_plan(checker, tcp_offset_mat, model_correction_mat, segments, debug=True)
                 animate_plan(checker, segments, delay=0.1)
 
 
@@ -139,5 +139,5 @@ class Pathfinding(Stage):
         self.ds.save_joint_segments(joint_data)
         
                              
-    def fallback():
+    def fallback(self):
         raise NotImplementedError("Pathfinding is not implemented yet.")

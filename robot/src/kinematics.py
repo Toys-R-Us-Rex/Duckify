@@ -129,18 +129,6 @@ def matrix_to_tcp6d(T):
     return TCP6D.createFromMetersRadians(x, y, z, rx, ry, rz)
 
 
-def forward_kinematics(joint_angles):
-    """Compute the TCP pose from joint angles using UR3e DH parameters.
-
-    Args:
-        joint_angles: list of 6 joint angles in radians.
-
-    Returns:
-        TCP6D with [x, y, z, rx, ry, rz] (position in meters, rotation as axis-angle).
-    """
-    return matrix_to_tcp6d(forward_kinematics_matrix(joint_angles))
-
-
 def pose_to_matrix(pose):
     """Convert a TCP6D (position + axis-angle) to a 4x4 homogeneous matrix.
 
@@ -333,6 +321,17 @@ def select_closest_ik(solutions, qnear, joint_limits=None):
             best = sol
 
     return best
+
+
+def get_fk(joints, tcp_offset=None, model_correction=None):
+    if tcp_offset is None:
+        tcp_offset = np.eye(4)
+    if model_correction is None:
+        model_correction = np.eye(4)
+    joint_list = joints.toList() if hasattr(joints, 'toList') else list(joints)
+    T_flange = forward_kinematics_matrix(joint_list)
+    T_tcp = T_flange @ model_correction @ tcp_offset
+    return matrix_to_tcp6d(T_tcp)
 
 
 def get_inverse_kin(pose, qnear, tcp_offset=None, model_correction=None):
