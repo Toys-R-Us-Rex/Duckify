@@ -33,3 +33,7 @@ class WorkspaceManager:
     @property
     def pen_origin_path(self) -> Path:
         return self.root / "pen_origin.json"
+
+    @property
+    def datastore_path(self) -> Path:
+        return self.root / "robot_data"

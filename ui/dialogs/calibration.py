@@ -1,13 +1,11 @@
 import time
-from typing import Callable, Optional
+from typing import Optional
 
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QDialog, QPushButton
 
+from ui.models import TCPPoint, TCPReader
 from ui.ui.calibration_ui import Ui_Dialog
-
-TCPPoint = tuple[float, float, float, float, float, float]
-TCPReader = Callable[[], TCPPoint]
 
 
 class CalibrationDialog(QDialog, Ui_Dialog):
@@ -55,11 +53,11 @@ class CalibrationDialog(QDialog, Ui_Dialog):
         row: int = self.pointsList.currentIndex().row()
         self.point_model.takeRow(row)
 
-    def get_points(self) -> list[TCPPoint]:
-        points: list[TCPPoint] = []
+    def get_tcps(self) -> list[TCPPoint]:
+        tcps: list[TCPPoint] = []
         for i in range(self.point_model.rowCount()):
             item: Optional[QStandardItem] = self.point_model.item(i)
             if item is None:
                 continue
-            points.append(item.data())
-        return points
+            tcps.append(item.data())
+        return tcps
