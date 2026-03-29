@@ -34,14 +34,14 @@ import time
 import csv
 import pickle
 
-from src.config import DEFAULT_DATA_DIR, DEFAULT_FORCE_PATH
-from src.segment import *
-from src.utils import AtoB
+from robot.src.config import DEFAULT_DATA_DIR, DEFAULT_FORCE_PATH
+from robot.src.segment import *
+from robot.src.utils import AtoB
 
-from urbasic.URBasic.waypoint6d import TCP6D, Joint6D
+from robot.urbasic.URBasic.waypoint6d import TCP6D, Joint6D
 
-from urbasic.URBasic.urScript import UrScript
-from duckify_simulation.duckify_sim.robot_control import SimRobotControl
+from robot.urbasic.URBasic.urScript import UrScript
+from robot.duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
 
 class DataStore:
