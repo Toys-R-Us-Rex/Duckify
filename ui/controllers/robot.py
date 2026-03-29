@@ -119,7 +119,7 @@ class RobotController(QObject):
             tcp_offset: TCPPoint = self.service.compute_tcp_offset(tcps)
             path: Path = self.workspace.calibration_path
             exists: bool = path.exists()
-            self.service.ds.save_calibration(tcps, tcp_offset, path)  # type: ignore
+            self.service.ds.save_calibration(tcps, tcp_offset, path, use_pickle=False)  # type: ignore
 
             if not exists:
                 add_and_select_item(self.ui.robotTCPCalibration, "Custom", path)
@@ -134,7 +134,7 @@ class RobotController(QObject):
             path: Path = self.workspace.transformation_path
             exists: bool = path.exists()
             transformation: AtoB = self.service.compute_transformation(points)
-            self.service.ds.save_transformation(transformation, path)
+            self.service.ds.save_transformation(transformation, path, use_pickle=False)
 
             if not exists:
                 add_and_select_item(self.ui.robotTransformation, "Custom", path)
