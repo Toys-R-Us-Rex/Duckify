@@ -1,15 +1,13 @@
 import json
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 from PyQt6.QtCore import QModelIndex, Qt
 from PyQt6.QtGui import QColor, QIcon, QPixmap, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QDialog, QPushButton
 
+from ui.models import TCPPoint, TCPReader
 from ui.ui.transformation_ui import Ui_Dialog
-
-TCPPoint = tuple[float, float, float, float, float, float]
-TCPReader = Callable[[], TCPPoint]
 
 
 class TransformationDialog(QDialog, Ui_Dialog):
