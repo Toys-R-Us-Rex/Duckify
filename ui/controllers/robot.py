@@ -38,10 +38,29 @@ class RobotController(QObject):
 
     def setup(self):
         populate_combobox(
-            self.ui.robotModel, self.assets.list_models("stl"), self.assets.models_dir
-        )
-        populate_combobox(
             self.ui.robotTrace, self.assets.list_traces(), self.assets.output_dir
+        )
+
+        self.ui.robotConnect.toggled.connect(self.connect_change)
+
+        self.ui.robotFreedriveDisable.clicked.connect(
+            lambda _: self.service.set_freedrive(False)
+        )
+        self.ui.robotFreedriveEnable.clicked.connect(
+            lambda _: self.service.set_freedrive(True)
+        )
+
+        self.ui.robotGripperDeactivate.clicked.connect(
+            lambda _: self.set_gripper_activation(False)
+        )
+        self.ui.robotGripperActivate.clicked.connect(
+            lambda _: self.set_gripper_activation(True)
+        )
+        self.ui.robotGripperClose.clicked.connect(
+            lambda _: self.service.set_gripper_state(False)
+        )
+        self.ui.robotGripperOpen.clicked.connect(
+            lambda _: self.service.set_gripper_state(True)
         )
 
         self.ui.robotNewTCPCalibration.clicked.connect(self.new_tcp_calibration)
@@ -49,6 +68,29 @@ class RobotController(QObject):
         self.ui.robotNewPenCalibration.clicked.connect(self.new_pen_calibration)
 
         self.ui.robotRun.clicked.connect(self.robot_run)
+
+    def connect_change(self):
+        connected: bool = self.ui.robotConnect.isChecked()
+        if connected:
+            if not self.service.connect():
+                self.ui.robotConnect.setChecked(False)
+                connected = False
+        else:
+            self.service.disconnect()
+
+        self.ui.robotToolbox.setDisabled(not connected)
+
+    def set_gripper_activation(self, activated: bool):
+        if activated:
+            self.service.activate_gripper()
+        else:
+            self.service.deactivate_gripper()
+        self.check_gripper_activation()
+
+    def check_gripper_activation(self):
+        activated: bool = self.service.is_gripper_activated()
+        self.ui.robotGripperClose.setDisabled(not activated)
+        self.ui.robotGripperOpen.setDisabled(not activated)
 
     def new_tcp_calibration(self):
         dialog = CalibrationDialog(self.service.read_tcp, parent=self.ui)
@@ -79,11 +121,9 @@ class RobotController(QObject):
 
     def robot_run(self):
         request: RobotRequest = RobotRequest(
-            model_path=self.ui.robotModel.currentData(),
             trace_path=self.ui.robotTrace.currentData(),
             filter_mode=self.ui.robotFilter.currentData(),  # TODO: improve with enum ?
             tcp_calibration=self.ui.robotTCPCalibration.currentText(),
             transformation=self.ui.robotTransformation.currentText(),
-            enable_gazebo=self.ui.robotEnableGazebo.isChecked(),
         )
         result: RobotResult = self.service.run(request)
