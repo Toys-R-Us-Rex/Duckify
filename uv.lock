@@ -671,7 +671,7 @@ dependencies = [
 requires-dist = [
     { name = "genai", editable = "genai" },
     { name = "jupyter", specifier = ">=1.1.1" },
-    { name = "robot", virtual = "robot" },
+    { name = "robot", editable = "robot" },
     { name = "tracing", editable = "tracing" },
     { name = "ui", editable = "ui" },
 ]
@@ -2394,7 +2394,7 @@ wheels = [
 [[package]]
 name = "robot"
 version = "0.1.0"
-source = { virtual = "robot" }
+source = { editable = "robot" }
 dependencies = [
     { name = "ipykernel" },
     { name = "matplotlib" },
@@ -2408,7 +2408,6 @@ dependencies = [
     { name = "scipy" },
     { name = "setuptools" },
     { name = "trimesh" },
-    { name = "urbasic" },
 ]
 
 [package.dev-dependencies]
@@ -2430,7 +2429,6 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.17.1" },
     { name = "setuptools", specifier = ">=67.0.0" },
     { name = "trimesh", specifier = ">=4.11.4" },
-    { name = "urbasic", editable = "robot/urbasic" },
 ]
 
 [package.metadata.requires-dev]
@@ -2883,6 +2881,7 @@ dependencies = [
     { name = "pillow" },
     { name = "pyopengl" },
     { name = "pyqt6" },
+    { name = "robot" },
     { name = "tracing" },
 ]
 
@@ -2891,13 +2890,9 @@ requires-dist = [
     { name = "pillow", specifier = ">=12.1.1" },
     { name = "pyopengl", specifier = ">=3.1.10" },
     { name = "pyqt6", specifier = ">=6.10.2" },
+    { name = "robot", editable = "robot" },
     { name = "tracing", editable = "tracing" },
 ]
-
-[[package]]
-name = "urbasic"
-version = "0.0.1"
-source = { editable = "robot/urbasic" }
 
 [[package]]
 name = "uri-template"
