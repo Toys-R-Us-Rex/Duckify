@@ -30,14 +30,18 @@ dependencies = [
     "scipy>=1.17.1",
     "setuptools>=67.0.0",
     "trimesh>=4.11.4",
-    "urbasic>=0.0.1",
+    #"urbasic>=0.0.1",
 ]
 
-[tool.uv]
-package = false
+[tool.setuptools]
+packages = ["robot"]
+package-dir = { "robot" = "." }
 
-[tool.uv.sources]
-urbasic = { path = "urbasic", editable = true }
+#[tool.uv]
+#package = true
+
+#[tool.uv.sources]
+#urbasic = { path = "urbasic", editable = true }
 
 [dependency-groups]
 dev = ["pytest>=8.0,<9"]
@@ -45,6 +49,6 @@ dev = ["pytest>=8.0,<9"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 
-[build-system]
-requires = ["uv_build>=0.8.23,<0.9.0"]
-build-backend = "uv_build"
+#[build-system]
+#requires = ["uv_build>=0.8.23,<0.9.0"]
+#build-backend = "uv_build"
