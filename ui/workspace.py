@@ -24,15 +24,15 @@ class WorkspaceManager:
 
     @property
     def calibration_path(self) -> Path:
-        return self.root / "calibration.json"
+        return self.root / "calibration.dat"
 
     @property
     def transformation_path(self) -> Path:
-        return self.root / "transformation.json"
+        return self.root / "transformation.dat"
 
     @property
     def pen_origin_path(self) -> Path:
-        return self.root / "pen_origin.json"
+        return self.root / "pen_origin.dat"
 
     @property
     def datastore_path(self) -> Path:
