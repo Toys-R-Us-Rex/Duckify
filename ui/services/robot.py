@@ -2,15 +2,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
+
 from robot.src.calibration import get_tcp_offset
 from robot.src.logger import DataStore
+from robot.src.transformation import create_transformation
+from robot.src.utils import AtoB
 from robot.urbasic.URBasic.devices.robotiq_two_fingers_gripper import (
     RobotiqTwoFingersGripper,
 )
 from robot.urbasic.URBasic.iscoin import ISCoin
 from robot.urbasic.URBasic.urScriptExt import UrScriptExt
 from robot.urbasic.URBasic.waypoint6d import TCP6D
-from ui.models import TCPPoint
+from ui.models import Point3D, TCPPoint
 
 
 @dataclass
@@ -105,6 +109,14 @@ class RobotService:
     def compute_tcp_offset(self, tcps: list[TCPPoint]) -> TCPPoint:
         offset: TCP6D = get_tcp_offset(list(map(list, tcps)))
         return tcp6d_to_tcppoint(offset)
+
+    def compute_transformation(self, points: list[tuple[Point3D, TCPPoint]]) -> AtoB:
+        world: list[Point3D] = []
+        tcps: list[TCPPoint] = []
+        for w, t in points:
+            world.append(w)
+            tcps.append(t)
+        return create_transformation(np.array(world), np.array(tcps))
 
     def set_freedrive(self, enabled: bool):
         if enabled:
