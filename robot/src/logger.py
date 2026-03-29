@@ -27,13 +27,16 @@ Course:     HES-SO Valais-Wallis, Engineering Track 304
 
 """
 
-from operator import index
+import json
 from pathlib import Path
 import queue
 import threading
 import time
 import csv
 import pickle
+from typing import Optional
+
+import numpy as np
 
 from robot.src.config import DEFAULT_DATA_DIR, DEFAULT_FORCE_PATH
 from robot.src.segment import *
@@ -325,7 +328,8 @@ class DataStore:
     #                SAVE / LOAD DATA
     # ----------------------------------------------------
 
-    def save_calibration(self, tcps: list[float], tcp_offset: TCP6D, file_path: Path=None):
+
+    def save_calibration(self, tcps: list[float], tcp_offset: TCP6D, file_path: Optional[Path] = None, use_pickle: bool = True):
         """
         Save calibration data.
 
@@ -337,6 +341,8 @@ class DataStore:
             The TCP offset.
         file_path : Path, optional
             The file path to save the data to.
+        use_pickle : bool
+            If True, data is saved using `pickle.dump`. If False, `json.dump` is used
         """
         data = {"tcps": tcps, "tcp_offset": tcp_offset}
         if file_path:
@@ -344,13 +350,17 @@ class DataStore:
             if not folder.exists():
                 self.log(f"Create folder {folder}")
                 folder.mkdir(parents=True, exist_ok=True)
-            with file_path.open("wb") as f:
-                pickle.dump(data, f)
+            if use_pickle:
+                with file_path.open("wb") as f:
+                    pickle.dump(data, f)
+            else:
+                with file_path.open("w") as f:
+                    json.dump(data, f)
             self.log(f"Saved calibration data to file {file_path}")
         else:
             self.save_history("calibration", data)
 
-    def load_calibration(self, file_path: Path=None, index: int=-1) -> tuple[list[float], TCP6D]:
+    def load_calibration(self, file_path: Optional[Path] = None, index: int=-1, use_pickle: bool = True) -> tuple[list[float], TCP6D]:
         """
         Load calibration data.
 
@@ -360,6 +370,8 @@ class DataStore:
             The file path to load the data from.
         index : int, optional
             The index of the history entry to load.
+        use_pickle : bool
+            If True, data is loaded using `pickle.load`. If False, `json.load` is used
 
         Returns
         -------
@@ -370,8 +382,12 @@ class DataStore:
             if not file_path.exists():
                 self.log(f"Calibration data file not found {file_path}")
                 raise RuntimeError(f"Calibration data file not found: {file_path}")
-            with file_path.open("rb") as f:
-                data = pickle.load(f)
+            if use_pickle:
+                with file_path.open("rb") as f:
+                    data = pickle.load(f)
+            else:
+                with file_path.open("r") as f:
+                    data = json.load(f)
             self.log(f"Loaded calibration data from file {file_path}")
         else:
             data = self.load_history_index("calibration", index)
@@ -501,7 +517,7 @@ class DataStore:
             return self.check_history("pen_calibration", index)
 
 
-    def save_worldtcp(self, pworld: list[float], tcps: list[float], file_path: Path=None):
+    def save_worldtcp(self, pworld: list[float], tcps: list[float], file_path: Optional[Path] = None, use_pickle: bool = True):
         """
         Save worldtcp data.
 
@@ -513,6 +529,8 @@ class DataStore:
             The TCP positions.
         file_path : Path, optional
             The file path to save the data to.
+        use_pickle : bool
+            If True, data is saved using `pickle.dump`. If False, `json.dump` is used
         """
         data = {"pworld": pworld, "tcps": tcps}
         if file_path:
@@ -522,14 +540,18 @@ class DataStore:
                 self.log(f"Create folder {folder}")
                 folder.mkdir(parents=True, exist_ok=True)
 
-            with file_path.open("wb") as f:
-                pickle.dump(data, f)
+            if use_pickle:
+                with file_path.open("wb") as f:
+                    pickle.dump(data, f)
+            else:
+                with file_path.open("w") as f:
+                    json.dump(data, f)
             self.log(f"Saved worldtcp data to file {file_path}")
         
         else:
             self.save_history("worldtcp", data)
 
-    def load_worldtcp(self, file_path: Path=None, index: int=-1) -> tuple[list[float], list[float]]:
+    def load_worldtcp(self, file_path: Optional[Path] = None, index: int=-1, use_pickle: bool = True) -> tuple[list[float], list[float]]:
         """
         Load worldtcp data.
 
@@ -539,6 +561,8 @@ class DataStore:
             The file path to load the data from.
         index : int, optional
             The index of the history entry to load.
+        use_pickle : bool
+            If True, data is loaded using `pickle.load`. If False, `json.load` is used
 
         Returns
         -------
@@ -551,8 +575,12 @@ class DataStore:
                 self.log(f"Worldtcp data file not found {file_path}")
                 raise RuntimeError(f"Worldtcp data file not found: {file_path}")
 
-            with file_path.open("rb") as f:
-                data = pickle.load(f)
+            if use_pickle:
+                with file_path.open("rb") as f:
+                    data = pickle.load(f)
+            else:
+                with file_path.open("r") as f:
+                    data = json.load(f)
     
             self.log(f"Loaded worldtcp data from file {file_path}")
         else:
@@ -583,7 +611,7 @@ class DataStore:
             return self.check_history("worldtcp", index)
 
 
-    def save_transformation(self, obj_to_robot: AtoB, file_path: Path=None):
+    def save_transformation(self, obj_to_robot: AtoB, file_path: Optional[Path] = None, use_pickle: bool = True):
         """
         Save transformation data.
 
@@ -593,6 +621,8 @@ class DataStore:
             The transformation object.
         file_path : Path, optional
             The file path to save the data to.
+        use_pickle : bool
+            If True, data is saved using `pickle.dump`. If False, `json.dump` is used
         """
         data = {"T_position": obj_to_robot.T_position, "T_normal": obj_to_robot.T_orientation}
         if file_path:
@@ -602,14 +632,20 @@ class DataStore:
                 self.log(f"Create folder {folder}")
                 folder.mkdir(parents=True, exist_ok=True)
 
-            with file_path.open("wb") as f:
-                pickle.dump(data, f)
+            if use_pickle:
+                with file_path.open("wb") as f:
+                    pickle.dump(data, f)
+            else:
+                data["T_position"] = data["T_position"].tolist()
+                data["T_normal"] = data["T_normal"].tolist()
+                with file_path.open("w") as f:
+                    json.dump(data, f)
             self.log(f"Saved transformation data to file {file_path}")
         
         else:
             self.save_history("transformation", data)
 
-    def load_transformation(self, file_path: Path=None, index: int=-1) -> AtoB:
+    def load_transformation(self, file_path: Optional[Path] = None, index: int=-1, use_pickle: bool = True) -> AtoB:
         """
         Load transformation data.
 
@@ -619,6 +655,8 @@ class DataStore:
             The file path to load the data from.
         index : int, optional
             The index of the history entry to load.
+        use_pickle : bool
+            If True, data is loaded using `pickle.load`. If False, `json.load` is used
 
         Returns
         -------
@@ -630,8 +668,14 @@ class DataStore:
                 self.log(f"Transformation data file not found {file_path}")
                 raise RuntimeError(f"Transformation data file not found: {file_path}")
 
-            with file_path.open("rb") as f:
-                data = pickle.load(f)
+            if use_pickle:
+                with file_path.open("rb") as f:
+                    data = pickle.load(f)
+            else:
+                with file_path.open("r") as f:
+                    data = json.load(f)
+                    data["T_position"] = np.array(data["T_position"])
+                    data["T_normal"] = np.array(data["T_normal"])
     
             self.log(f"Loaded transformation data from file {file_path}")
         else:
@@ -663,7 +707,7 @@ class DataStore:
             return self.check_history("transformation", index)
 
 
-    def save_waypoints(self, waypoints: list[TCP6D|Joint6D], file_path: Path=None):
+    def save_waypoints(self, waypoints: list[TCP6D|Joint6D], file_path: Optional[Path] = None):
         """
         Save waypoints data.
 
@@ -689,7 +733,7 @@ class DataStore:
         else:
             self.save_history("waypoints", data)
 
-    def load_waypoints(self, file_path: Path=None, index: int=-1) -> list[TCP6D|Joint6D]:
+    def load_waypoints(self, file_path: Optional[Path] = None, index: int=-1) -> list[TCP6D|Joint6D]:
         """
         Load waypoints data.
 
@@ -742,7 +786,7 @@ class DataStore:
             return self.check_history("waypoints", index)
 
 
-    def save_tcp_segments(self, data: dict, file_path: Path=None):
+    def save_tcp_segments(self, data: list[TCPSegment], file_path: Optional[Path]=None):
         """
         Save TCP segments data.
 
@@ -767,7 +811,7 @@ class DataStore:
         else:
             self.save_history("tcp_segments", data)
 
-    def load_tcp_segments(self, file_path: Path=None, index: int=-1) -> dict:
+    def load_tcp_segments(self, file_path: Optional[Path]=None, index: int=-1) -> dict:
         """
         Load TCP segments data.
 
@@ -819,7 +863,7 @@ class DataStore:
             return self.check_history("tcp_segments", index)
 
 
-    def save_joint_segments(self, segments: list[JointSegment], file_path: Path=None):
+    def save_joint_segments(self, segments: list[JointSegment], file_path: Optional[Path]=None):
         """
         Save Joint segments data.
 
@@ -845,7 +889,7 @@ class DataStore:
         else:
             self.save_history("joint_segments", data)
 
-    def load_joint_segments(self, file_path: Path=None, index: int=-1) -> list[JointSegment]:
+    def load_joint_segments(self, file_path: Optional[Path]=None, index: int=-1) -> list[JointSegment]:
         """
         Load Joint segments data.
 
@@ -899,7 +943,7 @@ class DataStore:
             return self.check_history("joint_segments", index)
 
 
-    def save_trace_segments(self, data: dict, file_path: Path=None):
+    def save_trace_segments(self, data: list[TraceSegment], file_path: Optional[Path]=None):
         """
         Save Trace segments data.
 
@@ -924,7 +968,7 @@ class DataStore:
         else:
             self.save_history("trace_segments", data)
 
-    def load_trace_segments(self, file_path: Path=None, index: int=-1) -> dict:
+    def load_trace_segments(self, file_path: Optional[Path]=None, index: int=-1) -> dict:
         """
         Load Trace segments data.
 
@@ -976,7 +1020,7 @@ class DataStore:
             return self.check_history("trace_segments", index)
 
 
-    def save_run_segments(self, segments: list[RunSegment], file_path: Path=None):
+    def save_run_segments(self, segments: list[RunSegment], file_path: Optional[Path]=None):
         """
         Save Run segments data.
 
@@ -1002,7 +1046,7 @@ class DataStore:
         else:
             self.save_history("run_segments", data)
 
-    def load_run_segments(self, file_path: Path=None, index: int=-1) -> list[RunSegment]:
+    def load_run_segments(self, file_path: Optional[Path]=None, index: int=-1) -> list[RunSegment]:
         """
         Load Run segments data.
 
