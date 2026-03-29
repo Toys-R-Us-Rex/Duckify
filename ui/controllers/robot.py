@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import QObject
+from PyQt6.QtWidgets import QWidget
 
 from ui.assets import AssetRegistry
 from ui.dialogs.calibration import CalibrationDialog
@@ -33,10 +34,17 @@ class RobotController(QObject):
 
         settings: Settings = self.settings_manager.load()
         self.service: RobotService = RobotService(ip_address=settings.robot.ip_address)
+        self.widgets_needing_robot: list[QWidget] = []
 
         self.setup()
 
     def setup(self):
+        self.widgets_needing_robot = [
+            w
+            for w in self.ui.findChildren(QWidget)
+            if w.property("requireRobot") is True
+        ]
+
         populate_combobox(
             self.ui.robotTrace, self.assets.list_traces(), self.assets.output_dir
         )
@@ -69,6 +77,8 @@ class RobotController(QObject):
 
         self.ui.robotRun.clicked.connect(self.robot_run)
 
+        self.connect_change()
+
     def connect_change(self):
         connected: bool = self.ui.robotConnect.isChecked()
         if connected:
@@ -78,7 +88,16 @@ class RobotController(QObject):
         else:
             self.service.disconnect()
 
-        self.ui.robotToolbox.setDisabled(not connected)
+        # self.ui.robotToolbox.setDisabled(not connected)
+        # self.ui.robotNewTCPCalibration.setDisabled(not connected)
+        # self.ui.robotNewTransformation.setDisabled(not connected)
+        # self.ui.robotNewPenCalibration.setDisabled(not connected)
+        tooltip: Optional[str] = None
+        if not connected:
+            tooltip = "Must be connected to robot"
+        for w in self.widgets_needing_robot:
+            w.setDisabled(not connected)
+            w.setToolTip(tooltip)
 
     def set_gripper_activation(self, activated: bool):
         if activated:
