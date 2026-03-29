@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import QObject
@@ -11,7 +13,7 @@ from ui.dialogs.pen_calibration import PenCalibrationDialog
 from ui.dialogs.transformation import TransformationDialog
 from ui.services.robot import RobotRequest, RobotResult, RobotService
 from ui.settings_manager import Settings, SettingsManager
-from ui.utils.misc import populate_combobox
+from ui.utils.misc import add_and_select_item, populate_combobox
 from ui.workspace import WorkspaceManager
 
 if TYPE_CHECKING:
@@ -115,7 +117,13 @@ class RobotController(QObject):
         dialog = CalibrationDialog(self.service.read_tcp, parent=self.ui)
         if dialog.exec():
             calibration: list = dialog.get_points()
-            print(f"Calibration: {calibration}")
+            path: Path = self.workspace.calibration_path
+            exists: bool = path.exists()
+            with open(path, "w") as f:
+                json.dump(calibration, f)
+
+            if not exists:
+                add_and_select_item(self.ui.robotTCPCalibration, "Custom", path)
         self.robot_check_ready()
 
     def new_transformation(self):
