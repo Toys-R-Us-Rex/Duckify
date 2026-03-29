@@ -1,16 +1,20 @@
-import random
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
+
+from robot.urbasic.URBasic.devices.robotiq_two_fingers_gripper import (
+    RobotiqTwoFingersGripper,
+)
+from robot.urbasic.URBasic.iscoin import ISCoin
+from robot.urbasic.URBasic.urScriptExt import UrScriptExt
 
 
 @dataclass
 class RobotRequest:
-    model_path: Path
     trace_path: Path
     filter_mode: str
     tcp_calibration: str
     transformation: str
-    enable_gazebo: bool
 
 
 @dataclass
@@ -18,27 +22,92 @@ class RobotResult:
     pass
 
 
+class NotConnectedError(RuntimeError):
+    def __init__(self, msg: str = "Not connected to the robot") -> None:
+        super().__init__(msg)
+
+
 class RobotService:
     def __init__(self, ip_address: str) -> None:
         self.ip_address: str = ip_address
+        self._robot: Optional[ISCoin] = None
+
+    @property
+    def robot(self) -> ISCoin:
+        if self._robot is None:
+            raise NotConnectedError
+        return self._robot
+
+    @property
+    def ctrl(self) -> UrScriptExt:
+        robot: ISCoin = self.robot
+        if robot.robot_control is None:
+            raise RuntimeError("Connected to robot but robot_control is None")
+        return robot.robot_control
+
+    @property
+    def gripper(self) -> RobotiqTwoFingersGripper:
+        robot: ISCoin = self.robot
+        if robot.gripper is None:
+            raise RuntimeError("Connected to robot but gripper is None")
+        return robot.gripper
+
+    def connect(self) -> bool:
+        if self._robot is not None:
+            return True
+        try:
+            self._robot = ISCoin(
+                host=self.ip_address,
+                opened_gripper_size_mm=40,  # TODO: put this in settings
+            )
+            return True
+        except:
+            self._robot = None
+            return False
+
+    def disconnect(self):
+        if self._robot is None:
+            return
+        self._robot.close()
+        self._robot = None
 
     def run(self, request: RobotRequest) -> RobotResult:
         print("Running robot")
         print(f" - ip: {self.ip_address}")
-        print(f" - model: {request.model_path}")
         print(f" - trace: {request.trace_path}")
         print(f" - filter: {request.filter_mode}")
         print(f" - TCP calibration: {request.tcp_calibration}")
         print(f" - transformation: {request.transformation}")
-        print(f" - enable Gazebo: {request.enable_gazebo}")
         return RobotResult()
 
     def read_tcp(self) -> tuple[float, float, float, float, float, float]:
+        tcp: list[float] = self.ctrl.get_actual_tcp_pose().toList()
         return (
-            random.random(),
-            random.random(),
-            random.random(),
-            random.random(),
-            random.random(),
-            random.random(),
+            tcp[0],
+            tcp[1],
+            tcp[2],
+            tcp[3],
+            tcp[4],
+            tcp[5],
         )
+
+    def set_freedrive(self, enabled: bool):
+        if enabled:
+            self.ctrl.freedrive_mode()
+        else:
+            self.ctrl.end_freedrive_mode()
+
+    def set_gripper_state(self, open: bool):
+        if open:
+            self.gripper.open()
+        else:
+            self.gripper.close()
+
+    def activate_gripper(self):
+        self.gripper.activate()
+
+    def deactivate_gripper(self):
+        self.gripper.deactivate()
+
+    def is_gripper_activated(self) -> bool:
+        return self.gripper.isActivated()
