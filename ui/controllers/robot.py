@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -11,6 +10,7 @@ from ui.assets import AssetRegistry
 from ui.dialogs.calibration import CalibrationDialog
 from ui.dialogs.pen_calibration import PenCalibrationDialog
 from ui.dialogs.transformation import TransformationDialog
+from ui.models import TCPPoint
 from ui.services.robot import RobotRequest, RobotResult, RobotService
 from ui.settings_manager import Settings, SettingsManager
 from ui.utils import add_and_select_item, populate_combobox
@@ -35,7 +35,9 @@ class RobotController(QObject):
         self.settings_manager: SettingsManager = settings_manager
 
         settings: Settings = self.settings_manager.load()
-        self.service: RobotService = RobotService(ip_address=settings.robot.ip_address)
+        self.service: RobotService = RobotService(
+            ip_address=settings.robot.ip_address, base_dir=self.workspace.datastore_path
+        )
         self.widgets_needing_robot: list[QWidget] = []
 
         self.setup()
@@ -90,10 +92,6 @@ class RobotController(QObject):
         else:
             self.service.disconnect()
 
-        # self.ui.robotToolbox.setDisabled(not connected)
-        # self.ui.robotNewTCPCalibration.setDisabled(not connected)
-        # self.ui.robotNewTransformation.setDisabled(not connected)
-        # self.ui.robotNewPenCalibration.setDisabled(not connected)
         tooltip: Optional[str] = None
         if not connected:
             tooltip = "Must be connected to robot"
@@ -116,11 +114,11 @@ class RobotController(QObject):
     def new_tcp_calibration(self):
         dialog = CalibrationDialog(self.service.read_tcp, parent=self.ui)
         if dialog.exec():
-            calibration: list = dialog.get_points()
+            tcps: list[TCPPoint] = dialog.get_tcps()
+            tcp_offset: TCPPoint = self.service.compute_tcp_offset(tcps)
             path: Path = self.workspace.calibration_path
             exists: bool = path.exists()
-            with open(path, "w") as f:
-                json.dump(calibration, f)
+            self.service.ds.save_calibration(tcps, tcp_offset, path)  # type: ignore
 
             if not exists:
                 add_and_select_item(self.ui.robotTCPCalibration, "Custom", path)
