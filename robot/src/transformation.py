@@ -41,15 +41,15 @@ import json
 import numpy as np
 from scipy.spatial.transform import Rotation as Rot
 
-from src.config import *
-from src.stage import Stage
-from src.utils import *
-from src.logger import DataStore
+from robot.src.config import *
+from robot.src.stage import Stage
+from robot.src.utils import *
+from robot.src.logger import DataStore
 
-from urbasic.URBasic.iscoin import ISCoin
-from urbasic.URBasic.urScript import UrScript
-from duckify_simulation.duckify_sim.duckify_sim import DuckifySim
-from duckify_simulation.duckify_sim.robot_control import SimRobotControl
+from robot.urbasic.URBasic.iscoin import ISCoin
+from robot.urbasic.URBasic.urScript import UrScript
+from robot.duckify_simulation.duckify_sim.duckify_sim import DuckifySim
+from robot.duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
 def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list[float]]) -> list[list[float]]:
     """

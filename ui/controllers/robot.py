@@ -6,11 +6,12 @@ from typing import TYPE_CHECKING, Optional
 from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QWidget
 
+from robot.src.utils import AtoB
 from ui.assets import AssetRegistry
 from ui.dialogs.calibration import CalibrationDialog
 from ui.dialogs.pen_calibration import PenCalibrationDialog
 from ui.dialogs.transformation import TransformationDialog
-from ui.models import TCPPoint
+from ui.models import Point3D, TCPPoint
 from ui.services.robot import RobotRequest, RobotResult, RobotService
 from ui.settings_manager import Settings, SettingsManager
 from ui.utils import add_and_select_item, populate_combobox
@@ -112,7 +113,7 @@ class RobotController(QObject):
         self.ui.robotGripperOpen.setDisabled(not activated)
 
     def new_tcp_calibration(self):
-        dialog = CalibrationDialog(self.service.read_tcp, parent=self.ui)
+        dialog = CalibrationDialog(self.service, parent=self.ui)
         if dialog.exec():
             tcps: list[TCPPoint] = dialog.get_tcps()
             tcp_offset: TCPPoint = self.service.compute_tcp_offset(tcps)
@@ -126,11 +127,17 @@ class RobotController(QObject):
 
     def new_transformation(self):
         dialog = TransformationDialog(
-            self.assets.transformation_reference, self.service.read_tcp, parent=self.ui
+            self.assets.transformation_reference, self.service, parent=self.ui
         )
         if dialog.exec():
-            points: list = dialog.get_points()
-            print(f"Reference points: {points}")
+            points: list[tuple[Point3D, TCPPoint]] = dialog.get_pairs()
+            path: Path = self.workspace.transformation_path
+            exists: bool = path.exists()
+            transformation: AtoB = self.service.compute_transformation(points)
+            self.service.ds.save_transformation(transformation, path)
+
+            if not exists:
+                add_and_select_item(self.ui.robotTransformation, "Custom", path)
         self.robot_check_ready()
 
     def new_pen_calibration(self):

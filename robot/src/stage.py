@@ -1,5 +1,5 @@
 
-from src.logger import DataStore
+from robot.src.logger import DataStore
 
 
 def run_stage(stage_obj, on_error="stop"):
