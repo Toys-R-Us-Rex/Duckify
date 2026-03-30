@@ -33,11 +33,11 @@ from pathlib import Path
 
 from URBasic.waypoint6d import TCP6D
 
-from src.logger import DataStore
-from src.stage import Stage
-from src.utils import AtoB, ask_yes_no
-from src.segment import TCPSegment, MotionType
-from src.config import DRAW_A, DRAW_V
+from robot.src.config import DRAW_A, DRAW_V
+from robot.src.logger import DataStore
+from robot.src.segment import MotionType, TCPSegment
+from robot.src.stage import Stage
+from robot.src.utils import AtoB, ask_yes_no
 
 
 def convert_segments(objtorobot: AtoB, data: dict):
