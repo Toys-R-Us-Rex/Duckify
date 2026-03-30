@@ -20,7 +20,7 @@ class GenAIClient:
         ssh_key_path: Path = Path(),
         remote_host: str = "127.0.0.1",
         remote_port: int = 5000,
-        hf_token: Optional[str] = "",
+        hf_token: str = "",
     ) -> None:
         self.logger: Logger = logging.getLogger("GenAIClient")
 
@@ -30,7 +30,7 @@ class GenAIClient:
         self.ssh_key_path: Path = ssh_key_path
         self.remote_host: str = remote_host
         self.remote_port: int = remote_port
-        self.hf_token: Optional[str] = hf_token
+        self.hf_token: str = hf_token
 
     def open_tunnel(self) -> SSHTunnelForwarder:
         return SSHTunnelForwarder(
