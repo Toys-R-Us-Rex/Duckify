@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+import time
 from typing import Optional
 
 import numpy as np
@@ -130,9 +131,13 @@ class RobotService:
 
     def activate_gripper(self):
         self.gripper.activate()
+        while not self.is_gripper_activated():
+            time.sleep(0.2)
 
     def deactivate_gripper(self):
         self.gripper.deactivate()
+        while self.is_gripper_activated():
+            time.sleep(0.2)
 
     def is_gripper_activated(self) -> bool:
         return self.gripper.isActivated()
