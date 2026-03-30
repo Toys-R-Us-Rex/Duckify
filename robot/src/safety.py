@@ -112,7 +112,15 @@ class CollisionChecker:
 
     # -------------------------------------------------------------------------
 
-    # moves instantly the robot to target joint angles position
+    def flip_obstacles_z(self, exclude_ids=None):
+        rz_180 = [0, 0, 1, 0]
+        for oid in self.obstacle_ids:
+            if exclude_ids and oid in exclude_ids:
+                continue
+            pos, orn = p.getBasePositionAndOrientation(oid, physicsClientId=self.cid)
+            new_orn = p.multiplyTransforms([0, 0, 0], rz_180, [0, 0, 0], orn)[1]
+            p.resetBasePositionAndOrientation(oid, pos, new_orn, physicsClientId=self.cid)
+
     def set_joint_angles(self, q):
         for idx, angle in zip(self.joint_indices, q):
             p.resetJointState(self.robot_id, idx, float(angle), physicsClientId=self.cid)

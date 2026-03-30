@@ -2,7 +2,7 @@ from pathlib import Path
 
 from src.logger import DataStore
 from src.segment import TraceSegment, SideType
-from src.computation import load_traces, correct_bottom_values
+from src.computation import load_traces, correct_bottom_values, filterout_bottom_values
 from src.stage import Stage
 from src.utils import ask_yes_no
 from src.config import *
@@ -66,6 +66,10 @@ class Filter(Stage):
         left_traces = {}
         right_traces = {}
 
+        max_per_side = 50
+        left_count = 0
+        right_count = 0
+
         for trace in traces:
             path = trace['path']
             color = trace['color']
@@ -76,6 +80,7 @@ class Filter(Stage):
             # waypoints = [pt+ pn for pt, pn in path[::5]]
             waypoints = [pt+ pn for pt, pn in path]
 
+            waypoints = filterout_bottom_values(waypoints)
             waypoints = correct_bottom_values(waypoints)
 
             # waypoints = waypoints[2:-2]
@@ -86,16 +91,26 @@ class Filter(Stage):
             # xs = [pt[2] for pt in waypoints]
             # avg_x = sum(xs) / len(xs) if xs else 0
 
-            if self.side == SideType.LEFT:
-                if avg_y >= 0:
-                    left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, [[w[0], w[1], OFFSET_Z + w[2], w[3], w[4], w[5]] for w in waypoints])]
+            is_left = avg_y >= 0
+            if self.side != SideType.LEFT:
+                is_left = not is_left
+
+            if is_left:
+                if left_count >= max_per_side:
+                    continue
+                if self.side == SideType.LEFT:
+                    left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, [[w[0], w[1], OFFSET_Z_HOTFIX + w[2], w[3], w[4], w[5]] for w in waypoints])]
                 else:
-                    right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, [[-w[0], -w[1], OFFSET_Z + w[2], w[3], w[4], w[5]] for w in waypoints])]
+                    left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, [[-w[0], -w[1], OFFSET_Z_HOTFIX + w[2], -w[3], -w[4], w[5]] for w in waypoints])]
+                left_count += 1
             else:
-                if avg_y >= 0:
-                    left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, [[-w[0], -w[1], OFFSET_Z + w[2], w[3], w[4], w[5]] for w in waypoints])]
+                if right_count >= max_per_side:
+                    continue
+                if self.side == SideType.LEFT:
+                    right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, [[-w[0], -w[1], OFFSET_Z_HOTFIX + w[2], -w[3], -w[4], w[5]] for w in waypoints])]
                 else:
-                    right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, [[w[0], w[1], OFFSET_Z + w[2], w[3], w[4], w[5]] for w in waypoints])]
+                    right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, [[w[0], w[1], OFFSET_Z_HOTFIX + w[2], w[3], w[4], w[5]] for w in waypoints])]
+                right_count += 1
 
         s = {
             "left": left_traces,

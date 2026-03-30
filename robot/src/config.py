@@ -26,6 +26,7 @@ DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_4_triangle_on_bill-tr
 
 
 
+
 DEFAULT_JSON_SOCLE = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_socle.json"
 
 VERBOSE = True
@@ -33,15 +34,15 @@ VERBOSE = True
 # Create a new ISCoin object
 # UR3e1 IP (closest to window): 10.30.5.158
 # UR3e2 IP: 10.30.5.159
-ROBOT_IP = "10.30.5.159"
+ROBOT_IP = "10.30.5.158"
 
 # Collision margins
 COLLISION_MARGIN = 0            # margin for obstacle collision checks
-SELF_COLLISION_MARGIN = 0.01   # margin for self-collision checks
+SELF_COLLISION_MARGIN = 0.012  # margin for self-collision checks
 MAX_JOINT_JUMP = 0.25         # max allowed single-joint difference from qnear in radians
 MIN_HEIGHT_NORMAL_CORRECTION_MM = 25
 MAX_CONE_STEP = 2.5
-
+MIN_HEIGHT_ACCEPTANCE = 10
 
 # Default home position
 HOMEJ = Joint6D.createFromRadians(1.8859, -1.4452, 1.2389, -1.3639, -1.5693, -0.3849)
@@ -121,6 +122,8 @@ TCPS_20 = [
 OBJ2ROBOT_RZ_DEG       = 0.0
 OBJ2ROBOT_TRANSLATION  = (0.32, -0.4, 0.155)
 OBJ2ROBOT_SCALE        = 0.001          # mm → meters
+
+OFFSET_Z_HOTFIX = 0.0 # temporary hotfix for the double tape
 
 TEST_TRANSFORMATION = [0, 0, 2, 0, 0, -1]  # x, y, z, n1, n2, n3
 

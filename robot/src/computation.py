@@ -269,9 +269,20 @@ def smoothing(tcp_offset, checker, segments, home):
             check_obs = seg.motion_type == MotionType.TRAVEL
             ok, q, reason, _ = checker.validate_tcp(
                 tcp_offset, tcp, qnear=qnear, orientation_search=True,
-                check_obstacle=check_obs, find_all=False,
+                check_obstacle=check_obs, find_all=True,
             )
             if ok:
+                if qnear is not None:
+                    q_arr = np.array(q.toList())
+                    qnear_arr = np.array(qnear.toList())
+                    tolerance = np.radians(10)
+                    for j in range(6):
+                        diff = q_arr[j] - qnear_arr[j]
+                        if abs(diff - 2 * np.pi) < tolerance:
+                            q_arr[j] -= 2 * np.pi
+                        elif abs(diff + 2 * np.pi) < tolerance:
+                            q_arr[j] += 2 * np.pi
+                    q = Joint6D.createFromRadians(*q_arr.tolist())
                 new_waypoints.append(q)
                 qnear = q
                 total_updated += 1
@@ -368,8 +379,6 @@ def plot_joint_plan(segments, save_path):
     plt.show()
     plt.close()
     print(f"Joint plan plot saved to {save_path}")
-
-
 
 def _normal_from_tcp(tcp):
     from scipy.spatial.transform import Rotation
@@ -507,3 +516,14 @@ def add_angle_continuity(segments):
             prev_wp = waypoint
 
     return segments
+
+def filterout_bottom_values(waypoints):
+
+    filtered_waypoints = []
+
+    for waypoint in waypoints:
+
+        if waypoint[2] > MIN_HEIGHT_ACCEPTANCE:
+            filtered_waypoints.append(waypoint)
+
+    return filtered_waypoints

@@ -917,8 +917,9 @@ class DataStore:
         else:
             data = self.load_history_index("joint_segments", index)
 
-        segments = data["segments"]
-        return segments
+        if "segments" in data:
+            return data["segments"]
+        return data
 
     def check_joint_segments(self, file_path: Optional[Path] = None, index: int=-1) -> bool:
         """
