@@ -35,5 +35,13 @@ class WorkspaceManager:
         return self.root / "pen_origin.json"
 
     @property
+    def trace_segments_path(self) -> Path:
+        return self.root / "trace_segments.dat"
+
+    @property
+    def tcp_segments_path(self) -> Path:
+        return self.root / "tcp_segments.dat"
+
+    @property
     def datastore_path(self) -> Path:
         return self.root / "robot_data"
