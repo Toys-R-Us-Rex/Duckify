@@ -249,7 +249,6 @@ class Tracer:
         Args:
             img (Image.Image): the texture image
             palette (tuple[Color, ...]): the palette containing selected colors
-            ignored_color Color: the color to ignore when palettizing
 
         Returns:
             Image.Image: the color palettized texture image
@@ -257,11 +256,12 @@ class Tracer:
         self.logger.info("Palettizing texture colors")
         
         c_img_arr = np.array(img.convert("RGB"))
+        # En excluant les pixels noirs (issus du drawable mask)
         mask = np.any(c_img_arr, axis=-1)
-        # récupérer les pixels des couleurs de la palette sans l'ignored_color
         pixels_to_quantize = c_img_arr[mask]
-
+        # palettization
         palettized_pixels = self.quantize_to_palette(pixels_to_quantize, np.array(palette))
+
         # Réinjection des pixels palettizés dans image de base
         output_arr = c_img_arr.copy()
         output_arr[mask] = palettized_pixels
@@ -272,7 +272,6 @@ class Tracer:
             cv2.imshow("palettized texture image", cv2.cvtColor(output_arr, cv2.COLOR_RGB2BGR))
             cv2.waitKey(-1)
             cv2.destroyAllWindows()
-
             
         return output_img
 
