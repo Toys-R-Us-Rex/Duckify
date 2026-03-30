@@ -12,10 +12,10 @@ import numpy as np
 from pybullet_planning import plan_joint_motion
 from URBasic import TCP6D, Joint6D
 
-from src.segment import JointSegment, MotionType, SideType
-from src.config import *
-from src.utils import *
-from src.kinematics import get_fk
+from robot.src.segment import JointSegment, MotionType, SideType
+from robot.src.config import *
+from robot.src.utils import *
+from robot.src.kinematics import get_fk
 
 log = logging.getLogger(__name__)
 
