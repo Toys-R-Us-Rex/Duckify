@@ -20,7 +20,7 @@
   text(size: 1.5em, weight: "bold")[Solutions for texture projection]
 )
 
-== Objective
+== Problem analysis
 #linebreak()
 The goal of the research phase is to explore potential solutions for the texture projection problem :
 
@@ -29,7 +29,7 @@ The goal of the research phase is to explore potential solutions for the texture
    a way to project a texture on a 3D model, given a 2D image of the texture and a 3D model of the object and then get the UV coordinates of the projection.
 ]
 
-Mutliple scenarios are considered :
+Two differents scenarios are to be considered :
 
 + The LLM with input [.obj and prompt describing the texture)] output a complete solution (e.g. UV coordinates + texture)
 + The LLM only outputs sides views of the texture and a separate module is responsible for projecting it on the 3D model
