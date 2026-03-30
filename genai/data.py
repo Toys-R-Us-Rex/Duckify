@@ -9,4 +9,4 @@ class GenerationRequest(BaseModel):
     prompt_wrapper: str = ""
     steps: int
     guidance: float
-    hf_token: Optional[str] = None
+    hf_token: Optional[str] = ""
