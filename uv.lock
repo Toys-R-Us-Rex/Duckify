@@ -559,7 +559,7 @@ dependencies = [
 requires-dist = [
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "pybullet-planning", git = "https://github.com/yijiangh/pybullet_planning?rev=dev" },
-    { name = "robot", virtual = "robot" },
+    { name = "robot", editable = "robot" },
     { name = "tracing", editable = "tracing" },
 ]
 
@@ -1692,6 +1692,21 @@ name = "pybullet"
 version = "3.2.7"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/de/95/b9a98cd4ed948d4f25a7d0b13cb0c1f87e58dc6d113be9e18940641eb25f/pybullet-3.2.7.tar.gz", hash = "sha256:042879db8d101ac7590dee475fc6aded508b85fe1273fdbbfde1d88bd200e14f", size = 80508379, upload-time = "2025-01-30T00:34:00.527Z" }
+
+[[package]]
+name = "pybullet-planning"
+version = "0.6.1"
+source = { git = "https://github.com/yijiangh/pybullet_planning?rev=dev#fad04b9f5f6bbf603047d6ab37bb9c4d795ff309" }
+dependencies = [
+    { name = "imageio" },
+    { name = "meshio" },
+    { name = "numpy" },
+    { name = "psutil" },
+    { name = "pybullet" },
+    { name = "recordclass" },
+    { name = "scipy" },
+    { name = "termcolor" },
+]
 
 [[package]]
 name = "pybullet-planning"
