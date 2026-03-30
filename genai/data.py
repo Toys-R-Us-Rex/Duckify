@@ -10,3 +10,5 @@ class GenerationRequest(BaseModel):
     steps: int
     guidance: float
     hf_token: str = ""
+    num_generations: int = 1
+    benchmark_activated: bool = False

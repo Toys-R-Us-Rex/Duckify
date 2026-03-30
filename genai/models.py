@@ -37,6 +37,8 @@ class MVAdapaterModel:
         steps: int = 30,
         guidance: float = 6.0,
         hf_token: str = "",
+        num_generations: int = 1,
+        benchmark_activated: bool = False,
     ) -> Path:
         if not glb_file.exists():
             raise FileNotFoundError(f"Could not find 3D model: {glb_file}")
