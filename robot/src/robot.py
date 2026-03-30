@@ -140,7 +140,7 @@ class Robot(Stage):
     """
     A class representing the robot in the simulation.
     """
-    def __init__(self, datastore: DataStore, robot_ip: str, begin_side: SideType, default_calibration: str = None, multipen: bool = False):
+    def __init__(self, datastore: DataStore, robot_ip: str, default_calibration: str = None, multipen: bool = False):
         """
         Initializes the Robot instance.
 
@@ -159,7 +159,6 @@ class Robot(Stage):
         """
         super().__init__(name="Robot", datastore=datastore)
         self.robot_ip = robot_ip
-        self.side = begin_side
         self.default_calibration = default_calibration
         self.multipen = multipen
 

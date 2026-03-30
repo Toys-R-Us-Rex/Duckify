@@ -21,8 +21,8 @@ DEFAULT_DATA_DIR = OUTPUT_DIR / "data"
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_14_full_body_line-trace.json"
-DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_11_long_line-trace.json"
-# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_4_triangle_on_bill-trace.json"
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_11_long_line-trace.json"
+DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_4_triangle_on_bill-trace.json"
 
 
 
@@ -51,6 +51,7 @@ SECOND_SIMULATION_PENSUPPORT = TCP6D.createFromMetersRadians(-0.3703007342777654
 
 
 # MINIMAL_DISTANCE = 0.164
+OFFSET_Z = 1.4
 MINIMAL_DISTANCE = 0.018
 
 LEGNTH_BETWEEN_PENS = 0.05 # This distance comes from the design of the wood support for pen.
