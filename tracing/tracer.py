@@ -517,6 +517,7 @@ class Tracer:
                 "generated_at": datetime.datetime.now().isoformat(),
                 "model": str(self.model_path),
                 "texture": str(self.texture_path),
+                "palette": str(self.palette),
                 "traces": traces_out
             }, f, indent=4)
     
