@@ -2,7 +2,7 @@ services:
   # --- Duckify UI Service ---
   duckify:
     build:
-      context: ..
+      context: .
       dockerfile: docker/duckify.Dockerfile
     container_name: duckify_ui
     privileged: true

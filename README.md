@@ -23,34 +23,21 @@ uv run start
    ```bash
    git clone --recursive https://github.com/Toys-R-Us-Rex/Duckify.git
    ```
-2. Install dependencies
-   ```bash
-   cd Duckify
-   uv sync
-   ```
-3. Install Robot environment
+2. Install Robot environment
    - More details in the [Robot README](./robot/README.md)
 
-4. Build PyQt ui files
-   ```bash
-   uv run build-ui
+3. Run containers
+   ```sh
+   # To use the CPU in the Gazebo simulation
+   docker compose --profile cpu up -d
+   # To use the GPU in the Gazebo simulation
+   docker compose --profile gpu up -d
    ```
 
-## Docker
-
-### Env
-
-add to `.env` file:
-```sh
-COMPOSE_FILE=docker/docker-compose.yml
-```
-
-```sh
-# To use the CPU in the Gazebo simulation
-docker compose --profile cpu up -d
-# To use the GPU in the Gazebo simulation
-docker compose --profile gpu up -d
-```
+4. Stop containers
+   ```sh
+   docker compose --profile cpu down
+   ```
 
 ## Authors
 - Alexandre Venturi ([@mastermeter](https://github.com/mastermeter))
