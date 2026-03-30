@@ -272,7 +272,7 @@ class Tracer:
             cv2.imshow("palettized texture image", cv2.cvtColor(output_arr, cv2.COLOR_RGB2BGR))
             cv2.waitKey(-1)
             cv2.destroyAllWindows()
-            
+
         return output_img
 
     # https://stackoverflow.com/questions/56942102
@@ -523,7 +523,10 @@ class Tracer:
                 "generated_at": datetime.datetime.now().isoformat(),
                 "model": str(self.model_path),
                 "texture": str(self.texture_path),
-                "palette": str(self.palette),
+                "palette": [
+                    f"{r:02x}{g:02x}{b:02x}"
+                    for r, g, b, in self.palette
+                ],
                 "traces": traces_out
             }, f, indent=4)
     
