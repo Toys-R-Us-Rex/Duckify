@@ -20,7 +20,7 @@ from URBasic.waypoint6d import Joint6D, TCP6D, TCP6DDescriptor
 log = logging.getLogger(__name__)
 
 from .ros_bridge import read_joint_states, extract_6joints, publish_trajectory, estimate_duration
-from src.kinematics import (
+from robot.src.kinematics import (
     UR3E_DH, forward_kinematics_matrix,
     matrix_to_tcp6d, pose_to_matrix,
     analytical_ik, select_closest_ik,

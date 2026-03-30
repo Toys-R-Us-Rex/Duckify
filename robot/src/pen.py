@@ -1,13 +1,13 @@
 import time
 from enum import Enum, auto
 
-from src.utils import ask_yes_no
-from src.config import *
+from robot.src.utils import ask_yes_no
+from robot.src.config import *
 
 from URBasic import TCP6D, TCP6DDescriptor
 from URBasic import ISCoin
 
-from duckify_simulation.duckify_sim import DuckifySim
+from robot.duckify_simulation.duckify_sim import DuckifySim
 
 class GripperAction(Enum):
     CLOSE = auto()  # Close gripper
