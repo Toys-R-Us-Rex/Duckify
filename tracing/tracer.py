@@ -5,6 +5,7 @@ import os
 from logging import Logger
 from pathlib import Path
 import time
+from turtle import color
 from typing import Callable, Optional, Union
 
 import cv2
@@ -35,7 +36,7 @@ class Tracer:
             model_path: Path,
             mask_path: Path,
             palette: tuple[Color, ...],
-            ignored_color: Color
+            color_not_to_draw:  tuple[Color, ...]
     ):
         self.logger: Logger = logging.getLogger("Tracer")
         self.config: TracerConfig = config
@@ -44,7 +45,7 @@ class Tracer:
         self.model_path: Path = model_path
         self.mask_path: Path = mask_path
         self.palette: tuple[Color, ...] = palette
-        self.ignored_color: Color = ignored_color
+        self.color_not_to_draw:  tuple[Color, ...] = color_not_to_draw
 
         self.texture: Optional[Image.Image] = None
         self.paletted_texture: Optional[Image.Image] = None
@@ -86,7 +87,7 @@ class Tracer:
         # 2. Quantize and split colors
         self.texture = self.mask_outside_UV_texture(self.texture, self.model)
         self.texture = self.mask_unreachable(self.texture, self.mask)
-        self.paletted_texture = self.palettize_texture(self.texture, self.palette, self.ignored_color)
+        self.paletted_texture = self.palettize_texture(self.texture, self.palette)
         self.layers = self.split_colors(self.paletted_texture, self.palette)
 
         # 3. Identify color islands
@@ -94,9 +95,16 @@ class Tracer:
         for c, layer in tqdm.tqdm(
                 list(enumerate(self.layers)), desc="Island detection", unit="layer"
         ):
-            progress_callback(c, n_layers, "(1 / 3) Island detection")
-            islands: list[Island] = self.detect_islands(layer, c)
-            self.islands.extend(islands)
+            if self.config.debug:
+                print(f"c = {c} and layer = {layer}")
+
+            for no_color in self.color_not_to_draw:
+                if self.palette[c] != no_color:
+                    progress_callback(c, n_layers, "(1 / 3) Island detection")
+                    islands: list[Island] = self.detect_islands(layer, c)
+                    self.islands.extend(islands)
+                else:
+                    continue
 
         # 4. Compute border and fill traces (2D)
         n_islands: int = len(self.islands)
@@ -235,7 +243,7 @@ class Tracer:
         return im.resize(self.config.image_size)
 
     # https://stackoverflow.com/questions/29433243/
-    def palettize_texture(self, img: Image.Image, palette: tuple[Color, ...], ignored_color: Color) -> Image.Image:
+    def palettize_texture(self, img: Image.Image, palette: tuple[Color, ...]) -> Image.Image:
         """Force textures colors to nearest one based of a given palette
 
         Args:
@@ -249,9 +257,7 @@ class Tracer:
         self.logger.info("Palettizing texture colors")
         
         c_img_arr = np.array(img.convert("RGB"))
-        
-        ignored_color_rgb = np.array([ignored_color])
-        mask = np.any(c_img_arr != ignored_color_rgb, axis=-1)
+        mask = np.any(c_img_arr, axis=-1)
         # récupérer les pixels des couleurs de la palette sans l'ignored_color
         pixels_to_quantize = c_img_arr[mask]
 
