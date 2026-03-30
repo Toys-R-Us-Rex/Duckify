@@ -34,4 +34,6 @@ python -m scripts.texture_t2tex \
     --num_inference_steps "$MV_STEPS" \
     --guidance_scale "$MV_GUIDANCE" \
     --negative_text "$MV_NEGATIVE_PROMPT" \
+    --num_generations "$NUM_GENERATIONS" \
+    --benchmark_activated "$BENCHMARK_ACTIVATED" \
 
