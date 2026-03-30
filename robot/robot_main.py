@@ -68,11 +68,11 @@ def main(
         ("Calibration",    skip_calibration,    Calibration(ds, robot_ip, Path(default_calibration), multipen), "continue"),
         ("Transformation", skip_transformation, Transformation(ds, robot_ip, Path(json_socle),
                                     custom_transformation=[x_position, y_position, z_position, turn_degree]),   "fallback"),
-        ("Filter",         skip_filter,         Filter(ds, Path(json_object), multipen),           "stop"),
+        ("Filter",         skip_filter,         Filter(ds, Path(json_object), multipen, side),           "stop"),
         ("Conversion",     skip_conversion,     Conversion(ds, Path(json_object)),                                                 "stop"),
         ("Pathfinding",    skip_pathfinding,    Pathfinding(ds, Path(default_calibration)),                     "stop"),
         ("Gazebo",         skip_gazebo,         Gazebo(ds, Path(default_calibration), multipen),                "stop"),
-        ("Robot",          skip_robot,          Robot(ds, robot_ip, side, Path(default_calibration), multipen), "continue"),
+        ("Robot",          skip_robot,          Robot(ds, robot_ip, Path(default_calibration), multipen), "continue"),
     ]
 
     for stage in pipeline:
@@ -139,7 +139,8 @@ if __name__ == "__main__":
         "--side",
         type=str,
         choices=["left", "right"],
-        default="right"
+        default="left",
+        help="Side of the duck facing the robot"
     )
 
     parser.add_argument(
