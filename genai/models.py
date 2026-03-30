@@ -36,7 +36,7 @@ class MVAdapaterModel:
         prompt_wrapper: str = "",
         steps: int = 30,
         guidance: float = 6.0,
-        hf_token: Optional[str] = "",
+        hf_token: str = "",
     ) -> Path:
         if not glb_file.exists():
             raise FileNotFoundError(f"Could not find 3D model: {glb_file}")
