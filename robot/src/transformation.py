@@ -222,16 +222,11 @@ def extract_pybullet_pose(obj2robot: AtoB) -> tuple[list[float], list[float], fl
     tuple[list[float], list[float], float]
         A tuple containing the position (x, y, z), quaternion (x, y, z, w), and scale.
     """
-    from scipy.spatial.transform import Rotation as Rot
     T = obj2robot.T_position
     pos = T[:3, 3].tolist()
     R = T[:3, :3]
     scale = np.linalg.norm(R[:, 0])
-    U, _, Vt = np.linalg.svd(R)
-    R_pure = U @ Vt
-    if np.linalg.det(R_pure) < 0:
-        U[:, -1] *= -1
-        R_pure = U @ Vt
+    R_pure = R / scale
     quat = Rot.from_matrix(R_pure).as_quat().tolist()
     return pos, quat, scale
 

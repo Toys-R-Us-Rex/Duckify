@@ -4,19 +4,22 @@ MIT License
 Copyright (c) 2026 HES-SO Valais-Wallis, Engineering Track 304
 '''
 
+import json
 import logging
 
+import matplotlib.pyplot as plt
 import numpy as np
+from pybullet_planning import plan_joint_motion
+from URBasic import TCP6D, Joint6D
 
 from src.segment import JointSegment, MotionType, SideType
 from src.config import *
 from src.utils import *
+from src.kinematics import get_fk
 
 log = logging.getLogger(__name__)
 
 def _hover_tcp(surface_tcp, hover_offset=None):
-    from URBasic import TCP6D
-
     if hover_offset is None:
         hover_offset = HOVER_OFFSET
 
@@ -28,14 +31,14 @@ def _hover_tcp(surface_tcp, hover_offset=None):
     )
 
 
-def _validate_surface_points(checker, tcp_offset, model_correction, surface_tcps, qnear=None):
+def _validate_surface_points(checker, tcp_offset, surface_tcps, qnear=None):
     valid_checklist = []
     reasons = []
     joint_solutions = []
 
     for tcp in surface_tcps:
         ok, q, reason, _ = checker.validate_tcp(
-            tcp_offset, model_correction, tcp, qnear=qnear, check_obstacle=False,
+            tcp_offset, tcp, qnear=qnear, check_obstacle=False,
             orientation_search=True, check_joint_jump=False,
         )
         valid_checklist.append(ok)
@@ -61,7 +64,7 @@ def _split_into_runs(valid_checklist):
     return runs
 
 
-def _find_valid_hover(checker, tcp_offset, model_correction, run_surface, surface_joints,
+def _find_valid_hover(checker, tcp_offset, run_surface, surface_joints,
                       from_end, hover_offset=None, qnear_override=None):
     n = len(run_surface)
     indices = range(n - 1, -1, -1) if from_end else range(n)
@@ -70,7 +73,7 @@ def _find_valid_hover(checker, tcp_offset, model_correction, run_surface, surfac
         h_tcp = _hover_tcp(run_surface[i], hover_offset)
         qnear = qnear_override if qnear_override is not None else (surface_joints[i] if surface_joints is not None else None)
         ok, q, reason, h_used = checker.validate_tcp(
-            tcp_offset, model_correction, h_tcp, qnear=qnear,
+            tcp_offset, h_tcp, qnear=qnear,
             check_obstacle=True, orientation_search=True, check_joint_jump=False,
         )
         if ok:
@@ -83,8 +86,6 @@ def load_traces(json_path):
     Returns (traces, data) where traces is the normalized list
     and data is the full parsed dict
     """
-    import json
-
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -98,16 +99,14 @@ def load_traces(json_path):
     return traces, data
 
 
-def assemble_segments(tcp_offset, model_correction, checker, validated_runs, surface_joints_per_trace, home,
-                      surface_tcps_per_trace=None):
-    from src.kinematics import get_fk
-
+def assemble_segments(tcp_offset, checker, validated_runs, surface_joints_per_trace, home,
+                      surface_tcps_per_trace=None, default_normals_per_trace=None):
     print("\nAssembling segments...")
 
     segments = []
     current_joints = home
     current_label = "HOME"
-    home_tcp = get_fk(home, tcp_offset, model_correction)
+    home_tcp = get_fk(home, tcp_offset)
     prev_h_exit = home_tcp
 
     for run_i, (trace_i, run_start, run_end, h_entry, h_exit, run_surface, q_entry, q_exit) in enumerate(validated_runs):
@@ -115,6 +114,7 @@ def assemble_segments(tcp_offset, model_correction, checker, validated_runs, sur
         exit_label = f"Run{run_i} hover-exit"
         trace_surface_joints = surface_joints_per_trace[trace_i]
         trace_surface_tcps = surface_tcps_per_trace[trace_i] if surface_tcps_per_trace else None
+        trace_normals = default_normals_per_trace[trace_i] if default_normals_per_trace else None
 
         print(f"\n  [{current_label}] -> [{entry_label}]")
         segments.append(JointSegment(
@@ -143,6 +143,7 @@ def assemble_segments(tcp_offset, model_correction, checker, validated_runs, sur
 
         print(f"  [Run{run_i} surface[0]] -> [Run{run_i} surface[{len(run_surface)-1}]]")
         draw_tcps = trace_surface_tcps[run_start:run_end + 1] if trace_surface_tcps else None
+        draw_normals = trace_normals[run_start:run_end + 1] if trace_normals else None
         segments.append(JointSegment(
             motion_type=MotionType.DRAW,
             color=1,
@@ -150,6 +151,7 @@ def assemble_segments(tcp_offset, model_correction, checker, validated_runs, sur
             waypoints=trace_surface_joints[run_start:run_end + 1],
             v=DRAW_V, a=DRAW_A,
             tcp_waypoints=draw_tcps,
+            default_normals=draw_normals,
         ))
         print(f"    DRAW OK ({len(run_surface)} pts)")
 
@@ -201,9 +203,6 @@ def print_segment_summary(segments):
 
 
 def plan_travels(checker, segments):
-    from URBasic import Joint6D
-    from pybullet_planning import plan_joint_motion
-
     print("\nPlanning TRAVEL segments...")
 
     for seg_i, seg in enumerate(segments):
@@ -252,7 +251,7 @@ def simplify_path(path, tolerance=0.05):
     return [path[i] for i in keep]
 
 
-def smoothing(tcp_offset, model_correction, checker, segments, home):
+def smoothing(tcp_offset, checker, segments, home):
 
     qnear = home
     total_updated = 0
@@ -260,7 +259,6 @@ def smoothing(tcp_offset, model_correction, checker, segments, home):
 
     for seg_i, seg in enumerate(segments):
         if seg.tcp_waypoints is None:
-            # No TCP data, keep existing joints, advance qnear to last waypoint
             if seg.waypoints:
                 qnear = seg.waypoints[-1]
             continue
@@ -270,8 +268,8 @@ def smoothing(tcp_offset, model_correction, checker, segments, home):
         for wp_i, tcp in enumerate(seg.tcp_waypoints):
             check_obs = seg.motion_type == MotionType.TRAVEL
             ok, q, reason, _ = checker.validate_tcp(
-                tcp_offset, model_correction, tcp, qnear=qnear, orientation_search=True,
-                check_obstacle=check_obs,
+                tcp_offset, tcp, qnear=qnear, orientation_search=True,
+                check_obstacle=check_obs, find_all=False,
             )
             if ok:
                 new_waypoints.append(q)
@@ -307,8 +305,6 @@ def smoothing(tcp_offset, model_correction, checker, segments, home):
     print(f"\nSmoothing done: {total_updated} updated, {total_failed} kept original")
 
 def plot_joint_plan(segments, save_path):
-    import matplotlib.pyplot as plt
-
     COLORS = {
         MotionType.TRAVEL: "blue",
         MotionType.APPROACH: "orange",
@@ -373,6 +369,102 @@ def plot_joint_plan(segments, save_path):
     plt.close()
     print(f"Joint plan plot saved to {save_path}")
 
+
+
+def _normal_from_tcp(tcp):
+    from scipy.spatial.transform import Rotation
+    return -Rotation.from_rotvec([tcp.rx, tcp.ry, tcp.rz]).as_matrix()[:, 2]
+
+
+def _compute_normal_diffs(segments, use_joints=False, tcp_offset=None):
+    all_x = []
+    all_angles = []
+    all_types = []
+    wp_index = 0
+
+    for seg in segments:
+        if use_joints:
+            if seg.waypoints is None or len(seg.waypoints) < 2:
+                if seg.waypoints:
+                    wp_index += len(seg.waypoints)
+                continue
+            tcps = [get_fk(q, tcp_offset) for q in seg.waypoints]
+        else:
+            if seg.tcp_waypoints is None or len(seg.tcp_waypoints) < 2:
+                if seg.waypoints:
+                    wp_index += len(seg.waypoints)
+                continue
+            tcps = seg.tcp_waypoints
+
+        angles = []
+        for i in range(1, len(tcps)):
+            prev_n = _normal_from_tcp(tcps[i - 1])
+            curr_n = _normal_from_tcp(tcps[i])
+            dot = np.dot(prev_n, curr_n) / (np.linalg.norm(prev_n) * np.linalg.norm(curr_n))
+            angles.append(np.degrees(np.arccos(np.clip(dot, -1, 1))))
+
+        x = list(range(wp_index + 1, wp_index + len(tcps)))
+        all_x.append(x)
+        all_angles.append(angles)
+        all_types.append(seg.motion_type)
+        wp_index += len(tcps)
+
+    return all_x, all_angles, all_types
+
+
+def _plot_normal_diffs_on_ax(ax, all_x, all_angles, all_types, title):
+    COLORS = {
+        MotionType.TRAVEL: "blue",
+        MotionType.APPROACH: "orange",
+        MotionType.DRAW: "green",
+    }
+    legend_added = set()
+    for x, angles, mtype in zip(all_x, all_angles, all_types):
+        color = COLORS[mtype]
+        label = mtype.name if mtype not in legend_added else None
+        legend_added.add(mtype)
+        ax.plot(x, angles, color=color, label=label, linewidth=1, marker='.', markersize=2)
+
+    all_flat = []
+    for angles in all_angles:
+        all_flat.extend(angles)
+
+    if all_flat:
+        mean_val = np.mean(all_flat)
+        median_val = np.median(all_flat)
+        max_val = np.max(all_flat)
+        above_5 = sum(1 for a in all_flat if a > 5)
+
+        stats = f"mean={mean_val:.2f}  median={median_val:.2f}  max={max_val:.2f}  >5deg={above_5}/{len(all_flat)}"
+        ax.text(0.01, 0.95, stats, transform=ax.transAxes, fontsize=8, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        print(f"  {title}: {stats}")
+
+    ax.set_title(title)
+    ax.set_ylabel("Angle diff (degrees)")
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="upper right", fontsize=8)
+
+
+def plot_normal_diff(segments, save_path, tcp_offset=None):
+    before_x, before_angles, before_types = _compute_normal_diffs(segments, use_joints=False)
+
+    if tcp_offset is not None:
+        after_x, after_angles, after_types = _compute_normal_diffs(segments, use_joints=True, tcp_offset=tcp_offset)
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
+        _plot_normal_diffs_on_ax(ax1, before_x, before_angles, before_types, "Before smoothing")
+        _plot_normal_diffs_on_ax(ax2, after_x, after_angles, after_types, "After smoothing")
+        ax2.set_xlabel("Waypoint index")
+    else:
+        fig, ax1 = plt.subplots(figsize=(14, 4))
+        _plot_normal_diffs_on_ax(ax1, before_x, before_angles, before_types, "Normal difference between consecutive waypoints")
+        ax1.set_xlabel("Waypoint index")
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150)
+    plt.show()
+    plt.close()
+    print(f"Normal diff plot saved to {save_path}")
 
 
 def correct_bottom_values(waypoints):

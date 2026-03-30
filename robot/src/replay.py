@@ -1,3 +1,5 @@
+import argparse
+import select
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -177,9 +179,6 @@ def slider_viewer(checker, segments):
     text_id = None
     last_index = -1
 
-    import select
-    import sys
-
     while pb.isConnected(cid):
         current = int(pb.readUserDebugParameter(slider_id, physicsClientId=cid))
         if current != last_index:
@@ -205,7 +204,6 @@ def slider_viewer(checker, segments):
 
 
 def main():
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=Path, default=None, help="Path to data directory")
     parser.add_argument("--file", type=Path, default=None, help="Path to a specific joint_segments .pkl file")

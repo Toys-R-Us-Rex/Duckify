@@ -96,15 +96,19 @@ class Conversion(Stage):
             for c, trace in d.items():
                 segments = []
                 for t in trace:
-                    color = t.color
-                    side = t.side
-                    waypoints = t.waypoints
+                    tcp_data = []
+                    normals = []
+                    for p in t.waypoints:
+                        pose, normal = objtorobot.transform_with_normal(p)
+                        tcp_data.append(TCP6D.createFromMetersRadians(*pose))
+                        normals.append(normal)
+
                     segments.append(
                         TCPSegment(
-                            color=color,
-                            side=side,
-                            
-                            waypoints=[TCP6D.createFromMetersRadians( *objtorobot(p)) for p in waypoints],
+                            color=t.color,
+                            side=t.side,
+                            waypoints=tcp_data,
+                            default_normals=normals,
                             motion_type=MotionType.DRAW,
                             v=DRAW_V,
                             a=DRAW_A
