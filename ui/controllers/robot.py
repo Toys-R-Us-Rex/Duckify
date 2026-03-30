@@ -6,6 +6,9 @@ from typing import TYPE_CHECKING, Optional
 from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QWidget
 
+from robot.src.conversion import convert_segments
+from robot.src.filter import filter_traces
+from robot.src.segment import SideType
 from robot.src.utils import AtoB
 from ui.assets import AssetRegistry
 from ui.dialogs.calibration import CalibrationDialog
@@ -80,6 +83,8 @@ class RobotController(QObject):
         self.ui.robotNewTransformation.clicked.connect(self.new_transformation)
         self.ui.robotNewPenCalibration.clicked.connect(self.new_pen_calibration)
 
+        self.ui.robotLoadTraces.clicked.connect(self.load_traces)
+
         self.ui.robotRun.clicked.connect(self.robot_run)
 
         self.connect_change()
@@ -146,6 +151,19 @@ class RobotController(QObject):
             calibration: tuple = self.service.read_tcp()
             print(f"Pen 0 position: {calibration}")
         self.robot_check_ready()
+    
+    def load_traces(self):
+        traces_path: Path = self.ui.robotTrace.currentData()
+        side: SideType = SideType.RIGHT
+        if self.ui.robotFilter.currentIndex() == 1:
+            side = SideType.LEFT
+        segments: dict = filter_traces(traces_path, True, side)
+        self.service.ds.save_trace_segments(segments, self.workspace.trace_segments_path)
+
+        transformation_path: Path = self.ui.robotTransformation.currentData()
+        transformation: AtoB = self.service.ds.load_transformation(transformation_path, use_pickle=False)
+        tcp_segments: dict = convert_segments(transformation, segments)
+        self.service.ds.save_tcp_segments(tcp_segments, self.workspace.tcp_segments_path)
 
     def robot_check_ready(self):
         ready: bool = True
