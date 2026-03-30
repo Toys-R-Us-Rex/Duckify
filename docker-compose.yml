@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: docker/duckify.Dockerfile
+    image: duckify
     container_name: duckify_ui
     privileged: true
     network_mode: host

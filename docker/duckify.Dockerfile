@@ -33,18 +33,19 @@ RUN apt-get update && apt-get install -y \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
     && apt-get update && apt-get install -y docker-ce-cli
 
-COPY . /app
+COPY ./pyproject.toml /app/
+COPY ./ui/pyproject.toml /app/
+COPY ./genai/pyproject.toml /app/
+COPY ./robot/pyproject.toml /app/
+COPY ./tracing/pyproject.toml /app/
+COPY ./uv.lock /app/
 
-# Download the latest installer
-ADD https://astral.sh/uv/install.sh /uv-installer.sh
-
-# Run the installer then remove it
-RUN sh /uv-installer.sh && rm /uv-installer.sh
-
-# Ensure the installed binary is on the `PATH`
-ENV PATH="/root/.local/bin/:$PATH"
+# Download UV
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
+
+COPY . /app
 
 RUN uv sync
 
