@@ -87,7 +87,4 @@ class MVAdapaterModel:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Error : {e.stderr}")
         
-        for i in range(num_generations):
-            texture_path: Path = output_dir / f"{i}"/  f"{save_name}_uv.png"
-            shutil.copy(texture_path, output_dir / f"{i}"/  f"{save_name}_uv.png")
         return output_dir
