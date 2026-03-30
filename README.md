@@ -14,7 +14,7 @@ uv run start
 ```
 
 ## Requirements
-- Python 3.13+
+- Python 3.11+
 - UV
 
 ## Install
@@ -28,7 +28,10 @@ uv run start
    cd Duckify
    uv sync
    ```
-3. Build PyQt ui files
+3. Install Robot environment
+   - More details in the [Robot README](./robot/README.md)
+
+4. Build PyQt ui files
    ```bash
    uv run build-ui
    ```

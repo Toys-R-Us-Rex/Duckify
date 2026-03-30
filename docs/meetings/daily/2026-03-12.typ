@@ -110,8 +110,8 @@ Ajd:
 
 - Corrections temporaires qui match le milestone
 
-*Général*
+*Problème général*
 
-Alexandre,Jeremy,Cédric:
-- Problème retard au daily meeting
-  - Eventuellemnt décaler le meeting à 8h
+Alexandre (appyué par Jeremy(_chef d'équipe de cette semaine_) et Cédric) :
+- Pointe un problème de retards récurrents lors des daily meeting (attitude pas professionelle, début réel du travail retardé, peu de productivité en matinée)
+  - (J) : Si la situation devait continuer alors décaler le daily meeting à 8h afin d'assurer le temps travail

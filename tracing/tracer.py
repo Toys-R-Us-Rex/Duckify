@@ -136,9 +136,6 @@ class Tracer:
 
             if self.config.debug:
                 pts: np.ndarray = self.uv_to_texture(trace_2d.path, size).astype(np.intp)
-                #for pt in pts:
-                #    cv2.circle(img, pt, 3, (0, 0, 255), -1)
-
                 col = (255, 0, 255) if traces_3d is None or len(traces_3d) == 0 else (255, 255, 0)
                 cv2.polylines(img, [pts], True, col)
 
@@ -150,7 +147,9 @@ class Tracer:
             cv2.destroyAllWindows()
             clouds = []
             segments = []
+            total_points = 0
             for trace in self.traces_3d:
+                total_points += len(trace.path)
                 color = self.palette[trace.color]
                 polygon = trace.get_polygon()
                 path = trimesh.load_path(polygon)
@@ -189,6 +188,10 @@ class Tracer:
             raise FileNotFoundError(f"The file {path} does not exist")
 
         im = Image.open(path).convert("RGB")
+
+        if self.config.enable_inputs_visualisation:
+            c_img_arr = np.array(im.convert("RGB"))
+            cv2.imshow("input texture image", cv2.cvtColor(c_img_arr, cv2.COLOR_RGB2BGR))
         return im.resize(self.config.image_size)
 
     def load_model(self, path: Path) -> Trimesh:
@@ -208,7 +211,7 @@ class Tracer:
 
         mesh = trimesh.load_mesh(path)
 
-        if self.config.debug:
+        if self.config.enable_inputs_visualisation:
             mesh.show(resolution = (800,600))
 
         return mesh
@@ -259,8 +262,7 @@ class Tracer:
 
         output_img = Image.fromarray(output_arr.astype(np.uint8), "RGB")
 
-        if self.config.debug:
-            cv2.imshow("input texture image", cv2.cvtColor(c_img_arr, cv2.COLOR_RGB2BGR))
+        if self.config.enable_texture_transformation_visualisation:
             cv2.imshow("palettized texture image", cv2.cvtColor(output_arr, cv2.COLOR_RGB2BGR))
             cv2.waitKey(-1)
             cv2.destroyAllWindows()
@@ -291,7 +293,7 @@ class Tracer:
             mask_img = Image.fromarray((mask * 255).astype(np.uint8))
             images.append(mask_img)
 
-            if self.config.debug:
+            if self.config.enable_texture_transformation_visualisation:
                 cv2.imshow(f"splitted color image {color}", np.array(mask_img))
                 cv2.waitKey(-1)
                 cv2.destroyAllWindows()
@@ -321,23 +323,41 @@ class Tracer:
         contours_too_small: list[tuple[np.ndarray, np.ndarray]] = []
         # tri des contours "trop petits"
         for idx, (contour, hierarchy) in enumerate(zipped_contour_data):
-            if cv2.contourArea(contour) < self.config.min_island_surface:
-                contours_too_small.append((contour, hierarchy))
+
+            if cv2.contourArea(contour) >= self.config.min_island_surface:
+                # simplification de la forme du contour
+                peri = cv2.arcLength(contour, True)
+                approx = cv2.approxPolyDP(contour, self.config.contour_simplification_epsilon * peri, True)
+                contours_cleaned.append((approx, hierarchy, idx))
+
+                if self.config.enable_reduction_visualisation:
+                        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+                        fig.canvas.manager.set_window_title('Contour simplification (reduction of points)')
+
+                        poly_before = Polygon(self.contour_to_polygon(contour))
+                        plot_polygon(poly_before, ax=ax1, facecolor='lightblue', edgecolor='blue', alpha=0.5)
+                        ax1.set_title(f"Before contours points reduction : n={len(poly_before.exterior.coords)-1}")
+
+                        poly_after = Polygon(self.contour_to_polygon(approx))
+                        plot_polygon(poly_after, ax=ax2, facecolor='lightblue', edgecolor='blue', alpha=0.5)
+                        ax2.set_title(f"After contours points reduction (eps={self.config.contour_simplification_epsilon}) : n={len(poly_after.exterior.coords)-1}")
+
+                        plt.tight_layout()
+                        plt.show()
             else:
-                contours_cleaned.append((contour, hierarchy, idx))
-        
+                contours_too_small.append((contour, hierarchy))
 
-
-        if self.config.debug:
+        if self.config.enable_island_selection_visualisation:
             cv2.imshow('Islands in the layer', layer)
             with_contours = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
             cv2.drawContours(with_contours, contours, -1, (0, 255, 0), 2)
             cv2.imshow("All detected contour", with_contours)
             
-            with_contours_cleaned = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
-            cv2.drawContours(with_contours_cleaned, list(zip(*contours_cleaned))[0], -1, (0, 255, 0), 2)
-            cv2.drawContours(with_contours_cleaned, list(zip(*contours_too_small))[0], -1, (0, 0, 255), 2)
-            cv2.imshow("Cleaned contours", with_contours_cleaned)
+            if len(contours_too_small) > 0 :
+                with_contours_cleaned = cv2.cvtColor(layer, cv2.COLOR_GRAY2BGR)
+                cv2.drawContours(with_contours_cleaned, list(zip(*contours_cleaned))[0], -1, (0, 255, 0), 2)
+                cv2.drawContours(with_contours_cleaned, list(zip(*contours_too_small))[0], -1, (0, 0, 255), 2)
+                cv2.imshow("Cleaned contours", with_contours_cleaned)
             cv2.waitKey(-1)
             cv2.destroyAllWindows()
         # gérer la hierarchie : https://learnopencv.com/contour-detection-using-opencv-python-c/
@@ -345,7 +365,7 @@ class Tracer:
         if hierarchy is not None:
             for contour, values, idx in contours_cleaned:
                 if contour.shape[0] < 4:
-                    if self.config.debug:
+                    if self.config.enable_island_selection_visualisation:
                         self.logger.debug(f"The island with contour : {contour} has been dismissed, because it's too small")
                     continue
                 hierarch: Hierarchy = Hierarchy (
@@ -401,22 +421,11 @@ class Tracer:
         
         polygon = Polygon(island.outer_border, island.inner_borders)
 
+        if not polygon.is_valid:
+            polygon = shapely.make_valid(polygon)
+
         # BB du polygone
         minx, miny, maxx, maxy = polygon.bounds
-
-        if self.config.debug:
-            llBound = shapely.points([minx, miny])
-            urBound = shapely.points([maxx, maxy])
-            lrBound = shapely.points([maxx, miny])
-            ulBound = shapely.points([minx, maxy])
-
-            fig, ax = plt.subplots()
-            plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
-            plot_points(llBound, ax=ax, color='red')
-            plot_points(urBound, ax=ax, color='red')
-            plot_points(lrBound, ax=ax, color='red')
-            plot_points(ulBound, ax=ax, color='red')
-            plt.show()
         
         # génération d'une grille de ligne à superposer/intersecter avec l'island
         lines : list[LineString] = []
@@ -432,19 +441,36 @@ class Tracer:
             for line in lines
             if line.intersects(polygon)
         ]  # type: ignore
-
+        
         if self.config.debug:
-            print(f"L'îlot : {polygon} est en cours d'affichage")
-            print(f"La surface de cet îlot est :{shapely.area(polygon)}")
-            fig, ax = plt.subplots()
-            plot_polygon(polygon, ax=ax, facecolor='lightblue', edgecolor='blue', alpha=0.5)
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+
+            fig.canvas.manager.set_window_title('Fill slicing process')
+
+            llBound = shapely.points([minx, miny])
+            urBound = shapely.points([maxx, maxy])
+            lrBound = shapely.points([maxx, miny])
+            ulBound = shapely.points([minx, maxy])
+
+            plot_polygon(polygon, ax=ax1, facecolor='lightblue', edgecolor='blue', alpha=0.5)
+            plot_points(llBound, ax=ax1, color='red')
+            plot_points(urBound, ax=ax1, color='red')
+            plot_points(lrBound, ax=ax1, color='red')
+            plot_points(ulBound, ax=ax1, color='red')
+
+            ax1.set_title("Before the filling")
+
+            plot_polygon(polygon, ax=ax2, facecolor='lightblue', edgecolor='blue', alpha=0.5)
             for fill_line in fill_lines:
                 if isinstance(fill_line, LineString):
-                    plot_line(fill_line, ax=ax, color='green', linewidth=1)
+                    plot_line(fill_line, ax=ax2, color='green', linewidth=1)
                 elif isinstance(fill_line, (MultiLineString, GeometryCollection)):
                     for part in fill_line.geoms:
                         if isinstance(part, LineString):
-                            plot_line(part, ax=ax, color='red', linewidth=1)
+                            plot_line(part, ax=ax2, color='red', linewidth=1)
+            ax2.set_title("After the filling")
+
+            plt.tight_layout()
             plt.show()
         
         # Tri entre LineString et MultiLineString et ajout à la variable de retour
@@ -625,7 +651,9 @@ class Tracer:
             list[Point3D]: the list of intermediary points
         """
         pts: list[Point3D] = []
-        if p1.face_idx == p2.face_idx:
+        same_face: bool = p1.face_idx == p2.face_idx
+        too_parallel_faces: bool = abs(self.angle_between_normals(p1.normal, p2.normal)) < self.config.parallel_angle
+        if same_face or too_parallel_faces:
             return pts
         
         mid_uv: np.ndarray = (p1.uv + p2.uv) / 2
@@ -752,35 +780,6 @@ class Tracer:
         """
         return contour[:, 0, :]
 
-
-    # https://stackoverflow.com/a/70664846/11109181
-    def resample_polygon(self, xy: np.ndarray, n_points: int = 100, closed: bool = False) -> np.ndarray:
-        n = n_points
-
-        # If closed, duplicate first point at end
-        if closed:
-            xy = np.vstack([xy, [xy[0]]])
-            n += 1
-
-        # Cumulative Euclidean distance between successive polygon points.
-        # This will be the "x" for interpolation
-        d = np.cumsum(np.r_[0, np.sqrt((np.diff(xy, axis=0) ** 2).sum(axis=1))])
-
-        # get linearly spaced points along the cumulative Euclidean distance
-        d_sampled = np.linspace(0, d.max(), n)
-
-        # interpolate x and y coordinates
-        xy_interp = np.c_[
-            np.interp(d_sampled, d, xy[:, 0]),
-            np.interp(d_sampled, d, xy[:, 1]),
-        ]
-
-        # If closed, ignore last point (duplicate of first point)
-        if closed:
-            xy_interp = xy_interp[:-1]
-
-        return xy_interp
-
     def format_palette(self, palette: tuple[Color, ...]) -> list[int]:
         """Formatting an input palette to be used in  palettize_texture()
 
@@ -876,7 +875,7 @@ class Tracer:
         cv2.fillPoly(mask, uv_faces, 255)
         masked_texture = cv2.bitwise_and(np_img, np_img, mask=mask)
         
-        if self.config.debug:
+        if self.config.enable_texture_transformation_visualisation:
             cv2.namedWindow('Mask', cv2.WINDOW_KEEPRATIO)
             cv2.imshow('Mask', mask)
             cv2.resizeWindow('Mask', 600, 600)
@@ -928,3 +927,17 @@ class Tracer:
         island.outer_border = island.outer_border[indexes_to_keep]
 
         return island
+
+    def angle_between_normals(self, n1:np.ndarray, n2:np.ndarray) -> float:
+        """Compute the angle between two normals in radian
+
+        Args:
+            n1 (np.ndarray): normal of point 1
+            n2 (np.ndarray): normal of point 2
+
+        Returns:
+            float: angle value in radian
+        """
+        dot_product = np.clip(np.dot(n1, n2), -1.0, 1.0)
+        angle_rad: float = np.arccos(dot_product)
+        return angle_rad

@@ -39,15 +39,15 @@ Course:     HES-SO Valais-Wallis, Engineering Track 304
 
 import numpy as np
 
-from src.stage import Stage
-from src.utils import *
-from src.config import *
-from src.logger import DataStore
-from src.pen import PenState
+from robot.src.stage import Stage
+from robot.src.utils import *
+from robot.src.config import *
+from robot.src.logger import DataStore
+from robot.src.pen import PenState
 
-from URBasic.waypoint6d import TCP6D
-from URBasic.urScript import UrScript
-from URBasic.iscoin import ISCoin
+from robot.urbasic.URBasic.waypoint6d import TCP6D
+from robot.urbasic.URBasic.urScript import UrScript
+from robot.urbasic.URBasic.iscoin import ISCoin
 
 
 def collect_data(robot_arm: UrScript, num_measure: int = 20) -> list[list[float]]:

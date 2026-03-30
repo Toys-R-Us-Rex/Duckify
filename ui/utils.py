@@ -1,5 +1,5 @@
-from pathlib import Path
 import socket
+from pathlib import Path
 
 from PyQt6.QtWidgets import QComboBox
 
@@ -25,3 +25,8 @@ def ping(host: str, port: int, timeout: int = 3) -> bool:
 def populate_combobox(box: QComboBox, paths: list[Path], base: Path):
     for path in paths:
         box.addItem(str(path.relative_to(base)), path)
+
+
+def add_and_select_item(box: QComboBox, *args):
+    box.addItem(*args)
+    box.setCurrentIndex(box.count() - 1)

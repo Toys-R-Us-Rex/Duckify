@@ -1,21 +1,20 @@
 import time
-from typing import Callable, Optional
+from typing import Optional
 
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QDialog, QPushButton
 
+from ui.models import TCPPoint
+from ui.services.robot import RobotService
 from ui.ui.calibration_ui import Ui_Dialog
-
-TCPPoint = tuple[float, float, float, float, float, float]
-TCPReader = Callable[[], TCPPoint]
 
 
 class CalibrationDialog(QDialog, Ui_Dialog):
-    def __init__(self, read_tcp: TCPReader, parent=None) -> None:
+    def __init__(self, service: RobotService, parent=None) -> None:
         super().__init__(parent)
         self.setupUi(self)
 
-        self.read_tcp: TCPReader = read_tcp
+        self.service: RobotService = service
         self.point_model: QStandardItemModel = QStandardItemModel(self.pointsList)
         self.pointsList.setModel(self.point_model)
 
@@ -27,6 +26,12 @@ class CalibrationDialog(QDialog, Ui_Dialog):
         self._next_id: int = 0
 
         self.set_count(0)
+
+        self.finished.connect(lambda: self.service.set_freedrive(False))
+
+    def exec(self) -> int:
+        self.service.set_freedrive(True)
+        return super().exec()
 
     def update_count(self, *args):
         self.set_count(self.point_model.rowCount())
@@ -42,7 +47,7 @@ class CalibrationDialog(QDialog, Ui_Dialog):
             save_btn.setDisabled(count < 6)
 
     def add_point(self):
-        tcp_point: TCPPoint = self.read_tcp()
+        tcp_point: TCPPoint = self.service.read_tcp()
         timestamp: str = time.strftime("%H:%M:%S")
         id: int = self._next_id
         self._next_id += 1
@@ -55,11 +60,11 @@ class CalibrationDialog(QDialog, Ui_Dialog):
         row: int = self.pointsList.currentIndex().row()
         self.point_model.takeRow(row)
 
-    def get_points(self) -> list[TCPPoint]:
-        points: list[TCPPoint] = []
+    def get_tcps(self) -> list[TCPPoint]:
+        tcps: list[TCPPoint] = []
         for i in range(self.point_model.rowCount()):
             item: Optional[QStandardItem] = self.point_model.item(i)
             if item is None:
                 continue
-            points.append(item.data())
-        return points
+            tcps.append(item.data())
+        return tcps
