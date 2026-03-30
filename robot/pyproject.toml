@@ -30,7 +30,7 @@ dependencies = [
     "scipy>=1.17.1",
     "setuptools>=67.0.0",
     "trimesh>=4.11.4",
-    #"urbasic>=0.0.1",
+    "urbasic",
 ]
 
 [tool.setuptools]
@@ -48,6 +48,9 @@ dev = ["pytest>=8.0,<9"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.uv.sources]
+urbasic = { workspace = true }
 
 #[build-system]
 #requires = ["uv_build>=0.8.23,<0.9.0"]

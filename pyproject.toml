@@ -11,6 +11,7 @@ dependencies = [
     "genai",
     "ui",
     "pybullet-planning",
+    "urbasic",
 ]
 
 [tool.uv.workspace]
@@ -19,6 +20,7 @@ members = [
     "robot",
     "genai",
     "ui",
+    "urbasic",
 ]
 
 [tool.uv.sources]
@@ -27,3 +29,4 @@ tracing = { workspace = true }
 robot = { workspace = true }
 ui = { workspace = true }
 pybullet-planning = { git = "https://github.com/yijiangh/pybullet_planning", rev = "dev" }
+urbasic = { workspace = true }

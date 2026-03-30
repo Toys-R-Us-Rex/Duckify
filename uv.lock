@@ -14,6 +14,7 @@ members = [
     "robot",
     "tracing",
     "ui",
+    "urbasic",
 ]
 
 [[package]]
@@ -674,6 +675,7 @@ dependencies = [
     { name = "robot" },
     { name = "tracing" },
     { name = "ui" },
+    { name = "urbasic" },
 ]
 
 [package.metadata]
@@ -683,6 +685,7 @@ requires-dist = [
     { name = "robot", editable = "robot" },
     { name = "tracing", editable = "tracing" },
     { name = "ui", editable = "ui" },
+    { name = "urbasic", editable = "urbasic" },
 ]
 
 [[package]]
@@ -2531,6 +2534,7 @@ dependencies = [
     { name = "scipy" },
     { name = "setuptools" },
     { name = "trimesh" },
+    { name = "urbasic" },
 ]
 
 [package.dev-dependencies]
@@ -2552,6 +2556,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.17.1" },
     { name = "setuptools", specifier = ">=67.0.0" },
     { name = "trimesh", specifier = ">=4.11.4" },
+    { name = "urbasic", editable = "urbasic" },
 ]
 
 [package.metadata.requires-dev]
@@ -3028,6 +3033,11 @@ requires-dist = [
     { name = "robot", editable = "robot" },
     { name = "tracing", editable = "tracing" },
 ]
+
+[[package]]
+name = "urbasic"
+version = "0.0.1"
+source = { editable = "urbasic" }
 
 [[package]]
 name = "uri-template"
