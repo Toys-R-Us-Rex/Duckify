@@ -260,6 +260,10 @@ def load_obj2robot(record: DataStore, rz_deg: float = OBJ2ROBOT_RZ_DEG):
     return build_manual_transform(rz_deg=rz_deg, translation=translation)
 
 
+def transformation_measure_with_pressure(robot_ip, json_socle, ds):
+    pass
+
+
 def launch_transformation(robot_ip: str, file_path: str, ds: DataStore, z_rotation: float = 0) -> AtoB:
     """
     Launches the transformation process.

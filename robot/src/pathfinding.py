@@ -49,17 +49,29 @@ class Pathfinding(Stage):
 
         position, quat, scale = extract_pybullet_pose(obj2robot)
         checker = setup_checker(self.obstacles, obj_position=position, obj_orientation=quat, gui=self.verbose)
-
         checker.set_joint_angles(HOMEJ.toList())
 
         joint_data = {}
+        is_flipped = False
 
         for side, colors in data.items():
             if manual_flag and not ask_yes_no(f"Draw on side {side}? y/n \n"):
                 continue
 
+            pb.removeAllUserDebugItems(physicsClientId=checker.cid)
+
+            workspace_id = checker.obstacle_ids[1] if len(checker.obstacle_ids) > 1 else None
+            exclude = {workspace_id} if workspace_id else None
+            if side == 'right' and not is_flipped:
+                checker.flip_obstacles_z(exclude_ids=exclude)
+                is_flipped = True
+            elif side == 'left' and is_flipped:
+                checker.flip_obstacles_z(exclude_ids=exclude)
+                is_flipped = False
+
             joint_data[side] = {}
             for color, traces in colors.items():
+
                 self.ds.log(f"Processing {side} - {color}")
                 trace_waypoints = [t.waypoints for t in traces]
                 default_normals = [t.default_normals for t in traces]
@@ -109,7 +121,7 @@ class Pathfinding(Stage):
                     visualize_plan(checker, tcp_offset_mat, segments, debug=True)
 
                 if manual_flag:
-                    animate_plan(checker, segments, delay=0.1)
+                    # animate_plan(checker, segments, delay=0.1)
                     input("Press Enter to continue after visualization...")
 
                 joint_data[side][color] = segments
