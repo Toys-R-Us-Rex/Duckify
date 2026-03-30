@@ -4,14 +4,15 @@ from src.logger import DataStore
 from src.segment import TraceSegment, SideType
 from src.computation import load_traces, correct_bottom_values
 from src.stage import Stage
-from src.utils import ask_yes_no, rotation_matrix_z
+from src.utils import ask_yes_no
+from src.config import *
 import numpy as np
 
 class Filter(Stage):
     """
     Filters trace segments based on their position relative to a threshold.
     """
-    def __init__(self, dataStore: DataStore, json_path: Path = None, multipen: bool = False):
+    def __init__(self, dataStore: DataStore, json_path: Path = None, multipen: bool = False, duck_side: SideType = SideType.LEFT):
         """
         Initializes the Filter stage.
 
@@ -23,12 +24,13 @@ class Filter(Stage):
             The path to the JSON file containing the trace data.
         multipen : bool, optional
             If True, allows multiple pens to be used. Default is False.
-        turn_degree : float, optional
-            The turning degree for the robot. Default is 0.0.
+        duck_side : SideType, optional
+            The side of the duck facing the robot.
         """
         super().__init__(name="Filter", datastore=dataStore)
         self.json_path = json_path
         self.multipen = multipen
+        self.side = duck_side
 
     def run(self, manual_flag: bool=True):
         """
@@ -84,10 +86,16 @@ class Filter(Stage):
             # xs = [pt[2] for pt in waypoints]
             # avg_x = sum(xs) / len(xs) if xs else 0
 
-            if avg_y >= 0:
-                left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, waypoints)]
+            if self.side == SideType.LEFT:
+                if avg_y >= 0:
+                    left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, [[w[0], w[1], OFFSET_Z + w[2], w[3], w[4], w[5]] for w in waypoints])]
+                else:
+                    right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, [[-w[0], -w[1], OFFSET_Z + w[2], w[3], w[4], w[5]] for w in waypoints])]
             else:
-                right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, waypoints)]
+                if avg_y >= 0:
+                    left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, [[-w[0], -w[1], OFFSET_Z + w[2], w[3], w[4], w[5]] for w in waypoints])]
+                else:
+                    right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, [[w[0], w[1], OFFSET_Z + w[2], w[3], w[4], w[5]] for w in waypoints])]
 
         s = {
             "left": left_traces,
