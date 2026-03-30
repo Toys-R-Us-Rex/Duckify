@@ -41,9 +41,9 @@ import numpy as np
 from robot.src.config import DEFAULT_DATA_DIR, DEFAULT_FORCE_PATH
 from robot.src.segment import *
 from robot.src.utils import AtoB
-from robot.urbasic.URBasic.iscoin import ISCoin
-from robot.urbasic.URBasic.urScript import UrScript
-from robot.urbasic.URBasic.waypoint6d import TCP6D, Joint6D
+from URBasic.iscoin import ISCoin
+from URBasic.urScript import UrScript
+from URBasic.waypoint6d import TCP6D, Joint6D
 from robot.duckify_simulation.duckify_sim.duckify_sim import DuckifySim
 from robot.duckify_simulation.duckify_sim.robot_control import SimRobotControl
 

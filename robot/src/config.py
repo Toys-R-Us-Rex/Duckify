@@ -7,7 +7,7 @@ Copyright (c) 2026 HES-SO Valais-Wallis, Engineering Track 304
 from pathlib import Path
 import numpy as np
 
-from robot.urbasic.URBasic.waypoint6d import TCP6D, Joint6D
+from URBasic.waypoint6d import TCP6D, Joint6D
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 ASSETS_DIR = PROJECT_DIR / "assets"

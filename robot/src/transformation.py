@@ -47,8 +47,8 @@ from robot.src.stage import Stage
 from robot.src.utils import *
 from robot.src.logger import DataStore
 
-from robot.urbasic.URBasic.iscoin import ISCoin
-from robot.urbasic.URBasic.urScript import UrScript
+from URBasic.iscoin import ISCoin
+from URBasic.urScript import UrScript
 from robot.duckify_simulation.duckify_sim.duckify_sim import DuckifySim
 from robot.duckify_simulation.duckify_sim.robot_control import SimRobotControl
 

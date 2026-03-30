@@ -45,9 +45,9 @@ from robot.src.config import *
 from robot.src.logger import DataStore
 from robot.src.pen import PenState
 
-from robot.urbasic.URBasic.waypoint6d import TCP6D
-from robot.urbasic.URBasic.urScript import UrScript
-from robot.urbasic.URBasic.iscoin import ISCoin
+from URBasic.waypoint6d import TCP6D
+from URBasic.urScript import UrScript
+from URBasic.iscoin import ISCoin
 
 
 def collect_data(robot_arm: UrScript, num_measure: int = 20) -> list[list[float]]:
