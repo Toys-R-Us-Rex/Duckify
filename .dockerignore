@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 ui/ui/*_ui.py
 docker/
+output/
+docs/
