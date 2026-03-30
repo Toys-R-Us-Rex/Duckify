@@ -10,7 +10,7 @@ from ui.dialogs.pen_calibration import PenCalibrationDialog
 from ui.dialogs.transformation import TransformationDialog
 from ui.services.robot import RobotRequest, RobotResult, RobotService
 from ui.settings_manager import Settings, SettingsManager
-from ui.utils import populate_combobox
+from ui.utils.misc import populate_combobox
 from ui.workspace import WorkspaceManager
 
 if TYPE_CHECKING:

@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="steps">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tabGenAI">
        <attribute name="title">
@@ -65,14 +65,27 @@
                <item>
                 <widget class="QTextEdit" name="genAIPrompt"/>
                </item>
+               <item>
+                <widget class="QPushButton" name="genAIGenerate">
+                 <property name="text">
+                  <string>Generate</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QProgressBar" name="genAIProgress">
+                 <property name="maximum">
+                  <number>1</number>
+                 </property>
+                 <property name="value">
+                  <number>0</number>
+                 </property>
+                 <property name="textVisible">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
               </layout>
-             </item>
-             <item>
-              <widget class="QPushButton" name="genAIGenerate">
-               <property name="text">
-                <string>Generate</string>
-               </property>
-              </widget>
              </item>
             </layout>
            </widget>

@@ -13,7 +13,7 @@ from ui.assets import AssetRegistry
 from ui.mesh_visualizer import MeshVisualizer
 from ui.services.tracing import TracingRequest, TracingResult, TracingService
 from ui.settings_manager import Settings, SettingsManager
-from ui.utils import populate_combobox
+from ui.utils.misc import populate_combobox
 from ui.workspace import WorkspaceManager
 
 if TYPE_CHECKING:
