@@ -321,7 +321,8 @@ class Tracer:
 
         contours, hierarchy = cv2.findContours(layer, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
         self.logger.debug(f"Found {len(contours)} contours")
-
+        if contours is None or hierarchy is None:
+            return []
         zipped_contour_data: list[tuple[np.ndarray, np.ndarray]] = list(zip(contours, hierarchy[0]))
 
         contours_cleaned: list[tuple[np.ndarray, np.ndarray, int]] = []
