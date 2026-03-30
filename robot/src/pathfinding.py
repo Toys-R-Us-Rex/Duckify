@@ -10,7 +10,7 @@ from src.kinematics import pose_to_matrix
 from src.safety import setup_checker
 from src.transformation import extract_pybullet_pose
 from src.pybullet_helpers import clear_bodies, find_hovers, preview_traces, split_into_runs, validate_surface_points, visualize_validation, visualize_runs, visualize_plan, animate_plan
-from src.computation import assemble_segments, plan_travels, smoothing, plot_joint_plan, hotfix_j6_correction, add_angle_continuity
+from src.computation import assemble_segments, plan_travels, smoothing, plot_joint_plan, plot_normal_diff, hotfix_j6_correction, add_angle_continuity
 
 class Pathfinding(Stage):
     def __init__(self, datastore: DataStore, default_calibration: Path = None, obstacles: list = OBSTACLE_STLS, verbose: bool = True):
@@ -45,88 +45,74 @@ class Pathfinding(Stage):
         data = self.ds.load_tcp_segments()
         
         tcp_offset = self.ds.return_tcp_offset(self.default_calibration)
-
         tcp_offset_mat = pose_to_matrix(tcp_offset)
-        model_correction_mat = np.eye(4)
 
-        pos, quat, scale = extract_pybullet_pose(obj2robot)
-        for obs in self.obstacles:
-            if 'position' not in obs:
-                obs['position'] = pos
-                obs['orientation'] = quat
-
-        checker = setup_checker(self.obstacles, gui=self.verbose)
-        pb.resetDebugVisualizerCamera(
-            cameraDistance=0.6, cameraYaw=45, cameraPitch=-30,
-            cameraTargetPosition=pos, physicsClientId=checker.cid,
-        )
+        position, quat, scale = extract_pybullet_pose(obj2robot)
+        checker = setup_checker(self.obstacles, obj_position=position, obj_orientation=quat, gui=self.verbose)
 
         checker.set_joint_angles(HOMEJ.toList())
+
         joint_data = {}
-        for s, d in data.items():
-            if not ask_yes_no(f"Draw on side {s}? y/n \n"):
+
+        for side, colors in data.items():
+            if manual_flag and not ask_yes_no(f"Draw on side {side}? y/n \n"):
                 continue
 
+            joint_data[side] = {}
+            for color, traces in colors.items():
+                self.ds.log(f"Processing {side} - {color}")
+                trace_waypoints = [t.waypoints for t in traces]
+                default_normals = [t.default_normals for t in traces]
 
-            joint_data[s] = {}
-            for c, traces in d.items():
-                self.ds.log(f"Processing {s} - {c}")
-                surface_tcps_per_trace = [t.waypoints for t in traces]
-                
-                preview_traces(checker, surface_tcps_per_trace)
-                if not ask_yes_no("Do the trace are correct? y/n \n") and manual_flag:
-                    if pb.isConnected(checker.cid):
-                        pb.disconnect(checker.cid)
-                    raise RuntimeError("The trace are not correct.")
-
+                preview_traces(checker, trace_waypoints)
+                if manual_flag:
+                    if not ask_yes_no("Are the traces correctly placed ? y/n \n"):
+                        if pb.isConnected(checker.cid):
+                            pb.disconnect(checker.cid)
+                        raise RuntimeError("The trace are not correctly placed")
                 pb.removeAllUserDebugItems(physicsClientId=checker.cid)
 
                 valid_masks, surface_joints = validate_surface_points(
-                    checker, tcp_offset_mat, model_correction_mat, surface_tcps_per_trace, HOMEJ,
+                    checker, tcp_offset_mat, trace_waypoints, HOMEJ,
                 )
-                validation_spheres = visualize_validation(checker, surface_tcps_per_trace, valid_masks)
+                validation_spheres = visualize_validation(checker, trace_waypoints, valid_masks)
 
-                if not ask_yes_no("Judge and tell if the traces valid ? y/n \n") and manual_flag:
-                    if pb.isConnected(checker.cid):
-                        pb.disconnect(checker.cid)
-                    raise RuntimeError("The trace are not correct.")
-                
+                if manual_flag:
+                    if not ask_yes_no("Judge and tell if the traces valid ? y/n \n"):
+                        if pb.isConnected(checker.cid):
+                            pb.disconnect(checker.cid)
+                        raise RuntimeError("The trace are not correct.")
+
                 clear_bodies(checker.cid, validation_spheres)
 
-                
                 runs_per_trace = split_into_runs(valid_masks)
-                run_spheres = visualize_runs(checker, surface_tcps_per_trace, runs_per_trace)
+                run_spheres = visualize_runs(checker, trace_waypoints, runs_per_trace)
+                validated_runs = find_hovers(checker, tcp_offset_mat, trace_waypoints, runs_per_trace, surface_joints, home=HOMEJ)
 
-                validated_runs = find_hovers(checker, tcp_offset_mat, model_correction_mat, surface_tcps_per_trace, runs_per_trace, surface_joints, home=HOMEJ)
-                segments = assemble_segments(tcp_offset_mat, model_correction_mat, checker, validated_runs, surface_joints, HOMEJ, surface_tcps_per_trace)
+                segments = assemble_segments(tcp_offset_mat, checker, validated_runs, surface_joints, HOMEJ, trace_waypoints, default_normals)
 
-                # segments = add_angle_continuity(segments)
+                smoothing(tcp_offset_mat, checker, segments, HOMEJ)
 
-                smoothing(tcp_offset_mat, model_correction_mat, checker, segments, HOMEJ)
+                normal_plot_index = 0
+                while (self.ds.data_path / f"normal_diff_{normal_plot_index}.png").exists():
+                    normal_plot_index += 1
+                plot_normal_diff(segments, self.ds.data_path / f"normal_diff_{normal_plot_index}.png", tcp_offset=tcp_offset_mat)
 
                 plan_travels(checker, segments)
 
-
-
-                # segments = add_angle_continuity(segments)
-
-                # smoothing(tcp_offset_mat, model_correction_mat, checker, segments, HOMEJ)
-
-
                 segments = hotfix_j6_correction(segments)
 
+                if manual_flag:
+                    input("Press Enter to see visualization...")
+                    clear_bodies(checker.cid, run_spheres)
+                    pb.removeAllUserDebugItems(physicsClientId=checker.cid)
+                    visualize_plan(checker, tcp_offset_mat, segments, debug=True)
 
-                input("Press Enter to see visualization...")
+                if manual_flag:
+                    animate_plan(checker, segments, delay=0.1)
+                    input("Press Enter to continue after visualization...")
 
-                clear_bodies(checker.cid, run_spheres)
-                pb.removeAllUserDebugItems(physicsClientId=checker.cid)
-
-                visualize_plan(checker, tcp_offset_mat, model_correction_mat, segments, debug=True)
-                animate_plan(checker, segments, delay=0.1)
-
-
-                input("Press Enter to continue after visualization...")
-                joint_data[s][c] = segments
+                joint_data[side][color] = segments
                 plot_index = 0
                 while (self.ds.data_path / f"joint_plan_{plot_index}.png").exists():
                     plot_index += 1

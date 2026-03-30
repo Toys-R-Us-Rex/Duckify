@@ -24,7 +24,6 @@ dependencies = [
     "numpy>=2.4.2",
     "opencv-python>=4.13.0.92",
     "pillow>=12.1.1",
-    "pyb-utils>=2.4.2",
     "pybullet>=3.2.7",
     "requests>=2.32.5",
     "rtree>=1.4.1",

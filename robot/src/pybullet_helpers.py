@@ -14,6 +14,7 @@ from scipy.spatial.transform import Rotation
 
 from src.computation import _validate_surface_points, _split_into_runs, _find_valid_hover
 from src.computation import MotionType
+from src.kinematics import get_fk
 from src.utils import fmt_tcp
 
 RUN_COLORS = [
@@ -73,7 +74,7 @@ def preview_traces(checker, surface_tcps_per_trace):
     # input("Press ENTER to continue to validation...")
     # pb.removeAllUserDebugItems(physicsClientId=cid)
 
-def validate_surface_points(checker, tcp_offset, model_correction, surface_tcps_per_trace, home):
+def validate_surface_points(checker, tcp_offset, surface_tcps_per_trace, home):
     valid_masks_per_trace = []
     surface_joints_per_trace = []
 
@@ -82,7 +83,7 @@ def validate_surface_points(checker, tcp_offset, model_correction, surface_tcps_
         print(f"  Trace {trace_i} ({n_pts} pts): ", end="", flush=True)
 
         valid_mask, reasons, surface_joints = _validate_surface_points(
-            checker, tcp_offset, model_correction, surface_pts, qnear=home,
+            checker, tcp_offset, surface_pts, qnear=home,
         )
         valid_masks_per_trace.append(valid_mask)
         surface_joints_per_trace.append(surface_joints)
@@ -158,7 +159,7 @@ def visualize_runs(checker, surface_tcps_per_trace, runs_per_trace):
     return sphere_ids
 
 # For each run search a non colliding hover point, if not , trim the run
-def find_hovers(checker, tcp_offset, model_correction, surface_tcps_per_trace, runs_per_trace, surface_joints_per_trace, home=None):
+def find_hovers(checker, tcp_offset, surface_tcps_per_trace, runs_per_trace, surface_joints_per_trace, home=None):
     cid = checker.cid
     validated_runs = []
     hover_run_idx = 0
@@ -173,7 +174,7 @@ def find_hovers(checker, tcp_offset, model_correction, surface_tcps_per_trace, r
 
             print(f"  Trace {trace_i} run ({run_start}-{run_end}) entry: ", end="", flush=True)
             h_entry, q_entry, entry_trim = _find_valid_hover(
-                checker, tcp_offset, model_correction, run_surface, run_joints, from_end=False,
+                checker, tcp_offset, run_surface, run_joints, from_end=False,
                 qnear_override=prev_q,
             )
             if h_entry is None:
@@ -186,7 +187,7 @@ def find_hovers(checker, tcp_offset, model_correction, surface_tcps_per_trace, r
 
             print(f" | exit: ", end="", flush=True)
             h_exit, q_exit, exit_trim = _find_valid_hover(
-                checker, tcp_offset, model_correction, run_surface, run_joints, from_end=True,
+                checker, tcp_offset, run_surface, run_joints, from_end=True,
             )
             if h_exit is None:
                 print(f"FAILED, discarding run")
@@ -217,9 +218,7 @@ def find_hovers(checker, tcp_offset, model_correction, surface_tcps_per_trace, r
     return validated_runs
 
 
-def visualize_plan(checker, tcp_offset, model_correction, segments, debug=True):
-    from src.kinematics import get_fk
-
+def visualize_plan(checker, tcp_offset, segments, debug=True):
     cid = checker.cid
 
     print("\nVisualizing final plan step by step...")
@@ -231,7 +230,7 @@ def visualize_plan(checker, tcp_offset, model_correction, segments, debug=True):
         color = SEGMENT_COLORS[seg.motion_type]
         width = 3 if seg.motion_type == MotionType.DRAW else 2
         label = seg.motion_type.name
-        tcp_wps = [get_fk(q, tcp_offset, model_correction) for q in seg.waypoints]
+        tcp_wps = [get_fk(q, tcp_offset) for q in seg.waypoints]
         print(f"  Segment {i}: {label} ({len(tcp_wps)} wps)  "
               f"{fmt_tcp(tcp_wps[0])} -> {fmt_tcp(tcp_wps[-1])}")
 

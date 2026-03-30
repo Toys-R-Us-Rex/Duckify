@@ -355,3 +355,19 @@ class AtoB:
         r_new = normal_to_rotvec(n_new)
 
         return [*p_new[:3], *r_new]
+
+    def transform_with_normal(self, p):
+        p = np.asarray(p)
+        point = p[:3]
+        normal = p[3:]
+
+        p_h = np.array([*point, 1.0])
+        p_new = self.T_position @ p_h
+
+        n_h = np.array([*normal, 1.0])
+        n_new = (self.T_orientation @ n_h)[:3]
+        n_new /= np.linalg.norm(n_new)
+
+        r_new = normal_to_rotvec(n_new)
+
+        return [*p_new[:3], *r_new], n_new.tolist()

@@ -168,7 +168,7 @@ def wrap_angle(a):
     return (a + pi) % (2 * pi) - pi
 
 
-def analytical_ik(T_desired):
+def analytical_ik(T_desired, fixed_theta6=None):
     """Analytical (closed-form) inverse kinematics for the UR3e.
 
     Exploits the spherical wrist (joints 4, 5, 6 axes intersect)
@@ -224,8 +224,9 @@ def analytical_ik(T_desired):
         for theta5 in theta5_options:
             sin5 = sin(theta5)
 
-            # Step 4: Solve theta6
-            if abs(sin5) < 1e-10:
+            if fixed_theta6 is not None:
+                theta6 = fixed_theta6
+            elif abs(sin5) < 1e-10:
                 theta6 = 0.0
             else:
                 m = (-T06[0, 1]*sin(theta1) + T06[1, 1]*cos(theta1)) / sin5
@@ -323,58 +324,32 @@ def select_closest_ik(solutions, qnear, joint_limits=None):
     return best
 
 
-def get_fk(joints, tcp_offset=None, model_correction=None):
+def get_fk(joints, tcp_offset=None):
     if tcp_offset is None:
         tcp_offset = np.eye(4)
-    if model_correction is None:
-        model_correction = np.eye(4)
     joint_list = joints.toList() if hasattr(joints, 'toList') else list(joints)
     T_flange = forward_kinematics_matrix(joint_list)
-    T_tcp = T_flange @ model_correction @ tcp_offset
+    T_tcp = T_flange @ tcp_offset
     return matrix_to_tcp6d(T_tcp)
 
 
-def get_inverse_kin(pose, qnear, tcp_offset=None, model_correction=None):
-    """Standalone inverse kinematics — no robot connection needed.
-
-    Computes up to 8 analytical IK solutions for the UR3e and returns the
-    one closest to *qnear*, validated by FK round-trip.
-
-    Parameters
-    ----------
-    pose : TCP6D
-        Target end-effector pose.
-    qnear : Joint6D or array-like
-        Seed joint configuration for selecting among multiple solutions.
-    tcp_offset : 4x4 array, optional
-        Tool-center-point offset matrix (default: identity).
-    model_correction : 4x4 array, optional
-        Model correction matrix (default: identity).
-
-    Returns
-    -------
-    Joint6D or None
-        Best joint solution, or None if no valid solution found.
-    """
+def get_inverse_kin(pose, qnear, tcp_offset=None, fixed_theta6=None):
     if tcp_offset is None:
         tcp_offset = np.eye(4)
-    if model_correction is None:
-        model_correction = np.eye(4)
 
     q0 = np.array(qnear.toList() if hasattr(qnear, 'toList') else list(qnear))
 
     T_desired = pose_to_matrix(pose)
-    T_flange = T_desired @ np.linalg.inv(model_correction @ tcp_offset)
-    solutions = analytical_ik(T_flange)
+    T_flange = T_desired @ np.linalg.inv(tcp_offset)
+    solutions = analytical_ik(T_flange, fixed_theta6=fixed_theta6)
 
     if not solutions:
         return None
 
-    # Validate each solution with FK round-trip and keep only accurate ones
     valid = []
     target = np.array(pose.toList())
     for sol in solutions:
-        T_check = forward_kinematics_matrix(sol.tolist()) @ model_correction @ tcp_offset
+        T_check = forward_kinematics_matrix(sol.tolist()) @ tcp_offset
         tcp_check = matrix_to_tcp6d(T_check)
         err_pos = np.sum((np.array(tcp_check.toList()[:3]) - target[:3]) ** 2)
         if err_pos < 0.001:
@@ -384,8 +359,7 @@ def get_inverse_kin(pose, qnear, tcp_offset=None, model_correction=None):
     if best is None:
         return None
 
-    # Final FK validation
-    T_check = forward_kinematics_matrix(best.tolist()) @ model_correction @ tcp_offset
+    T_check = forward_kinematics_matrix(best.tolist()) @ tcp_offset
     tcp_check = matrix_to_tcp6d(T_check)
     err = np.sum((np.array(tcp_check.toList()[:3]) - np.array(pose.toList()[:3])) ** 2)
     if err < 0.001:
@@ -394,22 +368,13 @@ def get_inverse_kin(pose, qnear, tcp_offset=None, model_correction=None):
     return None
 
 
-def get_all_ik_solutions(pose, tcp_offset=None, model_correction=None):
-    """Return ALL valid IK solutions for a TCP6D pose.
-
-    Same FK-validation as get_inverse_kin but returns every
-    passing solution instead of just the closest to qnear.
-
-    Returns list[Joint6D] (may be empty).
-    """
+def get_all_ik_solutions(pose, tcp_offset=None, fixed_theta6=None):
     if tcp_offset is None:
         tcp_offset = np.eye(4)
-    if model_correction is None:
-        model_correction = np.eye(4)
 
     T_desired = pose_to_matrix(pose)
-    T_flange = T_desired @ np.linalg.inv(model_correction @ tcp_offset)
-    solutions = analytical_ik(T_flange)
+    T_flange = T_desired @ np.linalg.inv(tcp_offset)
+    solutions = analytical_ik(T_flange, fixed_theta6=fixed_theta6)
 
     if not solutions:
         return []
@@ -417,7 +382,7 @@ def get_all_ik_solutions(pose, tcp_offset=None, model_correction=None):
     target_pos = np.array([pose.x, pose.y, pose.z])
     valid = []
     for sol in solutions:
-        T_check = forward_kinematics_matrix(sol.tolist()) @ model_correction @ tcp_offset
+        T_check = forward_kinematics_matrix(sol.tolist()) @ tcp_offset
         check_pos = np.array([T_check[0, 3], T_check[1, 3], T_check[2, 3]])
         err_pos = np.sum((check_pos - target_pos) ** 2)
         if err_pos < 0.001:
