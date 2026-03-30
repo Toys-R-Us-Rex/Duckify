@@ -20,7 +20,7 @@ class GenAIClient:
         ssh_key_path: Path = Path(),
         remote_host: str = "127.0.0.1",
         remote_port: int = 5000,
-        hf_token: Optional[str] = None,
+        hf_token: Optional[str] = "",
     ) -> None:
         self.logger: Logger = logging.getLogger("GenAIClient")
 
