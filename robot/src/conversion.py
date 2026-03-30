@@ -35,11 +35,38 @@ from URBasic.waypoint6d import TCP6D
 
 from src.logger import DataStore
 from src.stage import Stage
-from src.utils import ask_yes_no
-from src.segment import SideType, TCPSegment, MotionType
+from src.utils import AtoB, ask_yes_no
+from src.segment import TCPSegment, MotionType
 from src.config import DRAW_A, DRAW_V
 
 
+def convert_segments(objtorobot: AtoB, data: dict):
+    conversion = {}
+    for s, d in data.items():
+        conversion[s] = {}
+        for c, trace in d.items():
+            segments = []
+            for t in trace:
+                tcp_data = []
+                normals = []
+                for p in t.waypoints:
+                    pose, normal = objtorobot.transform_with_normal(p)
+                    tcp_data.append(TCP6D.createFromMetersRadians(*pose))
+                    normals.append(normal)
+
+                segments.append(
+                    TCPSegment(
+                        color=t.color,
+                        side=t.side,
+                        waypoints=tcp_data,
+                        default_normals=normals,
+                        motion_type=MotionType.DRAW,
+                        v=DRAW_V,
+                        a=DRAW_A
+                    )
+                )
+            conversion[s][c] = segments
+    return conversion
 class Conversion(Stage):
     """
     A stage for converting trace segments to TCP segments.
@@ -90,34 +117,9 @@ class Conversion(Stage):
 
         objtorobot = self.ds.load_transformation()
         data = self.ds.load_trace_segments()
-        conversion = {}
-        for s, d in data.items():
-            conversion[s] = {}
-            for c, trace in d.items():
-                segments = []
-                for t in trace:
-                    tcp_data = []
-                    normals = []
-                    for p in t.waypoints:
-                        pose, normal = objtorobot.transform_with_normal(p)
-                        tcp_data.append(TCP6D.createFromMetersRadians(*pose))
-                        normals.append(normal)
-
-                    segments.append(
-                        TCPSegment(
-                            color=t.color,
-                            side=t.side,
-                            waypoints=tcp_data,
-                            default_normals=normals,
-                            motion_type=MotionType.DRAW,
-                            v=DRAW_V,
-                            a=DRAW_A
-                        )
-                    )
-                conversion[s][c] = segments
+        conversion = convert_segments(objtorobot, data)
         
         self.ds.save_tcp_segments(conversion)
-    
     
     def fallback(self):
         """
