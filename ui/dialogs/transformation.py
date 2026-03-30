@@ -1,15 +1,14 @@
 import json
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 from PyQt6.QtCore import QModelIndex, Qt
 from PyQt6.QtGui import QColor, QIcon, QPixmap, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QDialog, QPushButton
 
+from ui.models import Point3D, TCPPoint
+from ui.services.robot import RobotService
 from ui.ui.transformation_ui import Ui_Dialog
-
-TCPPoint = tuple[float, float, float, float, float, float]
-TCPReader = Callable[[], TCPPoint]
 
 
 class TransformationDialog(QDialog, Ui_Dialog):
@@ -18,12 +17,12 @@ class TransformationDialog(QDialog, Ui_Dialog):
     MISSING_COLOR = QColor(163, 53, 33)
     RECORDED_COLOR = QColor(78, 149, 88)
 
-    def __init__(self, pos_path: Path, read_tcp: TCPReader, parent=None) -> None:
+    def __init__(self, pos_path: Path, service: RobotService, parent=None) -> None:
         super().__init__(parent)
         self.setupUi(self)
 
         self.pos_path: Path = pos_path
-        self.read_tcp: TCPReader = read_tcp
+        self.service: RobotService = service
         self.point_model: QStandardItemModel = QStandardItemModel(self.pointsList)
 
         missing_pixmap: QPixmap = QPixmap(16, 16)
@@ -69,7 +68,7 @@ class TransformationDialog(QDialog, Ui_Dialog):
         self.pointsList.setModel(self.point_model)
 
     def record_point(self):
-        tcp_point: TCPPoint = self.read_tcp()
+        tcp_point: TCPPoint = self.service.read_tcp()
         idx: QModelIndex = self.pointsList.currentIndex()
         row: int = idx.row()
         column: int = idx.column()
@@ -81,11 +80,13 @@ class TransformationDialog(QDialog, Ui_Dialog):
         new_idx: QModelIndex = self.point_model.createIndex(row + 1, column)
         self.pointsList.setCurrentIndex(new_idx)
 
-    def get_points(self) -> list[TCPPoint]:
-        points: list[TCPPoint] = []
+    def get_pairs(self) -> list[tuple[Point3D, TCPPoint]]:
+        pairs: list[tuple[Point3D, TCPPoint]] = []
         for i in range(self.point_model.rowCount()):
             item: Optional[QStandardItem] = self.point_model.item(i)
             if item is None:
                 continue
-            points.append(item.data(self.MEASURE_ROLE))
-        return points
+            ref: Point3D = item.data(self.REF_ROLE)
+            tcp: TCPPoint = item.data(self.MEASURE_ROLE)
+            pairs.append((ref, tcp))
+        return pairs

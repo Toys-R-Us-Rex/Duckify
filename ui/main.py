@@ -52,8 +52,8 @@ class App(QMainWindow, Ui_MainWindow):
         super().closeEvent(event)
 
     def apply_settings(self, settings: Settings):
-        print(settings)
         # TODO
+        pass
 
     def open_settings(self):
         dialog = SettingsDialog(self.settings_manager.load(), parent=self)

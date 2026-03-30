@@ -85,9 +85,9 @@ class Filter(Stage):
             # avg_x = sum(xs) / len(xs) if xs else 0
 
             if avg_y >= 0:
-                left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, waypoints)]
+                left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, [[-w[0], -w[1], OFFSET_Z + w[2], w[3], w[4], w[5]] for w in waypoints])]
             else:
-                right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, waypoints)]
+                right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, [[w[0], w[1], OFFSET_Z + w[2], w[3], w[4], w[5]] for w in waypoints])]
 
         s = {
             "left": left_traces,

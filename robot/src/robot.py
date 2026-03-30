@@ -92,7 +92,7 @@ def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, 
         pen_state_2 = PenState(HOMEJ, robot, pen_2)
 
     for s, d in motion.items():
-        if not ask_yes_no(f"Draw on side {s}? y/n \n"):
+        if not ask_yes_no(f">>>>> Draw on side {s}? WARNING Change the canard side if needed !!! y/n \n"):
             continue
         for c, traces in d.items():
             c_idx = int(c.split("_")[-1])

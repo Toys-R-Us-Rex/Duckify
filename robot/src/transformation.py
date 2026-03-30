@@ -39,7 +39,6 @@ Course:     HES-SO Valais-Wallis, Engineering Track 304
 
 import json
 import numpy as np
-from jupyter_console.ptshell import ask_yes_no
 from scipy.spatial.transform import Rotation as Rot
 
 from src.config import *
@@ -49,8 +48,8 @@ from src.logger import DataStore
 
 from URBasic.iscoin import ISCoin
 from URBasic.urScript import UrScript
-from duckify_simulation.duckify_sim.duckify_sim import DuckifySim
-from duckify_simulation.duckify_sim.robot_control import SimRobotControl
+from robot.duckify_simulation.duckify_sim.duckify_sim import DuckifySim
+from robot.duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
 def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list[float]]) -> list[list[float]]:
     """

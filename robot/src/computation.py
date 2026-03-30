@@ -10,7 +10,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 from pybullet_planning import plan_joint_motion
-from URBasic import TCP6D, Joint6D
+from URBasic.waypoint6d import TCP6D, Joint6D
 
 from src.segment import JointSegment, MotionType, SideType
 from src.config import *
