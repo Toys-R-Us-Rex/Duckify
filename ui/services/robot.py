@@ -3,17 +3,15 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
+from URBasic.devices.robotiq_two_fingers_gripper import RobotiqTwoFingersGripper
+from URBasic.iscoin import ISCoin
+from URBasic.urScriptExt import UrScriptExt
+from URBasic.waypoint6d import TCP6D
 
 from robot.src.calibration import get_tcp_offset
 from robot.src.logger import DataStore
 from robot.src.transformation import create_transformation
 from robot.src.utils import AtoB
-from URBasic.devices.robotiq_two_fingers_gripper import (
-    RobotiqTwoFingersGripper,
-)
-from URBasic.iscoin import ISCoin
-from URBasic.urScriptExt import UrScriptExt
-from URBasic.waypoint6d import TCP6D
 from ui.models import Point3D, TCPPoint
 
 
