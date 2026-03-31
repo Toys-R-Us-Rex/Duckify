@@ -33,22 +33,19 @@ RUN apt-get update && apt-get install -y \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
     && apt-get update && apt-get install -y docker-ce-cli
 
-COPY ./pyproject.toml /app/
-COPY ./ui/pyproject.toml /app/
-COPY ./genai/pyproject.toml /app/
-COPY ./robot/pyproject.toml /app/
-COPY ./tracing/pyproject.toml /app/
-COPY ./uv.lock /app/
-
 # Download UV
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
+COPY --parents pyproject.toml uv.lock ./*/pyproject.toml /app/
+
 WORKDIR /app
+
+RUN uv sync --frozen --no-install-local
 
 COPY . /app
 
-RUN uv sync
+RUN uv sync --frozen
 
-RUN uv run build-ui
+RUN uv run build-ui --frozen
 
 CMD [ "uv", "run", "ui/main.py" ]
