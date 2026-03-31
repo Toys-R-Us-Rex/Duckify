@@ -5,7 +5,7 @@
 
 == Objectif
 #block[
-- Finetuner le modèle pré-entraîné pour améliorer la génération de mesh texturées.
+- Finetuner le modèle pré-entraîné pour améliorer la génération de mesh texturée.
 ]
 
 #v(0.3em)
