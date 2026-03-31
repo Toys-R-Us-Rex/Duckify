@@ -91,6 +91,8 @@ class RobotController(QObject):
 
         self.ui.robotLoadTraces.clicked.connect(self.load_traces)
 
+        self.ui.robotPathfind.clicked.connect(self.run_pathfind)
+
         self.ui.robotRun.clicked.connect(self.robot_run)
 
         self.connect_change()
@@ -137,6 +139,7 @@ class RobotController(QObject):
         idx: int = box.findText("Loaded")
         if idx == -1:
             add_and_select_item(box, "Loaded", path_str)
+            self.loaded_tcp_calibration = True
         else:
             box.setItemData(idx, path)
             box.setCurrentIndex(idx)
@@ -155,6 +158,7 @@ class RobotController(QObject):
         idx: int = box.findText("Loaded")
         if idx == -1:
             add_and_select_item(box, "Loaded", path_str)
+            self.loaded_transformation = True
         else:
             box.setItemData(idx, path)
             box.setCurrentIndex(idx)
@@ -171,6 +175,7 @@ class RobotController(QObject):
             if not exists:
                 add_and_select_item(self.ui.robotTCPCalibration, "Custom", path)
         self.robot_check_ready()
+        self.ui.statusbar.showMessage("TCP calibration successful")
 
     def new_transformation(self):
         dialog = TransformationDialog(
@@ -186,6 +191,7 @@ class RobotController(QObject):
             if not exists:
                 add_and_select_item(self.ui.robotTransformation, "Custom", path)
         self.robot_check_ready()
+        self.ui.statusbar.showMessage("Transformation recording successful")
 
     def new_pen_calibration(self):
         dialog = PenCalibrationDialog(parent=self.ui)
@@ -193,6 +199,7 @@ class RobotController(QObject):
             calibration: tuple = self.service.read_tcp()
             print(f"Pen 0 position: {calibration}")
         self.robot_check_ready()
+        self.ui.statusbar.showMessage("Pen calibration successful")
 
     def load_traces(self):
         traces_path: Path = self.ui.robotTrace.currentData()
@@ -204,14 +211,25 @@ class RobotController(QObject):
             segments, self.workspace.trace_segments_path
         )
 
-        transformation_path: Path = self.ui.robotTransformation.currentData()
-        transformation: AtoB = self.service.ds.load_transformation(
-            transformation_path, use_pickle=False
-        )
+        transformation: AtoB = self.get_transformation()
         tcp_segments: dict = convert_segments(transformation, segments)
         self.service.ds.save_tcp_segments(
             tcp_segments, self.workspace.tcp_segments_path
         )
+        self.ui.robotStepPlanning.setDisabled(False)
+        self.ui.statusbar.showMessage("Traces loaded, filtered and converted")
+
+    def run_pathfind(self):
+        tcp_segments: dict = self.service.ds.load_tcp_segments(
+            self.workspace.tcp_segments_path
+        )
+        joint_segments: dict = self.service.plan_paths(
+            obj2robot=self.get_transformation(),
+            data=tcp_segments,
+            tcp_offset=self.get_tcp_calibration(),
+        )
+        self.service.ds.save_joint_segments(joint_segments, self.workspace.joint_segments_path)  # type: ignore
+        self.ui.statusbar.showMessage("Pathfind successful")
 
     def robot_check_ready(self):
         ready: bool = True
