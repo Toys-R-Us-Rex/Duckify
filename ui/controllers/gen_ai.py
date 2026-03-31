@@ -53,9 +53,8 @@ class GenAIController(QObject):
     def setup(self):
         self.settings_manager.changed.connect(self.on_settings_changed)
 
-        populate_combobox(
-            self.ui.genAIModel, self.assets.list_models("obj"), self.assets.models_dir
-        )
+        self.ui.actionReloadAssets.triggered.connect(self.populate_comboboxes)
+        self.populate_comboboxes()
 
         # Result visualizer
         self.visualizer: MeshVisualizer = MeshVisualizer(self.ui)
@@ -74,6 +73,12 @@ class GenAIController(QObject):
     def on_settings_changed(self, settings: Settings):
         self.service.host = settings.genAI.host
         self.service.port = settings.genAI.port
+    
+    def populate_comboboxes(self):
+        self.ui.genAIModel.clear()
+        populate_combobox(
+            self.ui.genAIModel, self.assets.list_models("obj"), self.assets.models_dir
+        )
 
         self.visualizer.load_model(self.ui.genAIModel.currentData())
         self.ui.genAIModel.currentIndexChanged.connect(self.reload_model)
