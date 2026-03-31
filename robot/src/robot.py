@@ -135,6 +135,26 @@ def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, 
                         ds.log(f"WARNING: Unknown waypoint type for waypoint: {type(m)}")
                         raise TypeError(f"Unknown waypoint type for waypoint: {type(m)}")
 
+                if FORCE_ENABLE:
+                    if motion_type == MotionType.DRAW and isinstance(robot_ctr, UrScript):
+                        ds.log("Activating force mode for DRAW segment")
+                        robot_ctr.force_mode(
+                            task_frame=[0,0,0,0,0,0],
+                            selection_vector=[0,0,1,0,0,0],  # compliance en Z
+                            wrench=[0,0,0,0,0,0],
+                            f_type=2,
+                            limits=[2, 2, 1.5, 1, 1, 1]
+                        )
+
+                    elif motion_type == MotionType.APPROACH and isinstance(robot_ctr, UrScript):
+                        ds.log("Soft approach: enabling light force mode")
+                        robot_ctr.force_mode(
+                            task_frame=[0,0,0,0,0,0],
+                            selection_vector=[0,0,1,0,0,0],  # compliance en Z
+                            wrench=[0,0,0,0,0,0],
+                            f_type=2,
+                            limits=[0.5, 0.5, 0.3, 0.2, 0.2, 0.2]  # plus doux
+                        )
                 
                 if isinstance(waypoints[0], Joint6DDescriptor):
                     robot_ctr.movej_waypoints(waypoints)
@@ -143,6 +163,11 @@ def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, 
                 else:
                     ds.log(f"WARNING: Unknown waypoint type for waypoints: {type(waypoints[0])}")
                     raise TypeError(f"Unknown waypoint type: {type(waypoints[0])}")
+                
+                if FORCE_ENABLE:
+                    if motion_type in (MotionType.DRAW, MotionType.APPROACH) and isinstance(robot_ctr, UrScript):
+                        ds.log("Deactivating force mode")
+                        robot_ctr.force_mode_stop()
 
 
 class Robot(Stage):
