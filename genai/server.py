@@ -36,6 +36,8 @@ PORT = int(os.environ.get("API_PORT", 5000))
 
 
 def obj_to_glb(obj_path: Path, glb_path: Path):
+    if obj_path.suffix == ".glb":
+        return
     scene: Scene = trimesh.load_scene(obj_path, force=True)
 
     # Changes axes: Y+ forward / Z+ up -> Z- forward / Y+ up

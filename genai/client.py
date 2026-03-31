@@ -109,7 +109,7 @@ class GenAIClient:
                 self.logger.error(err)
                 return None, err
 
-            return result_dir / "texture.png", None
+            return result_dir / "0" / "texture.png", None
 
     def _extract_result(self, zip_path: Path, output_dir: Path) -> Path:
         timestamp: str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
