@@ -1,3 +1,4 @@
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -27,6 +28,7 @@ class App(QMainWindow, Ui_MainWindow):
 
         self.actionSettings.triggered.connect(self.open_settings)
         self.actionQuit.triggered.connect(QApplication.quit)
+        self.actionOpenAssets.triggered.connect(self.open_assets_directory)
 
         self.settings_manager: SettingsManager = SettingsManager()
         self.apply_settings(self.settings_manager.load())
@@ -81,6 +83,15 @@ class App(QMainWindow, Ui_MainWindow):
         self.robotTrace.setCurrentIndex(self.robotTrace.count() - 1)
 
         self.steps.setCurrentWidget(self.tabRobot)
+    
+    def open_assets_directory(self):
+        path: Path = self.assets.assets_dir
+        if sys.platform == "win32":
+            subprocess.run(["explorer", str(path)])
+        elif sys.platform == "darwin":
+            subprocess.run(["open", str(path)])
+        else:
+            subprocess.run(["xdg-open", str(path)])
 
 
 def main():

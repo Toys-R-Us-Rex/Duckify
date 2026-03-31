@@ -990,8 +990,8 @@
     <property name="title">
      <string>&amp;Assets</string>
     </property>
-    <addaction name="actionReload_from_disk"/>
-    <addaction name="actionOpen_directory"/>
+    <addaction name="actionReloadAssets"/>
+    <addaction name="actionOpenAssets"/>
    </widget>
    <addaction name="menuSettings"/>
    <addaction name="menuAssets"/>
@@ -1010,12 +1010,12 @@
     <string>Ctrl+Q</string>
    </property>
   </action>
-  <action name="actionReload_from_disk">
+  <action name="actionReloadAssets">
    <property name="text">
     <string>&amp;Reload from disk</string>
    </property>
   </action>
-  <action name="actionOpen_directory">
+  <action name="actionOpenAssets">
    <property name="text">
     <string>Open directory</string>
    </property>
