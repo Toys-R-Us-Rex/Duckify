@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass, field
 
-from PyQt6.QtCore import QSettings
+from PyQt6.QtCore import QObject, QSettings, pyqtSignal
 
 
 @dataclass
@@ -36,8 +36,11 @@ class Settings:
     robot: RobotSettings = field(default_factory=RobotSettings)
 
 
-class SettingsManager:
+class SettingsManager(QObject):
+    changed: pyqtSignal = pyqtSignal(Settings)
+
     def __init__(self) -> None:
+        super().__init__()
         self._prefs = QSettings("Toys-R-Us-Rex", "Duckify")
 
     def load(self) -> Settings:
@@ -84,3 +87,4 @@ class SettingsManager:
         self._prefs.setValue("genAI.guidance", settings.genAI.guidance)
         self._prefs.setValue("tracing.palette", json.dumps(settings.tracing.palette))
         self._prefs.setValue("robot.ip", settings.robot.ip_address)
+        self.changed.emit(settings)
