@@ -65,21 +65,11 @@ class Filter(Stage):
         left_traces = {}
         right_traces = {}
 
-        max_per_side = 50
-        left_count = 0
-        right_count = 0
-
-        DEBUG_COLOR = 1
-
         for trace in traces:
             path = trace['path']
             color = trace['color']
 
             color = color if self.multipen else 0
-
-            if DEBUG_COLOR is not None and color != DEBUG_COLOR:
-                continue
-
 
             # Rotate the coordinate
             # waypoints = [pt+ pn for pt, pn in path[::5]]
@@ -96,26 +86,16 @@ class Filter(Stage):
             # xs = [pt[2] for pt in waypoints]
             # avg_x = sum(xs) / len(xs) if xs else 0
 
-            is_left = avg_y >= 0
-            if self.side != SideType.LEFT:
-                is_left = not is_left
-
-            if is_left:
-                if left_count >= max_per_side:
-                    continue
+            if avg_y >= 0:
                 if self.side == SideType.LEFT:
                     left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, [[w[0], w[1], OFFSET_Z_HOTFIX + w[2], w[3], w[4], w[5]] for w in waypoints])]
                 else:
                     left_traces[f"color_{color}"] = left_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.LEFT, [[-w[0], -w[1], OFFSET_Z_HOTFIX + w[2], -w[3], -w[4], w[5]] for w in waypoints])]
-                left_count += 1
             else:
-                if right_count >= max_per_side:
-                    continue
                 if self.side == SideType.LEFT:
                     right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, [[-w[0], -w[1], OFFSET_Z_HOTFIX + w[2], -w[3], -w[4], w[5]] for w in waypoints])]
                 else:
                     right_traces[f"color_{color}"] = right_traces.get(f"color_{color}", []) + [TraceSegment(color, SideType.RIGHT, [[w[0], w[1], OFFSET_Z_HOTFIX + w[2], w[3], w[4], w[5]] for w in waypoints])]
-                right_count += 1
 
         s = {
             "left": left_traces,
