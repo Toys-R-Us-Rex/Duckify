@@ -69,11 +69,16 @@ class Filter(Stage):
         left_count = 0
         right_count = 0
 
+        DEBUG_COLOR = 1
+
         for trace in traces:
             path = trace['path']
             color = trace['color']
 
             color = color if self.multipen else 0
+
+            if DEBUG_COLOR is not None and color != DEBUG_COLOR:
+                continue
 
 
             # Rotate the coordinate

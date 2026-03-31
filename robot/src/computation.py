@@ -164,10 +164,12 @@ def assemble_segments(tcp_offset, checker, validated_runs, surface_joints_per_tr
             hover_entry, trace_tcps[run_start] if trace_tcps else None,
         ))
 
+        draw_start = run_start + 1 if run_end - run_start >= 2 else run_start
+        draw_end = run_end - 1 if run_end - run_start >= 2 else run_end
         segments.append(_make_draw(
-            trace_joints[run_start:run_end + 1],
-            trace_tcps[run_start:run_end + 1] if trace_tcps else None,
-            trace_normals[run_start:run_end + 1] if trace_normals else None,
+            trace_joints[draw_start:draw_end + 1],
+            trace_tcps[draw_start:draw_end + 1] if trace_tcps else None,
+            trace_normals[draw_start:draw_end + 1] if trace_normals else None,
         ))
 
         segments.append(_make_approach_up(
@@ -260,7 +262,7 @@ def smoothing(tcp_offset, checker, segments, home):
             before_waypoints.append([])
 
     for segment_i, segment in enumerate(segments):
-        if segment.tcp_waypoints is None:
+        if segment.tcp_waypoints is None or segment.motion_type == MotionType.TRAVEL:
             if segment.waypoints:
                 previous_joint = segment.waypoints[-1]
             continue

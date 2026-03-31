@@ -52,7 +52,7 @@ FORCE_ENABLE = False
 # Create a new ISCoin object
 # UR3e1 IP (closest to window): 10.30.5.158
 # UR3e2 IP: 10.30.5.159
-ROBOT_IP = "10.30.5.158"
+ROBOT_IP = "10.30.5.159"
 
 # Collision margins
 COLLISION_MARGIN = 0            # margin for obstacle collision checks
