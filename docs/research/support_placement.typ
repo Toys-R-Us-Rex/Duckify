@@ -55,7 +55,7 @@ Formally, the objective was to determine where the duck support should be to max
 
 I created a first script to randomly generate a number of points on the duck's surface to have a well spread out sample.
 
-Then I created a script to generate many random support placements in a defined area around the robot (a half-donut), with varying heights. These placements (position + rotation) were then fed to PyBullet to analyse whether valid solutions existed for each point on the duck.
+Then I created a script to generate many random support placements in a defined area around the robot (a half-donut), with varying heights. These placements (position + rotation) were then fed to PyBullet to analyze whether valid solutions existed for each point on the duck.
 
 To maximize efficiency, I used multiprocessing on Calypso to split the workload across 32 processes.
 
@@ -75,7 +75,7 @@ With the help of Claude, I visualized the results as shown below. In #multiref(<
   ]
 }
 
-Due to the high density of points, making the 3D plots hard to analyse, I also created 2D heatmaps from different point of views, as shown in #multiref(<heatmap-top>, <heatmap-front>, <heatmap-side>).
+Due to the high density of points, making the 3D plots hard to analyze, I also created 2D heatmaps from different point of views, as shown in #multiref(<heatmap-top>, <heatmap-front>, <heatmap-side>).
 
 #figure(
   image("assets/heatmap_top.png", width: 80%),
@@ -107,7 +107,7 @@ Finally, I combined all the results and displayed the average accessibility of e
 = Conclusion
 
 The results are not very surprising and correspond pretty well to our prior assumptions.
-We can se in @heatmap-top and @heatmap-side for example that putting duck close to the back side of the workspace greatly reduces the accesibility. @heatmap-top also indicates that a diagonal placement, that is, slightly in front and on the side of the arm seems to maximize the over reachability.
+We can se in @heatmap-top and @heatmap-side for example that putting duck close to the back side of the workspace greatly reduces the accessibility. @heatmap-top also indicates that a diagonal placement, that is, slightly in front and on the side of the arm seems to maximize the over reachability.
 
 Height does not seem to affect the results much, although a slight increase in reachability can be noted for higher Z values in @heatmap-side (larger Z values are towards the bottom of the heatmap).
 
