@@ -50,6 +50,7 @@ class RobotController(QObject):
             ip_address=settings.robot.ip_address,
             base_dir=self.workspace.datastore_path,
             assets=self.assets,
+            log_func=self.log,
         )
         self.widgets_needing_robot: list[QWidget] = []
 
@@ -323,3 +324,6 @@ class RobotController(QObject):
     def update_execution_progress(self, current: int, maximum: int):
         self.ui.robotProgress.setMaximum(maximum)
         self.ui.robotProgress.setValue(current)
+    
+    def log(self, message: str):
+        self.ui.robotLogs.addItem(message)
