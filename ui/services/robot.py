@@ -8,7 +8,7 @@ import pybullet as pb
 from URBasic.devices.robotiq_two_fingers_gripper import RobotiqTwoFingersGripper
 from URBasic.iscoin import ISCoin
 from URBasic.urScriptExt import UrScriptExt
-from URBasic.waypoint6d import TCP6D, Joint6D
+from URBasic.waypoint6d import TCP6D, Joint6D, Joint6DDescriptor, TCP6DDescriptor
 
 from robot.src.calibration import get_tcp_offset
 from robot.src.computation import (
@@ -19,8 +19,10 @@ from robot.src.computation import (
     plot_normal_diff,
     smoothing,
 )
+from robot.src.config import DRAW_A, DRAW_V
 from robot.src.kinematics import pose_to_matrix
 from robot.src.logger import DataStore, DataStoreForce_2
+from robot.src.pen import PenState
 from robot.src.pybullet_helpers import (
     animate_plan,
     find_hovers,
@@ -28,7 +30,6 @@ from robot.src.pybullet_helpers import (
     validate_surface_points,
     visualize_plan,
 )
-from robot.src.robot import move_simple
 from robot.src.safety import setup_checker
 from robot.src.transformation import create_transformation, extract_pybullet_pose
 from robot.src.utils import AtoB
@@ -40,6 +41,7 @@ from ui.models import Point3D, TCPPoint
 class RobotRequest:
     tcp_offset: TCPPoint
     joint_segments: dict
+    pen_origins: Optional[tuple[TCPPoint, TCPPoint]]
 
 
 @dataclass
@@ -91,7 +93,10 @@ class RobotService:
                 "exclude_links": [1, 2, 3, 4],
             },
             {
-                "path": assets.root_dir / "assets" / "models" / "support_duck_simulation.stl",
+                "path": assets.root_dir
+                / "assets"
+                / "models"
+                / "support_duck_simulation.stl",
                 "scale": [0.001, 0.001, 0.001],
             },
         ]
@@ -276,7 +281,7 @@ class RobotService:
             print("PyBullet disconnected")
 
         return joint_data
-    
+
     def run(self, req: RobotRequest) -> RobotResult:
         self.ctrl.set_tcp(tcppoint_to_tcp6d(req.tcp_offset))
 
@@ -286,15 +291,15 @@ class RobotService:
         result: RobotResult = RobotResult()
 
         try:
-            move_simple(self.robot, req.joint_segments, self.ds, False)
+            self.move_simple(req.joint_segments, req.pen_origins)
         except Exception as e:
             self.ds.log(f"Exception with robot: {e}")
-            result.error =e
-        
+            result.error = e
+
         force.stop_measures()
-        
+
         return result
-    
+
     def show_plan_animation(self, obj2robot: AtoB, tcp_offset: TCPPoint, data: dict):
         tcp6d_offset: TCP6D = tcppoint_to_tcp6d(tcp_offset)
         tcp_offset_mat = pose_to_matrix(tcp6d_offset)
@@ -313,3 +318,58 @@ class RobotService:
         if pb.isConnected(checker.cid):
             pb.disconnect(checker.cid)
             print("PyBullet disconnected")
+
+    def move_simple(
+        self, motion: dict, pen_calibrations: Optional[tuple[TCPPoint, TCPPoint]] = None
+    ):
+        self.ctrl.movej(self.homej)
+
+        multipen: bool = pen_calibrations is not None
+
+        MAX_PEN_BY_RACK = 4
+        if multipen:
+            pen_1, pen_2 = pen_calibrations
+            pen_state_1 = PenState(self.homej, self.robot, tcppoint_to_tcp6d(pen_1))
+            pen_state_2 = PenState(self.homej, self.robot, tcppoint_to_tcp6d(pen_2))
+
+        for s, d in motion.items():
+            for c, traces in d.items():
+                c_idx = int(c.split("_")[-1])
+                if multipen:
+                    if MAX_PEN_BY_RACK <= c_idx < 2 * MAX_PEN_BY_RACK:
+                        pen_motion = pen_state_2.change_pen(c_idx % MAX_PEN_BY_RACK)
+                        pen_state_2.run_moves(pen_motion)
+                    elif 0 <= c_idx < MAX_PEN_BY_RACK:
+                        pen_motion = pen_state_1.change_pen(c_idx)
+                        pen_state_1.run_moves(pen_motion)
+                    else:
+                        self.ds.log(f"WARNING: Invalid pen index for color: {c_idx}")
+
+                self.ds.log(f"Processing motion side: {s} - color: {c_idx}")
+
+                # Conversion in waypoint
+                for trace in traces:
+                    motion = trace.waypoints
+                    waypoints = []
+                    for m in motion:
+                        if isinstance(m, Joint6D):
+                            waypoints.append(Joint6DDescriptor(m, a=DRAW_A, v=DRAW_V))
+                        elif isinstance(m, TCP6D):
+                            waypoints.append(TCP6DDescriptor(m, a=DRAW_A, v=DRAW_V))
+                        else:
+                            self.ds.log(
+                                f"WARNING: Unknown waypoint type for waypoint: {type(m)}"
+                            )
+                            raise TypeError(
+                                f"Unknown waypoint type for waypoint: {type(m)}"
+                            )
+
+                    if isinstance(waypoints[0], Joint6DDescriptor):
+                        self.ctrl.movej_waypoints(waypoints)
+                    elif isinstance(waypoints[0], TCP6DDescriptor):
+                        self.ctrl.movel_waypoints(waypoints)
+                    else:
+                        self.ds.log(
+                            f"WARNING: Unknown waypoint type for waypoints: {type(waypoints[0])}"
+                        )
+                        raise TypeError(f"Unknown waypoint type: {type(waypoints[0])}")
