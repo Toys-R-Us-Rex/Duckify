@@ -36,11 +36,15 @@ class WorkspaceManager:
 
     @property
     def trace_segments_path(self) -> Path:
-        return self.root / "trace_segments.dat"
+        return self.root / "trace_segments.pkl"
 
     @property
     def tcp_segments_path(self) -> Path:
-        return self.root / "tcp_segments.dat"
+        return self.root / "tcp_segments.pkl"
+
+    @property
+    def joint_segments_path(self) -> Path:
+        return self.root / "joint_segments.pkl"
 
     @property
     def datastore_path(self) -> Path:

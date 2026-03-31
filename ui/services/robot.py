@@ -63,6 +63,10 @@ def tcp6d_to_tcppoint(tcp6d: TCP6D) -> TCPPoint:
     )
 
 
+def tcppoint_to_tcp6d(tcppoint: TCPPoint) -> TCP6D:
+    return TCP6D.createFromMetersRadians(*tcppoint)
+
+
 class RobotService:
     def __init__(self, ip_address: str, base_dir: Path, assets: AssetRegistry) -> None:
         self.ip_address: str = ip_address
@@ -75,18 +79,18 @@ class RobotService:
         )
         self.obstacles: list[dict] = [
             {
-                "path": assets.root_dir / "models" / "duck_uv_low_poly.stl",
+                "path": assets.root_dir / "assets" / "models" / "duck_uv_low_poly.stl",
                 "scale": [0.001, 0.001, 0.001],
             },
             {
-                "path": assets.root_dir / "models" / "workspace.stl",
+                "path": assets.root_dir / "assets" / "models" / "workspace.stl",
                 "scale": [1, 1, 1],
                 "position": [0, 0, 0],
                 "orientation": [0, 0, 0, 1],
                 "exclude_links": [1, 2, 3, 4],
             },
             {
-                "path": assets.root_dir / "models" / "support_duck_simulation.stl",
+                "path": assets.root_dir / "assets" / "models" / "support_duck_simulation.stl",
                 "scale": [0.001, 0.001, 0.001],
             },
         ]
@@ -187,7 +191,8 @@ class RobotService:
         tcp_offset: TCPPoint,
         draw_sides: Optional[tuple[str]] = None,
     ) -> dict:
-        tcp_offset_mat = pose_to_matrix(tcp_offset)
+        tcp6d_offset: TCP6D = tcppoint_to_tcp6d(tcp_offset)
+        tcp_offset_mat = pose_to_matrix(tcp6d_offset)
 
         position, quat, scale = extract_pybullet_pose(obj2robot)
         checker = setup_checker(
