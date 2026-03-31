@@ -262,6 +262,22 @@ def load_obj2robot(record: DataStore, rz_deg: float = OBJ2ROBOT_RZ_DEG):
 def transformation_measure_with_pressure(robot_ip, json_socle, ds):
     pass
 
+def collect_data_transformation_mock(world_measure: dict) -> dict:
+    """
+    Mock function to collect transformation data for testing purposes.
+
+    Parameters
+    ----------
+    world_measure : dict
+        The world measurement data.
+
+    Returns
+    -------
+    dict
+        The collected transformation data.
+    """
+    return {k: p for k, p in world_measure.items()}
+
 
 def launch_transformation(robot_ip: str, file_path: str, ds: DataStore, z_rotation: float = 0) -> AtoB:
     """
@@ -290,15 +306,17 @@ def launch_transformation(robot_ip: str, file_path: str, ds: DataStore, z_rotati
         iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
         tcp_offset = ds.return_tcp_offset()
         iscoin.robot_control.set_tcp(tcp_offset)
+        
 
         p_world = data["calibration"]
+        #p_tcps = collect_data_transformation_mock(p_world)
         p_tcps = collect_data_transformation(iscoin.robot_control, p_world)
 
         p_transformation_world = []
         p_transformation_tcps = []
         for k, p in p_tcps.items():
-            p_transformation_world = p_world[k]
-            p_transformation_tcps = p
+            p_transformation_world.append(p_world[k])
+            p_transformation_tcps.append(p)
 
 
         ds.save_worldtcp(p_transformation_world, p_transformation_tcps)
