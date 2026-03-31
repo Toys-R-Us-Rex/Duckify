@@ -45,7 +45,7 @@ from .gripper import SimGripper
 class DuckifySim:
     """Drop-in replacement for ISCoin that talks to the Gazebo simulator."""
 
-    def __init__(self, container_name="iscoin_simulator", opened_gripper_size_mm=50.0):
+    def __init__(self, container_name="iscoin_simulator_cpu", opened_gripper_size_mm=50.0):
         ros_bridge.CONTAINER_NAME = container_name
 
         # Check that the container is running

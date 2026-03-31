@@ -1,5 +1,7 @@
 # Duckify — Robot Setup Guide
 
+This guide should be read by people wanting to contribute to the robot. This describes all necessary configurations to start working in the simulated environment.
+
 ## 1. Load the Gazebo Simulator Docker Image using GHCR
 
 First you need to create a (**classic**, not fine grained) personal access token [here](https://github.com/settings/tokens).
@@ -33,10 +35,10 @@ cd ./robot/docker
 docker compose run --rm --name iscoin_simulator cpu
 ```
 
-> [!INFO]
+> [!NOTE]
 > Use `gpu` instead of `cpu` if you have an NVIDIA GPU with nvidia-container-toolkit.
 
-> [!INFO]
+> [!NOTE]
 > Also, remove the `--rm` flag if you wish to modify files inside the container
 
 ### XAUTHORITY issue
