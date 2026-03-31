@@ -45,6 +45,9 @@ def obj_to_glb(obj_path: Path, glb_path: Path):
         angle=np.radians(-90), direction=[1, 0, 0], point=[0, 0, 0]
     )
     scene.apply_transform(rotation_matrix)
+    bounds_min, bounds_max = scene.bounds
+    translation_matrix = trimesh.transformations.translation_matrix(-bounds_min - (bounds_max - bounds_min) / 2.0)
+    scene.apply_transform(translation_matrix)
     with open(glb_path, "wb") as f:
         data: bytes = trimesh.exchange.gltf.export_glb(scene)
         f.write(data)
