@@ -46,13 +46,14 @@ def display_transformation_points(checker, obj2robot, ds, json_socle_path):
     with open(json_socle_path, "r") as f:
         calibration_pts = json.load(f)["calibration"]
 
-    for pt in calibration_pts:
+    for _, pt in calibration_pts.items():
         p_h = np.array([*pt, 1.0])
         p_robot = (obj2robot.T_position @ p_h)[:3]
         draw_sphere(cid, p_robot.tolist(), [0, 1, 0], radius=0.003)
 
     if ds.check_worldtcp():
         _, tcps = ds.load_worldtcp()
+        print(tcps)
         for tcp in tcps:
             draw_sphere(cid, tcp[:3], [1, 0, 0], radius=0.003)
 
