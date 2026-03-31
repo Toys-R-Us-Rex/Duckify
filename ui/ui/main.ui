@@ -835,7 +835,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QProgressBar" name="progressBar">
+                  <widget class="QProgressBar" name="robotProgress">
                    <property name="value">
                     <number>0</number>
                    </property>

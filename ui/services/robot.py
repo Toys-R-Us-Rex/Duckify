@@ -1,7 +1,7 @@
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 import pybullet as pb
@@ -35,6 +35,9 @@ from robot.src.transformation import create_transformation, extract_pybullet_pos
 from robot.src.utils import AtoB
 from ui.assets import AssetRegistry
 from ui.models import Point3D, TCPPoint
+
+
+ProgressCallback = Callable[[int, int], None]
 
 
 @dataclass
@@ -282,7 +285,9 @@ class RobotService:
 
         return joint_data
 
-    def run(self, req: RobotRequest) -> RobotResult:
+    def run(
+        self, req: RobotRequest, on_progress: Optional[ProgressCallback] = None
+    ) -> RobotResult:
         self.ctrl.set_tcp(tcppoint_to_tcp6d(req.tcp_offset))
 
         force = DataStoreForce_2(self.ctrl)
@@ -291,7 +296,9 @@ class RobotService:
         result: RobotResult = RobotResult()
 
         try:
-            self.move_simple(req.joint_segments, req.pen_origins)
+            self.move_simple(
+                req.joint_segments, req.pen_origins, on_progress=on_progress
+            )
         except Exception as e:
             self.ds.log(f"Exception with robot: {e}")
             result.error = e
@@ -320,7 +327,10 @@ class RobotService:
             print("PyBullet disconnected")
 
     def move_simple(
-        self, motion: dict, pen_calibrations: Optional[tuple[TCPPoint, TCPPoint]] = None
+        self,
+        motion: dict,
+        pen_calibrations: Optional[tuple[TCPPoint, TCPPoint]] = None,
+        on_progress: Optional[ProgressCallback] = None,
     ):
         self.ctrl.movej(self.homej)
 
@@ -331,6 +341,15 @@ class RobotService:
             pen_1, pen_2 = pen_calibrations
             pen_state_1 = PenState(self.homej, self.robot, tcppoint_to_tcp6d(pen_1))
             pen_state_2 = PenState(self.homej, self.robot, tcppoint_to_tcp6d(pen_2))
+        
+        total_waypoints: int = sum(
+            len(trace.waypoints)
+            for d in motion.values()
+            for traces in d.values()
+            for trace in traces
+        )
+
+        processed_waypoints: int = 0
 
         for s, d in motion.items():
             for c, traces in d.items():
@@ -373,3 +392,7 @@ class RobotService:
                             f"WARNING: Unknown waypoint type for waypoints: {type(waypoints[0])}"
                         )
                         raise TypeError(f"Unknown waypoint type: {type(waypoints[0])}")
+
+                    processed_waypoints += len(waypoints)
+                    if on_progress is not None:
+                        on_progress(processed_waypoints, total_waypoints)
