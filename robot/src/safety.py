@@ -159,7 +159,7 @@ class CollisionChecker:
         self.set_joint_angles(q.toList())
 
         for link_idx, z_min in (LINK_Z_MIN or {}).items():
-            link_z = p.getLinkState(self.robot_id, link_idx, physicsClientId=self.cid)[0][2]
+            link_z = p.getAABB(self.robot_id, link_idx, physicsClientId=self.cid)[0][2]
             if link_z < z_min:
                 info = p.getJointInfo(self.robot_id, link_idx, physicsClientId=self.cid)
                 return False, f"Link {info[12].decode()} Z={link_z:.4f} < {z_min}"

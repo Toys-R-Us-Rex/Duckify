@@ -1,6 +1,8 @@
 """
-Author: Pierre-Yves Savioz
-Co-author: Claude AI (Anthropic)
+Pybullet Trace Viewer Tool for Debugging
+
+Author: Pierre-Yves Savioz ( design and functionalities)
+Co-author: Claude AI ( coding )
 """
 
 
