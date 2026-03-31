@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import QObject
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QComboBox, QFileDialog, QWidget
 
 from robot.src.conversion import convert_segments
 from robot.src.filter import filter_traces
@@ -42,7 +42,7 @@ class RobotController(QObject):
         self.service: RobotService = RobotService(
             ip_address=settings.robot.ip_address,
             base_dir=self.workspace.datastore_path,
-            assets=self.assets
+            assets=self.assets,
         )
         self.widgets_needing_robot: list[QWidget] = []
 
@@ -81,6 +81,10 @@ class RobotController(QObject):
             lambda _: self.service.set_gripper_state(True)
         )
 
+        self.loaded_tcp_calibration: bool = False
+        self.loaded_transformation: bool = False
+        self.ui.robotLoadTCPCalibration.clicked.connect(self.load_tcp_calibration)
+        self.ui.robotLoadTransformation.clicked.connect(self.load_transformation)
         self.ui.robotNewTCPCalibration.clicked.connect(self.new_tcp_calibration)
         self.ui.robotNewTransformation.clicked.connect(self.new_transformation)
         self.ui.robotNewPenCalibration.clicked.connect(self.new_pen_calibration)
@@ -119,6 +123,42 @@ class RobotController(QObject):
         self.ui.robotGripperClose.setDisabled(not activated)
         self.ui.robotGripperOpen.setDisabled(not activated)
 
+    def load_tcp_calibration(self):
+        path_str, _ = QFileDialog.getOpenFileName(
+            self.ui,
+            "Open TCP calibration",
+            str(self.assets.root_dir),
+            "Calibrations (*.pkl *.json)",
+        )
+        if path_str.strip() == "":
+            return
+        path: Path = Path(path_str)
+        box: QComboBox = self.ui.robotTCPCalibration
+        idx: int = box.findText("Loaded")
+        if idx == -1:
+            add_and_select_item(box, "Loaded", path_str)
+        else:
+            box.setItemData(idx, path)
+            box.setCurrentIndex(idx)
+
+    def load_transformation(self):
+        path_str, _ = QFileDialog.getOpenFileName(
+            self.ui,
+            "Open transformation",
+            str(self.assets.root_dir),
+            "Transformations (*.pkl *.json)",
+        )
+        if path_str.strip() == "":
+            return
+        path: Path = Path(path_str)
+        box: QComboBox = self.ui.robotTransformation
+        idx: int = box.findText("Loaded")
+        if idx == -1:
+            add_and_select_item(box, "Loaded", path_str)
+        else:
+            box.setItemData(idx, path)
+            box.setCurrentIndex(idx)
+
     def new_tcp_calibration(self):
         dialog = CalibrationDialog(self.service, parent=self.ui)
         if dialog.exec():
@@ -153,19 +193,25 @@ class RobotController(QObject):
             calibration: tuple = self.service.read_tcp()
             print(f"Pen 0 position: {calibration}")
         self.robot_check_ready()
-    
+
     def load_traces(self):
         traces_path: Path = self.ui.robotTrace.currentData()
         side: SideType = SideType.RIGHT
         if self.ui.robotFilter.currentIndex() == 1:
             side = SideType.LEFT
         segments: dict = filter_traces(traces_path, True, side)
-        self.service.ds.save_trace_segments(segments, self.workspace.trace_segments_path)
+        self.service.ds.save_trace_segments(
+            segments, self.workspace.trace_segments_path
+        )
 
         transformation_path: Path = self.ui.robotTransformation.currentData()
-        transformation: AtoB = self.service.ds.load_transformation(transformation_path, use_pickle=False)
+        transformation: AtoB = self.service.ds.load_transformation(
+            transformation_path, use_pickle=False
+        )
         tcp_segments: dict = convert_segments(transformation, segments)
-        self.service.ds.save_tcp_segments(tcp_segments, self.workspace.tcp_segments_path)
+        self.service.ds.save_tcp_segments(
+            tcp_segments, self.workspace.tcp_segments_path
+        )
 
     def robot_check_ready(self):
         ready: bool = True
@@ -179,7 +225,7 @@ class RobotController(QObject):
             transformation=self.ui.robotTransformation.currentText(),
         )
         result: RobotResult = self.service.run(request)
-    
+
     @property
     def tcp_calibration_path(self) -> Path:
         path: Optional[Path] = self.ui.robotTCPCalibration.currentData()
@@ -193,13 +239,17 @@ class RobotController(QObject):
         if path is None:
             return self.assets.test_transformation_path
         return path
-    
+
     def get_tcp_calibration(self) -> TCPPoint:
         path: Path = self.tcp_calibration_path
-        _, offset = self.service.ds.load_calibration(path, use_pickle=False)
+        _, offset = self.service.ds.load_calibration(
+            path, use_pickle=path.suffix == ".pkl"
+        )
         return tcp6d_to_tcppoint(offset)
 
     def get_transformation(self) -> AtoB:
         path: Path = self.transformation_path
-        obj2robot: AtoB = self.service.ds.load_transformation(path)
+        obj2robot: AtoB = self.service.ds.load_transformation(
+            path, use_pickle=path.suffix == ".pkl"
+        )
         return obj2robot
