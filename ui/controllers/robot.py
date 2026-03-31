@@ -15,7 +15,7 @@ from ui.dialogs.calibration import CalibrationDialog
 from ui.dialogs.pen_calibration import PenCalibrationDialog
 from ui.dialogs.transformation import TransformationDialog
 from ui.models import Point3D, TCPPoint
-from ui.services.robot import RobotRequest, RobotResult, RobotService
+from ui.services.robot import RobotRequest, RobotResult, RobotService, tcp6d_to_tcppoint
 from ui.settings_manager import Settings, SettingsManager
 from ui.utils.misc import populate_combobox, add_and_select_item
 from ui.workspace import WorkspaceManager
@@ -40,7 +40,9 @@ class RobotController(QObject):
 
         settings: Settings = self.settings_manager.load()
         self.service: RobotService = RobotService(
-            ip_address=settings.robot.ip_address, base_dir=self.workspace.datastore_path
+            ip_address=settings.robot.ip_address,
+            base_dir=self.workspace.datastore_path,
+            assets=self.assets
         )
         self.widgets_needing_robot: list[QWidget] = []
 
@@ -177,3 +179,27 @@ class RobotController(QObject):
             transformation=self.ui.robotTransformation.currentText(),
         )
         result: RobotResult = self.service.run(request)
+    
+    @property
+    def tcp_calibration_path(self) -> Path:
+        path: Optional[Path] = self.ui.robotTCPCalibration.currentData()
+        if path is None:
+            return self.assets.default_tcp_calibration_path
+        return path
+
+    @property
+    def transformation_path(self) -> Path:
+        path: Optional[Path] = self.ui.robotTransformation.currentData()
+        if path is None:
+            return self.assets.test_transformation_path
+        return path
+    
+    def get_tcp_calibration(self) -> TCPPoint:
+        path: Path = self.tcp_calibration_path
+        _, offset = self.service.ds.load_calibration(path, use_pickle=False)
+        return tcp6d_to_tcppoint(offset)
+
+    def get_transformation(self) -> AtoB:
+        path: Path = self.transformation_path
+        obj2robot: AtoB = self.service.ds.load_transformation(path)
+        return obj2robot

@@ -11,6 +11,8 @@ class AssetRegistry:
         self.transformation_reference: Path = (
             self.root_dir / "assets" / "transformation_reference.json"
         )
+        self.default_tcp_calibration_path: Path = self.root_dir / "robot" / "duckify_simulation" / "defaults" / "calibration_default.pkl"
+        self.test_transformation_path: Path = self.root_dir / "robot" / "duckify_simulation" / "defaults" / "transformation_test.pkl"
 
     def list_models(self, extension: str) -> list[Path]:
         return sorted(self.models_dir.glob(f"*.{extension}"))
