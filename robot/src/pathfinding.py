@@ -9,8 +9,8 @@ from src.kinematics import pose_to_matrix
 
 from src.safety import setup_checker
 from src.transformation import extract_pybullet_pose
-from src.pybullet_helpers import clear_bodies, find_hovers, preview_traces, split_into_runs, validate_surface_points, visualize_validation, visualize_runs, visualize_plan, animate_plan
-from src.computation import assemble_segments, plan_travels, smoothing, plot_joint_plan, plot_normal_diff, hotfix_j6_correction, add_angle_continuity
+from src.pybullet_helpers import clear_bodies, display_transformation_points, find_hovers, preview_traces, split_into_runs, validate_surface_points, visualize_validation, visualize_runs, visualize_plan, animate_plan
+from src.computation import assemble_segments, plan_travels, smoothing, plot_joint_plan, plot_smoothing_comparison, hotfix_j6_correction, add_angle_continuity
 
 class Pathfinding(Stage):
     def __init__(self, datastore: DataStore, default_calibration: Path = None, obstacles: list = OBSTACLE_STLS, verbose: bool = True):
@@ -50,6 +50,8 @@ class Pathfinding(Stage):
         position, quat, scale = extract_pybullet_pose(obj2robot)
         checker = setup_checker(self.obstacles, obj_position=position, obj_orientation=quat, gui=self.verbose)
         checker.set_joint_angles(HOMEJ.toList())
+
+        display_transformation_points(checker, obj2robot, self.ds, DEFAULT_JSON_SOCLE)
 
         joint_data = {}
         is_flipped = False
@@ -103,14 +105,15 @@ class Pathfinding(Stage):
 
                 segments = assemble_segments(tcp_offset_mat, checker, validated_runs, surface_joints, HOMEJ, trace_waypoints, default_normals)
 
-                smoothing(tcp_offset_mat, checker, segments, HOMEJ)
+                before_waypoints = smoothing(tcp_offset_mat, checker, segments, HOMEJ)
 
-                normal_plot_index = 0
-                while (self.ds.data_path / f"normal_diff_{normal_plot_index}.png").exists():
-                    normal_plot_index += 1
-                plot_normal_diff(segments, self.ds.data_path / f"normal_diff_{normal_plot_index}.png", tcp_offset=tcp_offset_mat)
+                smoothing_plot_index = 0
+                while (self.ds.data_path / f"smoothing_{smoothing_plot_index}.png").exists():
+                    smoothing_plot_index += 1
+                plot_smoothing_comparison(segments, before_waypoints, self.ds.data_path / f"smoothing_{smoothing_plot_index}.png")
 
                 plan_travels(checker, segments)
+                add_angle_continuity(segments)
 
                 segments = hotfix_j6_correction(segments)
 

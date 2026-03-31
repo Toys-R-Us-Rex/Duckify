@@ -44,3 +44,4 @@ class JointSegment(Segment):
     waypoints: list[Joint6D] = None
     tcp_waypoints: list[TCP6D] = None
     default_normals: list[list] = None
+    ik_solutions: list[list] = None

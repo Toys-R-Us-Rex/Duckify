@@ -31,7 +31,7 @@ Author:     Mariéthoz Cédric, with assistance from Copilot AI (Microsoft)
 Course:     HES-SO Valais-Wallis, Engineering Track 304
 """
 
-from robot.src.logger import DataStore
+from src.logger import DataStore
 
 
 class Stage:

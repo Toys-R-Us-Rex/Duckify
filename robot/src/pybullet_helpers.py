@@ -8,6 +8,7 @@ Author: All pybullet animations have been created with the help from ClaudeAI (A
 
 
 
+import colorsys
 import time
 import pybullet as pb
 from scipy.spatial.transform import Rotation
@@ -37,6 +38,27 @@ SEGMENT_COLORS = {
 }
 
 
+def display_transformation_points(checker, obj2robot, ds, json_socle_path):
+    import json
+    import numpy as np
+    cid = checker.cid
+
+    with open(json_socle_path, "r") as f:
+        calibration_pts = json.load(f)["calibration"]
+
+    for pt in calibration_pts:
+        p_h = np.array([*pt, 1.0])
+        p_robot = (obj2robot.T_position @ p_h)[:3]
+        draw_sphere(cid, p_robot.tolist(), [0, 1, 0], radius=0.003)
+
+    if ds.check_worldtcp():
+        _, tcps = ds.load_worldtcp()
+        for tcp in tcps:
+            draw_sphere(cid, tcp[:3], [1, 0, 0], radius=0.003)
+
+    print(f"Transformation points: {len(calibration_pts)} green (computed), measured in red")
+
+
 def draw_sphere(cid, position, color, radius=0.0008):
     vis = pb.createVisualShape(pb.GEOM_SPHERE, radius=radius, rgbaColor=[*color, 1],
                                physicsClientId=cid)
@@ -62,15 +84,18 @@ def clear_bodies(cid, body_ids):
 
 def preview_traces(checker, surface_tcps_per_trace):
     cid = checker.cid
-    for surface_pts in surface_tcps_per_trace:
+    n_traces = len(surface_tcps_per_trace)
+    for trace_i, surface_pts in enumerate(surface_tcps_per_trace):
+        hue = trace_i / max(n_traces, 1)
+        r, g, b = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
         pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0, physicsClientId=cid)
         for idx in range(1, len(surface_pts)):
             prev_wp = surface_pts[idx - 1].toList()[:3]
             cur_wp = surface_pts[idx].toList()[:3]
-            pb.addUserDebugLine(prev_wp, cur_wp, [1, 0.5, 0], lineWidth=1, physicsClientId=cid)
+            pb.addUserDebugLine(prev_wp, cur_wp, [r, g, b], lineWidth=1, physicsClientId=cid)
         pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1, physicsClientId=cid)
 
-    print(f"\nShowing {len(surface_tcps_per_trace)} traces as orange lines.")
+    print(f"\nShowing {len(surface_tcps_per_trace)} traces as rainbow lines (red=first, violet=last).")
     # input("Press ENTER to continue to validation...")
     # pb.removeAllUserDebugItems(physicsClientId=cid)
 
@@ -83,7 +108,7 @@ def validate_surface_points(checker, tcp_offset, surface_tcps_per_trace, home):
         print(f"  Trace {trace_i} ({n_pts} pts): ", end="", flush=True)
 
         valid_mask, reasons, surface_joints = _validate_surface_points(
-            checker, tcp_offset, surface_pts, qnear=home,
+            checker, tcp_offset, surface_pts, previous_joint=home,
         )
         valid_masks_per_trace.append(valid_mask)
         surface_joints_per_trace.append(surface_joints)
@@ -175,7 +200,7 @@ def find_hovers(checker, tcp_offset, surface_tcps_per_trace, runs_per_trace, sur
             print(f"  Trace {trace_i} run ({run_start}-{run_end}) entry: ", end="", flush=True)
             h_entry, q_entry, entry_trim = _find_valid_hover(
                 checker, tcp_offset, run_surface, run_joints, from_end=False,
-                qnear_override=prev_q,
+                previous_joint_override=prev_q,
             )
             if h_entry is None:
                 print(f"FAILED, discarding run")

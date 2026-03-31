@@ -39,9 +39,9 @@ ROBOT_IP = "10.30.5.158"
 # Collision margins
 COLLISION_MARGIN = 0            # margin for obstacle collision checks
 SELF_COLLISION_MARGIN = 0.012  # margin for self-collision checks
-MAX_JOINT_JUMP = 0.25         # max allowed single-joint difference from qnear in radians
+MAX_JOINT_JUMP = 1         # max allowed single-joint difference from qnear in radians
+MAX_JOINT_RANGE = 4.5      # max allowed absolute joint angle in radians
 MIN_HEIGHT_NORMAL_CORRECTION_MM = 25
-MAX_CONE_STEP = 2.5
 MIN_HEIGHT_ACCEPTANCE = 10
 
 # Default home position
@@ -148,3 +148,8 @@ OBSTACLE_STLS = [
 ]
 
 DRAWING_ANGLE = 25
+
+CONE_TILT_STEP = 2.5
+CONE_AZIMUTH_STEP = 2.5
+
+CONE_SEARCH_MODE = 1  # 0 = fast, 1 = ring by ring, 2 = all
