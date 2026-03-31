@@ -1,0 +1,23 @@
+{
+    "calibration": {
+        "Haut de la tête": [14.811, 0, 103.83],
+        "Centre œil gauche": [27.46, 11.742, 89.855],
+        "Centre œil droite": [27.46, -11.742, 89.855],
+        "Coin de la bouche gauche": [30.021, 16.905, 76.364],
+        "Coin de la bouche doite": [30.021, -16.905, 76.364],
+        "Sommet du bec (devant)": [49.11, 0, 86.848],
+        "Sommet de la queue": [-43.408, 0, 60.581],
+        "Support (haut) X+": [40, 0, 0],
+        "Support (haut) X-": [-40, 0, 0],
+        "Support (haut) Y+": [30, 0, 0],
+        "Support (haut) Y-": [-30, 0, 0],
+        "Support (bas, coins) X+/Y+": [55, 55, -150],
+        "Support (bas, coins) X+/Y-": [55, -55, -150],
+        "Support (bas, coins) X-/Y+": [-55, 55, -150],
+        "Support (bas, coins) X-/Y-": [-55, -55, -150],
+        "Socle 0":[  0.0,   0.00,  -2.0],
+        "Socle 1":[  0.0,  31.85, -80.0],
+        "Socle 2":[  47.50, 47.50,-152.0],
+        "Socle 3":[ -47.50,-47.50,-152.0]
+    }
+}

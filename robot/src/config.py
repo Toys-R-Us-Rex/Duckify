@@ -22,12 +22,29 @@ DEFAULT_DATA_DIR = OUTPUT_DIR / "data"
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_14_full_body_line-trace.json"
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_11_long_line-trace.json"
-DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_4_triangle_on_bill-trace.json"
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_4_triangle_on_bill-trace.json"
+DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_15_colored_lines-trace.json"
 
 
 
+DEFAULT_JSON_SOCLE = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_transformation.json"
 
-DEFAULT_JSON_SOCLE = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_socle.json"
+URDF_PATH = Path(__file__).resolve().parents[1] / 'duckify_simulation' / 'urdf' / 'ur3e.urdf'
+
+# Link indices for the flattened UR3e URDF:
+#   1=base_link_inertia, 2=shoulder, 3=upper_arm, 4=forearm,
+#   5=wrist_1, 6=wrist_2, 7=wrist_3, 8=flange, 9=tool0,
+#   10=wrist_cam, 11=hande_base, 12=left_finger, 13=right_finger, 14=pen
+SELF_COLLISION_PAIRS = [
+    (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9),
+    (1, 10), (1, 11), (1, 12), (1, 13), (1, 14),
+    (2, 5), (2, 6), (2, 7), (2, 8), (2, 9),
+    (2, 10), (2, 11), (2, 12), (2, 13), (2, 14),
+    (3, 6), (3, 7), (3, 8), (3, 9),
+    (3, 10), (3, 11), (3, 12), (3, 13), (3, 14),
+    (4, 7), (4, 8), (4, 9),
+    (4, 10), (4, 11), (4, 12), (4, 13), (4, 14),
+]
 
 VERBOSE = True
 

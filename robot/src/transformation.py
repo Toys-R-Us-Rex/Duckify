@@ -52,7 +52,7 @@ from URBasic.urScript import UrScript
 from duckify_simulation.duckify_sim.duckify_sim import DuckifySim
 from duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
-def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list[float]]) -> list[list[float]]:
+def collect_data_transformation(robot_arm: UrScript | SimRobotControl, world_measure: dict) -> dict:
     """
     Collect TCP transformation data for the specified world measurement points.
 
@@ -60,8 +60,8 @@ def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list
     ----------
     robot_arm : UrScript
         Interface to the robot controller.
-    world_measure : list of list[float]
-        List of world coordinate points for measurement.
+    world_measure : dict
+        Dictionary of world coordinate points for measurement.
 
     Returns
     -------
@@ -72,14 +72,15 @@ def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list
         print("Minimum 3 measure points.")
         raise ValueError("You don't provide enough world measure")
 
-    num_measure = len(world_measure)
     
-    tcps = []
+    tcps = {}
 
-    k = 0
-    while k < num_measure:
+    for k, p in world_measure.items():
         robot_arm.freedrive_mode()
-        i = input(f"Move robot to {world_measure[k]}, then press ENTER to capture. (or q to quit)")
+        i = input(f"Move robot to {k}, then press ENTER to capture. (s to skip)(or q to quit)")
+        if i == "s":
+            continue
+
         if i == "q":
             if k < 3:
                 print("You should collect min 3 world points.")
@@ -93,8 +94,7 @@ def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list
             # Return robot positions
             tcp = robot_arm.get_actual_tcp_pose().toList()
 
-            tcps.append(tcp)
-            k += 1
+            tcps[k] = tcp
             print("Captured measure ", k)
 
         if i == "exit":
@@ -106,7 +106,7 @@ def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list
         pass
     robot_arm.end_freedrive_mode()
 
-    return np.array(tcps)
+    return tcps
 
 def create_transformation(A: np.ndarray, B: np.ndarray) -> AtoB:
     """
@@ -291,13 +291,20 @@ def launch_transformation(robot_ip: str, file_path: str, ds: DataStore, z_rotati
         tcp_offset = ds.return_tcp_offset()
         iscoin.robot_control.set_tcp(tcp_offset)
 
-        p_world = np.array(data["calibration"])
-        p_tcps = collect_data(iscoin.robot_control, p_world)
+        p_world = data["calibration"]
+        p_tcps = collect_data_transformation(iscoin.robot_control, p_world)
 
-        ds.save_worldtcp(p_world, p_tcps)
-        ds.log_worldtcp(p_world,p_tcps)
+        p_transformation_world = []
+        p_transformation_tcps = []
+        for k, p in p_tcps.items():
+            p_transformation_world = p_world[k]
+            p_transformation_tcps = p
 
-        obj2robot = create_transformation(p_world, p_tcps)
+
+        ds.save_worldtcp(p_transformation_world, p_transformation_tcps)
+        ds.log_worldtcp(p_transformation_world, p_transformation_tcps)
+
+        obj2robot = create_transformation(p_transformation_world, p_transformation_tcps)
         if z_rotation != 0:
             obj2robot = apply_z_rotation(obj2robot, z_rotation)
 

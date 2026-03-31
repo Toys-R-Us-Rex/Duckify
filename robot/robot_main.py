@@ -80,7 +80,7 @@ def main(
 
     ds.log("Pipeline finished")
 
-    ds.log("Pipeline finished")
+    return
 
 
 if __name__ == "__main__":
@@ -282,4 +282,4 @@ if __name__ == "__main__":
         dry_run=args.dry_run
     )
 
-
+    exit(0)
