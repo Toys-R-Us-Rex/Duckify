@@ -1,19 +1,26 @@
-#set page(margin: 2.2cm)
-#set text(size: 11pt)
+#import "@preview/codly:1.3.0": codly-init
+
+#show: codly-init
+#show link: set text(fill: blue)
+#set text(font: "Source Sans 3")
+#set heading(numbering: "1.1")
 
 #align(center)[
-  #text(size: 18pt, weight: "bold")[UR3e Reachability Logic and Reasoning]
-]
-
-#v(0.6em)
-#align(center)[
-  Project: `ur3e-control`  \\
-  Date: 2026-03-01
+  #block(inset: 2em)[
+    #text(size: 20pt, weight: "bold")[UR3e Reachability Logic and Reasoning] \
+    #v(0.5em)
+    #text(size: 12pt, style: "italic")[Robot Reach Analysis]
+    #linebreak()
+    #v(0.3em)
+    #text(size: 10pt)[Nathan Antonietti]
+    #linebreak()
+    #text(size: 8pt, fill: gray)[Made using Gemini]
+  ]
 ]
 
 = Purpose
 
-This document explains the reachability method used in the project, centered on #link("https://github.com/Toys-R-Us-Rex/ur3e-control/blob/8dd64c2fefc79520d9f83af752a56bd78126c42d/urbasic/URBasic/reachability.py")[`URBasic/reachability.py`] and the notebook workflow in #link("https://github.com/Toys-R-Us-Rex/ur3e-control/blob/8dd64c2fefc79520d9f83af752a56bd78126c42d/my_simulation/demos/duck_position.ipynb")[`my_simulation/demos/duck_position.ipynb`].
+This document explains the reachability method used in the project, centered on `URBasic/reachability.py` and the notebook workflow in `my_simulation/demos/duck_position.ipynb`.
 
 The goal is to decide whether a target tool pose is reachable while respecting:
 - inverse kinematics feasibility,
@@ -37,21 +44,19 @@ Main inputs:
 - `roll_samples`: number of rotations sampled around the approach axis.
 - `include_opposite_normal`: whether to also test $-n$.
 
-Note: In your notebook, `TCP6D` is often built with normal components in the last three fields and then interpreted by `is_reachable` as a direction vector. This is intentional in this workflow.
-
 = Core Reasoning
 
-== 1) Normalize Target Geometry
+== Normalize Target Geometry
 
 The target position and normal are extracted and normalized.
 If the normal magnitude is near zero, the target is invalid.
 
-== 2) Build Orientation Candidates
+== Build Orientation Candidates
 
 A base orientation is generated so that tool $z$ aligns with the target normal.
 Then roll rotations are sampled around that axis:
 
-phi_k = 2πk/N, for k = 0, 1, ..., N-1.
+$phi_k = 2 pi k/N$, for $k = 0, 1, ..., N-1.$
 
 with `N = roll_samples` (or only `0` if `N = 1`).
 
@@ -111,7 +116,7 @@ This approximates a local search over orientation redundancy with low complexity
 
 = Notebook-Level Reachability Search (Object Translation)
 
-In #link("https://github.com/Toys-R-Us-Rex/ur3e-control/blob/8dd64c2fefc79520d9f83af752a56bd78126c42d/my_simulation/demos/duck_position.ipynb")[`duck_position.ipynb`], reachability is extended from one point to an entire mesh:
+In `duck_position.ipynb`, reachability is extended from one point to an entire mesh:
 
 1. Sample random points on each triangle face.
 2. Use face normals for local approach directions.
@@ -148,3 +153,9 @@ The implemented reachability logic is an existence test over orientation samples
 - collision-free interpolated motion.
 
 The notebook then scales this pointwise test to whole-object feasibility using face sampling and iterative translation from failure patterns. Together, this provides a practical and explainable workflow for UR3e pose and object placement assessment.
+
+#v(2em)
+#line(length: 100%, stroke: 0.5pt + gray)
+#align(center)[
+  #text(size: 8pt, fill: gray)[HES-SO Valais-Wallis - Engineering Track 304.1 - 2026]
+]
