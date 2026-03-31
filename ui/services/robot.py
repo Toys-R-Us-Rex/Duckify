@@ -1,18 +1,35 @@
+import time
 from dataclasses import dataclass
 from pathlib import Path
-import time
 from typing import Optional
 
 import numpy as np
+import pybullet as pb
 from URBasic.devices.robotiq_two_fingers_gripper import RobotiqTwoFingersGripper
 from URBasic.iscoin import ISCoin
 from URBasic.urScriptExt import UrScriptExt
-from URBasic.waypoint6d import TCP6D
+from URBasic.waypoint6d import TCP6D, Joint6D
 
 from robot.src.calibration import get_tcp_offset
+from robot.src.computation import (
+    assemble_segments,
+    hotfix_j6_correction,
+    plan_travels,
+    plot_joint_plan,
+    plot_normal_diff,
+    smoothing,
+)
+from robot.src.kinematics import pose_to_matrix
 from robot.src.logger import DataStore
-from robot.src.transformation import create_transformation
+from robot.src.pybullet_helpers import (
+    find_hovers,
+    split_into_runs,
+    validate_surface_points,
+)
+from robot.src.safety import setup_checker
+from robot.src.transformation import create_transformation, extract_pybullet_pose
 from robot.src.utils import AtoB
+from ui.assets import AssetRegistry
 from ui.models import Point3D, TCPPoint
 
 
@@ -47,11 +64,32 @@ def tcp6d_to_tcppoint(tcp6d: TCP6D) -> TCPPoint:
 
 
 class RobotService:
-    def __init__(self, ip_address: str, base_dir: Path) -> None:
+    def __init__(self, ip_address: str, base_dir: Path, assets: AssetRegistry) -> None:
         self.ip_address: str = ip_address
         self._robot: Optional[ISCoin] = None
         base_dir.mkdir(parents=True, exist_ok=True)
         self.ds: DataStore = DataStore(base_dir)
+
+        self.homej: Joint6D = Joint6D.createFromRadians(
+            1.8859, -1.4452, 1.2389, -1.3639, -1.5693, -0.3849
+        )
+        self.obstacles: list[dict] = [
+            {
+                "path": assets.root_dir / "models" / "duck_uv_low_poly.stl",
+                "scale": [0.001, 0.001, 0.001],
+            },
+            {
+                "path": assets.root_dir / "models" / "workspace.stl",
+                "scale": [1, 1, 1],
+                "position": [0, 0, 0],
+                "orientation": [0, 0, 0, 1],
+                "exclude_links": [1, 2, 3, 4],
+            },
+            {
+                "path": assets.root_dir / "models" / "support_duck_simulation.stl",
+                "scale": [0.001, 0.001, 0.001],
+            },
+        ]
 
     @property
     def robot(self) -> ISCoin:
@@ -141,3 +179,103 @@ class RobotService:
 
     def is_gripper_activated(self) -> bool:
         return self.gripper.isActivated()
+
+    def plan_paths(
+        self,
+        obj2robot: AtoB,
+        data: dict,
+        tcp_offset: TCPPoint,
+        draw_sides: Optional[tuple[str]] = None,
+    ) -> dict:
+        tcp_offset_mat = pose_to_matrix(tcp_offset)
+
+        position, quat, scale = extract_pybullet_pose(obj2robot)
+        checker = setup_checker(
+            self.obstacles, obj_position=position, obj_orientation=quat, gui=False
+        )
+        checker.set_joint_angles(self.homej.toList())
+
+        joint_data = {}
+        is_flipped = False
+
+        for side, colors in data.items():
+            if draw_sides is not None and side not in draw_sides:
+                continue
+
+            pb.removeAllUserDebugItems(physicsClientId=checker.cid)
+
+            workspace_id = (
+                checker.obstacle_ids[1] if len(checker.obstacle_ids) > 1 else None
+            )
+            exclude = {workspace_id} if workspace_id else None
+            if side == "right" and not is_flipped:
+                checker.flip_obstacles_z(exclude_ids=exclude)
+                is_flipped = True
+            elif side == "left" and is_flipped:
+                checker.flip_obstacles_z(exclude_ids=exclude)
+                is_flipped = False
+
+            joint_data[side] = {}
+            for color, traces in colors.items():
+
+                self.ds.log(f"Processing {side} - {color}")
+                trace_waypoints = [t.waypoints for t in traces]
+                default_normals = [t.default_normals for t in traces]
+
+                valid_masks, surface_joints = validate_surface_points(
+                    checker,
+                    tcp_offset_mat,
+                    trace_waypoints,
+                    self.homej,
+                )
+
+                runs_per_trace = split_into_runs(valid_masks)
+                validated_runs = find_hovers(
+                    checker,
+                    tcp_offset_mat,
+                    trace_waypoints,
+                    runs_per_trace,
+                    surface_joints,
+                    home=self.homej,
+                )
+
+                segments = assemble_segments(
+                    tcp_offset_mat,
+                    checker,
+                    validated_runs,
+                    surface_joints,
+                    self.homej,
+                    trace_waypoints,
+                    default_normals,
+                )
+
+                smoothing(tcp_offset_mat, checker, segments, self.homej)
+
+                normal_plot_index = 0
+                while (
+                    self.ds.data_path / f"normal_diff_{normal_plot_index}.png"
+                ).exists():
+                    normal_plot_index += 1
+                plot_normal_diff(
+                    segments,
+                    self.ds.data_path / f"normal_diff_{normal_plot_index}.png",
+                    tcp_offset=tcp_offset_mat,
+                )
+
+                plan_travels(checker, segments)
+
+                segments = hotfix_j6_correction(segments)
+
+                joint_data[side][color] = segments
+                plot_index = 0
+                while (self.ds.data_path / f"joint_plan_{plot_index}.png").exists():
+                    plot_index += 1
+                plot_joint_plan(
+                    segments, self.ds.data_path / f"joint_plan_{plot_index}.png"
+                )
+
+        if pb.isConnected(checker.cid):
+            pb.disconnect(checker.cid)
+            print("PyBullet disconnected")
+
+        return joint_data

@@ -12,10 +12,10 @@ import time
 import pybullet as pb
 from scipy.spatial.transform import Rotation
 
-from src.computation import _validate_surface_points, _split_into_runs, _find_valid_hover
-from src.computation import MotionType
-from src.kinematics import get_fk
-from src.utils import fmt_tcp
+from robot.src.computation import _validate_surface_points, _split_into_runs, _find_valid_hover
+from robot.src.computation import MotionType
+from robot.src.kinematics import get_fk
+from robot.src.utils import fmt_tcp
 
 RUN_COLORS = [
     [1, 1, 0],       # yellow
