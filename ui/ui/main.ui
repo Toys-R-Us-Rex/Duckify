@@ -553,9 +553,9 @@
              <property name="geometry">
               <rect>
                <x>0</x>
-               <y>0</y>
+               <y>-176</y>
                <width>520</width>
-               <height>628</height>
+               <height>659</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -796,6 +796,13 @@
                   <widget class="QPushButton" name="robotRunGazebo">
                    <property name="text">
                     <string>Run Gazebo simulation</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="robotShowPlanAnim">
+                   <property name="text">
+                    <string>Show animation</string>
                    </property>
                   </widget>
                  </item>
