@@ -53,7 +53,6 @@ def display_transformation_points(checker, obj2robot, ds, json_socle_path):
 
     if ds.check_worldtcp():
         _, tcps = ds.load_worldtcp()
-        print(tcps)
         for tcp in tcps:
             draw_sphere(cid, tcp[:3], [1, 0, 0], radius=0.003)
 

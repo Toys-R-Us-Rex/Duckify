@@ -47,6 +47,7 @@ SELF_COLLISION_PAIRS = [
 ]
 
 VERBOSE = True
+FORCE_ENABLE = False
 
 # Create a new ISCoin object
 # UR3e1 IP (closest to window): 10.30.5.158
@@ -86,6 +87,7 @@ TCP_Y_MAX        = 0.0      # TCP must stay at Y ≤ 0
 TCP_Z_MIN        = 0.0      # TCP must stay at Z ≥ 0
 TCP_Z_MAX        = 0.5      # TCP must stay at Z ≤ 0.5
 LINK_Z_MIN       = {
+    2: 0.10,                 # elbow must stay above 10 cm
     3: 0.10,                 # upper_arm_link must stay above 10 cm
     4: 0.10,                 # forearm_link must stay above 10 cm
 }
@@ -169,4 +171,4 @@ DRAWING_ANGLE = 25
 CONE_TILT_STEP = 2.5
 CONE_AZIMUTH_STEP = 2.5
 
-CONE_SEARCH_MODE = 1  # 0 = fast, 1 = ring by ring, 2 = all
+CONE_SEARCH_MODE = 2  # 0 = fast, 1 = ring by ring, 2 = all

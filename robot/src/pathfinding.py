@@ -73,6 +73,7 @@ class Pathfinding(Stage):
 
             joint_data[side] = {}
             for color, traces in colors.items():
+                print(f"Processing {side} - {color}")
 
                 self.ds.log(f"Processing {side} - {color}")
                 trace_waypoints = [t.waypoints for t in traces]
@@ -123,7 +124,6 @@ class Pathfinding(Stage):
                     pb.removeAllUserDebugItems(physicsClientId=checker.cid)
                     visualize_plan(checker, tcp_offset_mat, segments, debug=True)
 
-                if manual_flag:
                     # animate_plan(checker, segments, delay=0.1)
                     input("Press Enter to continue after visualization...")
 

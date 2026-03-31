@@ -2,8 +2,9 @@ from src.computation import simplify_path
 from src.safety import setup_checker
 from src.transformation import extract_pybullet_pose
 from pybullet_planning import plan_joint_motion
-from src.segment import SideType
+from src.segment import MotionType, SideType
 from src.logger import DataStore, DataStoreForce_2
+from src.kinematics import get_fk, pose_to_matrix
 
 from URBasic.iscoin import ISCoin
 from URBasic.urScript import UrScript
@@ -85,6 +86,9 @@ def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, 
     robot_ctr = robot.robot_control
     robot_ctr.movej(HOMEJ)
 
+    _, tcp_offset = ds.load_calibration()
+    tcp_matrix = pose_to_matrix(tcp_offset)
+
     if multipen:
         pen_1, pen_2 = ds.load_pen_calibration()
         MAX_PEN_BY_RACK = 4
@@ -116,7 +120,11 @@ def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, 
 
             # Conversion in waypoint
             for trace in traces:
-                motion = trace.waypoints
+                motion_type = trace.motion_type
+                if motion_type is MotionType.DRAW:
+                    motion = [get_fk(joint_angles, tcp_matrix) for joint_angles in trace.waypoints]
+                else:
+                    motion = trace.waypoints
                 waypoints = []
                 for m in motion:
                     if isinstance(m, Joint6D):
@@ -127,6 +135,7 @@ def move_simple(robot: ISCoin | DuckifySim, motion: dict, ds: DataStore = None, 
                         ds.log(f"WARNING: Unknown waypoint type for waypoint: {type(m)}")
                         raise TypeError(f"Unknown waypoint type for waypoint: {type(m)}")
 
+                
                 if isinstance(waypoints[0], Joint6DDescriptor):
                     robot_ctr.movej_waypoints(waypoints)
                 elif isinstance(waypoints[0], TCP6DDescriptor):

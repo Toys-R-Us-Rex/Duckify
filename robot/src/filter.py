@@ -8,8 +8,6 @@ from src.utils import ask_yes_no
 from src.config import *
 import numpy as np
 
-ALLOWED_COLORS = [1]
-
 class Filter(Stage):
     """
     Filters trace segments based on their position relative to a threshold.
@@ -74,9 +72,6 @@ class Filter(Stage):
         for trace in traces:
             path = trace['path']
             color = trace['color']
-
-            if color not in ALLOWED_COLORS:
-                continue
 
             color = color if self.multipen else 0
 
