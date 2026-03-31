@@ -286,7 +286,7 @@ class RobotController(QObject):
         if ans != QMessageBox.StandardButton.Yes:
             return
 
-        result: RobotResult = self.service.run(request)
+        result: RobotResult = self.service.run(request, on_progress=self.update_execution_progress)
         if result.error is not None:
             QMessageBox.critical(
                 self.ui, "Error", f"The following error occurred:\n{result.error}"
@@ -319,3 +319,7 @@ class RobotController(QObject):
             path, use_pickle=path.suffix == ".pkl"
         )
         return obj2robot
+
+    def update_execution_progress(self, current: int, maximum: int):
+        self.ui.robotProgress.setMaximum(maximum)
+        self.ui.robotProgress.setValue(current)
