@@ -51,6 +51,8 @@ class GenAIController(QObject):
         self.setup()
 
     def setup(self):
+        self.settings_manager.changed.connect(self.on_settings_changed)
+
         populate_combobox(
             self.ui.genAIModel, self.assets.list_models("obj"), self.assets.models_dir
         )
@@ -68,6 +70,10 @@ class GenAIController(QObject):
         self.ui.genAIResults.setModel(self.result_model)
 
         self.ui.genAISaveAs.clicked.connect(self.prompt_save)
+    
+    def on_settings_changed(self, settings: Settings):
+        self.service.host = settings.genAI.host
+        self.service.port = settings.genAI.port
 
         self.visualizer.load_model(self.ui.genAIModel.currentData())
         self.ui.genAIModel.currentIndexChanged.connect(self.reload_model)

@@ -158,6 +158,14 @@ class RobotService:
         self._robot.close()
         self._robot = None
 
+    def change_ip(self, new_ip: str):
+        connected: bool = self._robot is not None
+        if connected:
+            self.disconnect()
+        self.ip_address = new_ip
+        if connected:
+            self.connect()
+
     def read_tcp(self) -> TCPPoint:
         tcp: TCP6D = self.ctrl.get_actual_tcp_pose()
         return tcp6d_to_tcppoint(tcp)

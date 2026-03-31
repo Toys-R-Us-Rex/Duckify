@@ -57,6 +57,7 @@ class RobotController(QObject):
         self.setup()
 
     def setup(self):
+        self.settings_manager.changed.connect(self.on_settings_changed)
         self.widgets_needing_robot = [
             w
             for w in self.ui.findChildren(QWidget)
@@ -106,6 +107,9 @@ class RobotController(QObject):
         self.ui.robotRun.clicked.connect(self.robot_run)
 
         self.connect_change()
+
+    def on_settings_changed(self, settings: Settings):
+        self.service.change_ip(settings.robot.ip_address)
 
     def connect_change(self):
         connected: bool = self.ui.robotConnect.isChecked()
