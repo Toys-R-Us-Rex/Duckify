@@ -553,9 +553,9 @@
              <property name="geometry">
               <rect>
                <x>0</x>
-               <y>-176</y>
+               <y>-287</y>
                <width>520</width>
-               <height>659</height>
+               <height>739</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -794,6 +794,12 @@
                 <layout class="QVBoxLayout" name="verticalLayout_24">
                  <item>
                   <widget class="QPushButton" name="robotRunGazebo">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="toolTip">
+                    <string>Not implemented yet</string>
+                   </property>
                    <property name="text">
                     <string>Run Gazebo simulation</string>
                    </property>
@@ -842,7 +848,14 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QListWidget" name="robotLogs"/>
+                  <widget class="QListWidget" name="robotLogs">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>150</height>
+                    </size>
+                   </property>
+                  </widget>
                  </item>
                 </layout>
                </widget>

@@ -36,8 +36,8 @@ from robot.src.utils import AtoB
 from ui.assets import AssetRegistry
 from ui.models import Point3D, TCPPoint
 
-
 ProgressCallback = Callable[[int, int], None]
+LogFunc = Callable[[str], None]
 
 
 @dataclass
@@ -74,11 +74,26 @@ def tcppoint_to_tcp6d(tcppoint: TCPPoint) -> TCP6D:
 
 
 class RobotService:
-    def __init__(self, ip_address: str, base_dir: Path, assets: AssetRegistry) -> None:
+    def __init__(
+        self,
+        ip_address: str,
+        base_dir: Path,
+        assets: AssetRegistry,
+        log_func: Optional[LogFunc] = None,
+    ) -> None:
         self.ip_address: str = ip_address
         self._robot: Optional[ISCoin] = None
         base_dir.mkdir(parents=True, exist_ok=True)
         self.ds: DataStore = DataStore(base_dir)
+        self.log_func: LogFunc = log_func or (lambda s: None)
+
+        og_log = self.ds.log
+
+        def new_log(message: str):
+            self.log_func(message)
+            og_log(message)
+
+        self.ds.log = new_log
 
         self.homej: Joint6D = Joint6D.createFromRadians(
             1.8859, -1.4452, 1.2389, -1.3639, -1.5693, -0.3849
@@ -341,7 +356,7 @@ class RobotService:
             pen_1, pen_2 = pen_calibrations
             pen_state_1 = PenState(self.homej, self.robot, tcppoint_to_tcp6d(pen_1))
             pen_state_2 = PenState(self.homej, self.robot, tcppoint_to_tcp6d(pen_2))
-        
+
         total_waypoints: int = sum(
             len(trace.waypoints)
             for d in motion.values()
