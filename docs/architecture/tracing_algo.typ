@@ -75,3 +75,5 @@
   + *end*
   + *return* $P$
 ]
+
+#align(right)[Louis Heredero & Jeremy Duc]

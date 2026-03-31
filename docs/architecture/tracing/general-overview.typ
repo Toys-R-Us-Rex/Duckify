@@ -55,3 +55,5 @@
 - should we take into consideration the size of the pen tip, especially for filling ?
 - what should WE optimize ?
 - what kind of filling patterns ? should they be optimized relative to the local topology ? how ?
+
+#align(right)[Louis Heredero & Jeremy Duc]
