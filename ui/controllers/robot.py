@@ -64,9 +64,8 @@ class RobotController(QObject):
             if w.property("requireRobot") is True
         ]
 
-        populate_combobox(
-            self.ui.robotTrace, self.assets.list_traces(), self.assets.output_dir
-        )
+        self.ui.actionReloadAssets.triggered.connect(self.populate_comboboxes)
+        self.populate_comboboxes()
 
         self.ui.robotConnect.toggled.connect(self.connect_change)
 
@@ -110,6 +109,12 @@ class RobotController(QObject):
 
     def on_settings_changed(self, settings: Settings):
         self.service.change_ip(settings.robot.ip_address)
+
+    def populate_comboboxes(self):
+        self.ui.robotTrace.clear()
+        populate_combobox(
+            self.ui.robotTrace, self.assets.list_traces(), self.assets.output_dir
+        )
 
     def connect_change(self):
         connected: bool = self.ui.robotConnect.isChecked()
@@ -291,7 +296,9 @@ class RobotController(QObject):
         if ans != QMessageBox.StandardButton.Yes:
             return
 
-        result: RobotResult = self.service.run(request, on_progress=self.update_execution_progress)
+        result: RobotResult = self.service.run(
+            request, on_progress=self.update_execution_progress
+        )
         if result.error is not None:
             QMessageBox.critical(
                 self.ui, "Error", f"The following error occurred:\n{result.error}"
@@ -328,6 +335,6 @@ class RobotController(QObject):
     def update_execution_progress(self, current: int, maximum: int):
         self.ui.robotProgress.setMaximum(maximum)
         self.ui.robotProgress.setValue(current)
-    
+
     def log(self, message: str):
         self.ui.robotLogs.addItem(message)
