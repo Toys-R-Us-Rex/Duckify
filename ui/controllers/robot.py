@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import QObject
-from PyQt6.QtWidgets import QComboBox, QFileDialog, QWidget
+from PyQt6.QtWidgets import QComboBox, QFileDialog, QMessageBox, QWidget
 
 from robot.src.conversion import convert_segments
 from robot.src.filter import filter_traces
@@ -93,6 +93,8 @@ class RobotController(QObject):
 
         self.ui.robotPathfind.clicked.connect(self.run_pathfind)
 
+        self.ui.robotShowPlanAnim.clicked.connect(self.show_plan_animation)
+
         self.ui.robotRun.clicked.connect(self.robot_run)
 
         self.connect_change()
@@ -112,6 +114,9 @@ class RobotController(QObject):
         for w in self.widgets_needing_robot:
             w.setDisabled(not connected)
             w.setToolTip(tooltip)
+        
+        if connected:
+            self.check_gripper_activation()
 
     def set_gripper_activation(self, activated: bool):
         if activated:
@@ -206,7 +211,7 @@ class RobotController(QObject):
         side: SideType = SideType.RIGHT
         if self.ui.robotFilter.currentIndex() == 1:
             side = SideType.LEFT
-        segments: dict = filter_traces(traces_path, True, side)
+        segments: dict = filter_traces(traces_path, False, side)
         self.service.ds.save_trace_segments(
             segments, self.workspace.trace_segments_path
         )
@@ -231,18 +236,32 @@ class RobotController(QObject):
         self.service.ds.save_joint_segments(joint_segments, self.workspace.joint_segments_path)  # type: ignore
         self.ui.statusbar.showMessage("Pathfind successful")
 
+        self.ui.robotStepValidation.setDisabled(False)
+        self.ui.robotStepExecution.setDisabled(False)
+
     def robot_check_ready(self):
         ready: bool = True
         self.ui.robotRun.setDisabled(not ready)
+    
+    def show_plan_animation(self):
+        obj2robot=self.get_transformation()
+        tcp_offset=self.get_tcp_calibration()
+        joint_segments: dict = self.service.ds.load_joint_segments(self.workspace.joint_segments_path)  # type: ignore
+        self.service.show_plan_animation(obj2robot, tcp_offset, joint_segments)
 
     def robot_run(self):
+        joint_segments: dict = self.service.ds.load_joint_segments(self.workspace.joint_segments_path)  # type: ignore
         request: RobotRequest = RobotRequest(
-            trace_path=self.ui.robotTrace.currentData(),
-            filter_mode=self.ui.robotFilter.currentData(),  # TODO: improve with enum ?
-            tcp_calibration=self.ui.robotTCPCalibration.currentText(),
-            transformation=self.ui.robotTransformation.currentText(),
+            tcp_offset=self.get_tcp_calibration(),
+            joint_segments=joint_segments,
         )
         result: RobotResult = self.service.run(request)
+        if result.error is not None:
+            QMessageBox.critical(
+                self.ui,
+                "Error",
+                f"The following error occurred:\n{result.error}"
+            )
 
     @property
     def tcp_calibration_path(self) -> Path:

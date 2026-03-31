@@ -20,12 +20,15 @@ from robot.src.computation import (
     smoothing,
 )
 from robot.src.kinematics import pose_to_matrix
-from robot.src.logger import DataStore
+from robot.src.logger import DataStore, DataStoreForce_2
 from robot.src.pybullet_helpers import (
+    animate_plan,
     find_hovers,
     split_into_runs,
     validate_surface_points,
+    visualize_plan,
 )
+from robot.src.robot import move_simple
 from robot.src.safety import setup_checker
 from robot.src.transformation import create_transformation, extract_pybullet_pose
 from robot.src.utils import AtoB
@@ -35,15 +38,13 @@ from ui.models import Point3D, TCPPoint
 
 @dataclass
 class RobotRequest:
-    trace_path: Path
-    filter_mode: str
-    tcp_calibration: str
-    transformation: str
+    tcp_offset: TCPPoint
+    joint_segments: dict
 
 
 @dataclass
 class RobotResult:
-    pass
+    error: Optional[Exception] = None
 
 
 class NotConnectedError(RuntimeError):
@@ -133,15 +134,6 @@ class RobotService:
             return
         self._robot.close()
         self._robot = None
-
-    def run(self, request: RobotRequest) -> RobotResult:
-        print("Running robot")
-        print(f" - ip: {self.ip_address}")
-        print(f" - trace: {request.trace_path}")
-        print(f" - filter: {request.filter_mode}")
-        print(f" - TCP calibration: {request.tcp_calibration}")
-        print(f" - transformation: {request.transformation}")
-        return RobotResult()
 
     def read_tcp(self) -> TCPPoint:
         tcp: TCP6D = self.ctrl.get_actual_tcp_pose()
@@ -284,3 +276,40 @@ class RobotService:
             print("PyBullet disconnected")
 
         return joint_data
+    
+    def run(self, req: RobotRequest) -> RobotResult:
+        self.ctrl.set_tcp(tcppoint_to_tcp6d(req.tcp_offset))
+
+        force = DataStoreForce_2(self.ctrl)
+        force.start_measures()
+
+        result: RobotResult = RobotResult()
+
+        try:
+            move_simple(self.robot, req.joint_segments, self.ds, False)
+        except Exception as e:
+            self.ds.log(f"Exception with robot: {e}")
+            result.error =e
+        
+        force.stop_measures()
+        
+        return result
+    
+    def show_plan_animation(self, obj2robot: AtoB, tcp_offset: TCPPoint, data: dict):
+        tcp6d_offset: TCP6D = tcppoint_to_tcp6d(tcp_offset)
+        tcp_offset_mat = pose_to_matrix(tcp6d_offset)
+
+        position, quat, scale = extract_pybullet_pose(obj2robot)
+        checker = setup_checker(
+            self.obstacles, obj_position=position, obj_orientation=quat, gui=True
+        )
+        checker.set_joint_angles(self.homej.toList())
+
+        for s, colors in data.items():
+            for c, segments in colors.items():
+                visualize_plan(checker, tcp_offset_mat, segments, debug=True)
+                animate_plan(checker, segments, delay=0.1, autostart=True)
+
+        if pb.isConnected(checker.cid):
+            pb.disconnect(checker.cid)
+            print("PyBullet disconnected")

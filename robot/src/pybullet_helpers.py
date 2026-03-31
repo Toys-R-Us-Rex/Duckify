@@ -246,9 +246,10 @@ def visualize_plan(checker, tcp_offset, segments, debug=True):
     print(f"\n  {len(segments)} segments visualized")
 
 
-def animate_plan(checker, segments, delay=0.02):
+def animate_plan(checker, segments, delay=0.02, autostart=False):
     cid = checker.cid
-    input("\nPress ENTER to start arm animation...")
+    if not autostart:
+        input("\nPress ENTER to start arm animation...")
     print("\nAnimating arm through all segments...")
 
     for i, seg in enumerate(segments):

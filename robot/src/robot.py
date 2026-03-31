@@ -1,22 +1,22 @@
-from src.computation import simplify_path
-from src.safety import setup_checker
-from src.transformation import extract_pybullet_pose
+from robot.src.computation import simplify_path
+from robot.src.safety import setup_checker
+from robot.src.transformation import extract_pybullet_pose
 from pybullet_planning import plan_joint_motion
-from src.segment import SideType
-from src.logger import DataStore, DataStoreForce_2
+from robot.src.segment import SideType
+from robot.src.logger import DataStore, DataStoreForce_2
 
 from URBasic.iscoin import ISCoin
 from URBasic.urScript import UrScript
 from URBasic.waypoint6d import TCP6D, Joint6D, Joint6DDescriptor, TCP6DDescriptor
 
-from duckify_simulation.duckify_sim import DuckifySim
+from robot.duckify_simulation.duckify_sim import DuckifySim
 
-from src.config import *
-from src.utils import *
-from src.pen import PenState
+from robot.src.config import *
+from robot.src.utils import *
+from robot.src.pen import PenState
 import matplotlib.pyplot as plt
 
-from src.stage import Stage
+from robot.src.stage import Stage
 
 def intermediar_calibration_tcp_test(robot_ctr: UrScript, ds: DataStore):
     j = robot_ctr.get_actual_joint_positions()
