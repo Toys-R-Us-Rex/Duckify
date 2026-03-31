@@ -23,8 +23,8 @@ DEFAULT_DATA_DIR = OUTPUT_DIR / "data"
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_14_full_body_line-trace.json"
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_11_long_line-trace.json"
 # DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_4_triangle_on_bill-trace.json"
-DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_15_colored_lines-trace.json"
-
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-army-trace.json"
+DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-ISC_infinity.json"
 
 
 DEFAULT_JSON_SOCLE = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_transformation.json"
@@ -87,7 +87,7 @@ TCP_Y_MAX        = 0.0      # TCP must stay at Y ≤ 0
 TCP_Z_MIN        = 0.0      # TCP must stay at Z ≥ 0
 TCP_Z_MAX        = 0.5      # TCP must stay at Z ≤ 0.5
 LINK_Z_MIN       = {
-    2: 0.10,                 # elbow must stay above 10 cm
+    2: 0.08,                 # elbow must stay above 10 cm
     3: 0.10,                 # upper_arm_link must stay above 10 cm
     4: 0.10,                 # forearm_link must stay above 10 cm
 }
