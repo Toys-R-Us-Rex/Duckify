@@ -82,3 +82,5 @@
     ),
   )
 ]
+
+#align(right)[Jeremy Duc]

@@ -68,3 +68,5 @@ This update (followed by an update of the drawable masl) ensure that there is al
 
 === Self-relfection
 - If existing, a solution that implies a root change in a pipeline can be easier to do. It will also not affect the already implemented architecture.
+
+#align(right)[Jeremy Duc]

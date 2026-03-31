@@ -44,4 +44,4 @@ Use a validity check on the polygon before using it. If the polygon is invalid, 
 The chages made with the reduction created an unforseen issue. Up to my actual tests and knowledge, the current implementation is working. However I can't garanty a total efficiency and therfore suggest to make, if time allow, a systematic test over diverse generated textures to ensure reliability.
 
 
-
+#align(right)[Jeremy Duc]

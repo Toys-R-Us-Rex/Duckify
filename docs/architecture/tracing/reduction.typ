@@ -34,7 +34,7 @@ Use `cv2.approxPolyDP()` to each contour during the island detection phase. The 
 A debug visualisation has also been made to visually observe the effect of simplification.
 
 #figure(
-  image("assets\before-after-contour-reduction.png"),
+  image("assets/before-after-contour-reduction.png"),
   caption: [The debug visualisation ]
 )
 
@@ -82,3 +82,5 @@ After discussion with the CTO and team robot members, I reflect on this change :
  - The contour reduction sometimes simplify "too much" the shape, up to the point were it can almost loose it's initial representation -> resampling the reduced contour using spline is potential update
  - Some diffrent colors traces overlaps on the model due to contour simplification
  - I should (and went) go to the lab with the robot team to observe the effects of the changes -> the thickness of the pen should be imitated in the tracing process 
+
+#align(right)[Jeremy Duc]
