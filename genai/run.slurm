@@ -25,7 +25,6 @@ cd "$MV_ADAPTER_PATH"
 mkdir -p "$MV_OUTPUT_DIR"
 
 echo "Lancement de MV-Adapter..."
-echo "$BENCHMARK_ACTIVATED"
 python -m scripts.texture_t2tex \
     --mesh "$MV_MESH_PATH" \
     --text "$MV_PROMPT" \
