@@ -14,7 +14,7 @@ from ui.dialogs.transformation import TransformationDialog
 from ui.models import Point3D, TCPPoint
 from ui.services.robot import RobotRequest, RobotResult, RobotService
 from ui.settings_manager import Settings, SettingsManager
-from ui.utils import add_and_select_item, populate_combobox
+from ui.utils.misc import populate_combobox, add_and_select_item
 from ui.workspace import WorkspaceManager
 
 if TYPE_CHECKING:

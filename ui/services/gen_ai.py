@@ -2,33 +2,72 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from genai.client import GenAIClient
+
 
 @dataclass
 class GenAIRequest:
     model_path: Path
     prompt: str
-    negative_prompt: str
-    prompt_wrapper: Optional[str]
     steps: int
     guidance: float
     output_dir: Path
+    negative_prompt: str = ""
+    prompt_wrapper: str = ""
 
 
 @dataclass
 class GenAIResult:
-    files: list[Path]
+    texture_path: Optional[Path]
+    error: Optional[str] = None
 
 
 class GenAIService:
-    def __init__(self, host: str, port: int) -> None:
+    def __init__(
+        self,
+        ssh_host: str,
+        ssh_port: int,
+        ssh_user: str,
+        ssh_key_path: Path,
+        host: str,
+        port: int,
+        hf_token: str,
+    ) -> None:
+        self.ssh_host: str = ssh_host
+        self.ssh_port: int = ssh_port
+        self.ssh_user: str = ssh_user
+        self.ssh_key_path: Path = ssh_key_path
         self.host: str = host
         self.port: int = port
+        self.hf_token: str = hf_token
+
+        self.client: GenAIClient = GenAIClient(
+            ssh_host=ssh_host,
+            ssh_port=ssh_port,
+            ssh_user=ssh_user,
+            ssh_key_path=ssh_key_path,
+            remote_host=host,
+            remote_port=port,
+            hf_token=hf_token,
+        )
 
     def run(self, request: GenAIRequest) -> GenAIResult:
-        # TODO: Call GenAI endpoint
-        print("Generating texture")
-        print(f" - host: {self.host}")
-        print(f" - port: {self.port}")
-        print(f" - model: {request.model_path}")
-        print(f" - prompt: {request.prompt}")
-        return GenAIResult(files=[])
+        texture_path: Optional[Path]
+        error: Optional[str]
+        texture_path, error = self.client.generate(
+            obj_path=request.model_path,
+            prompt=request.prompt,
+            output_dir=request.output_dir,
+            negative_prompt=request.negative_prompt,
+            prompt_wrapper=request.prompt_wrapper,
+            steps=request.steps,
+            guidance=request.guidance,
+        )
+
+        return GenAIResult(texture_path, error)
+
+    def test_ssh_connection(self) -> bool:
+        return self.client.test_ssh_connection()
+
+    def test_api_connection(self) -> bool:
+        return self.client.test_api_connection()

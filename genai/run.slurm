@@ -25,7 +25,6 @@ cd "$MV_ADAPTER_PATH"
 mkdir -p "$MV_OUTPUT_DIR"
 
 echo "Lancement de MV-Adapter..."
-
 python -m scripts.texture_t2tex \
     --mesh "$MV_MESH_PATH" \
     --text "$MV_PROMPT" \
@@ -34,4 +33,6 @@ python -m scripts.texture_t2tex \
     --num_inference_steps "$MV_STEPS" \
     --guidance_scale "$MV_GUIDANCE" \
     --negative_text "$MV_NEGATIVE_PROMPT" \
+    --num_generations "$NUM_GENERATIONS" \
+    --benchmark_activated "$BENCHMARK_ACTIVATED" \
 

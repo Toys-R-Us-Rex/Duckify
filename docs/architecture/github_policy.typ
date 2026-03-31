@@ -96,3 +96,5 @@ If a commit is partly written by an LLM, a footer must be added to name it as a 
   ```,
   caption: [LLM co-author footer]
 )
+
+#align(right)[Louis Heredero]

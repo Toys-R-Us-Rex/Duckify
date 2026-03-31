@@ -7,7 +7,7 @@ from tracing.config import TracerConfig
 from tracing.stats import TracingStats
 from tracing.tracer import Tracer
 
-IGNORED_COLOR: Color = (0, 0, 0)
+IGNORED_COLOR: Color = (173,170,75) #TODO rendre cela configurable dans l'UI
 
 
 @dataclass
@@ -46,7 +46,7 @@ class TracingService:
             model_path=request.model_path,
             mask_path=request.mask_path,
             palette=tuple(request.palette),
-            ignored_color=IGNORED_COLOR,
+            color_not_to_draw = IGNORED_COLOR,
         )
 
         stats: TracingStats = tracer.compute_traces(progress_callback=on_progress)

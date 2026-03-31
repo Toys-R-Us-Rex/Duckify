@@ -191,3 +191,5 @@ output/
 *.blend1
 
 ur_log/
+jobs_temp/
+prompt_result/
