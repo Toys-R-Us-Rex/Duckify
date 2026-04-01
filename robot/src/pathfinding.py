@@ -36,6 +36,22 @@ class Pathfinding(Stage):
         self.verbose = verbose
     
     def run(self, manual_flag: bool=True):
+        """
+        Run the full pathfinding pipeline.
+
+        Loads the transformation and TCP segments, sets up the pybullet
+        collision checker, then for each side and color: validates the
+        surface points, finds valid runs, assembles segments, runs
+        smoothing, plans the travel paths and saves everything.
+
+        If manual_flag is True the user gets asked to confirm at each
+        step (trace placement, validation, visualization).
+
+        Parameters
+        ----------
+        manual_flag : bool, optional
+            Whether to ask for user confirmation at each step. Default True.
+        """
         if not ask_yes_no("Do you want to launch a pathfinding? y/n \n"):
             if not self.ds.check_joint_segments():
                 raise ValueError("No joint segments found.")
@@ -76,8 +92,11 @@ class Pathfinding(Stage):
                 print(f"Processing {side} - {color}")
 
                 self.ds.log(f"Processing {side} - {color}")
-                trace_waypoints = [t.waypoints for t in traces]
-                default_normals = [t.default_normals for t in traces]
+                trace_waypoints = []
+                default_normals = []
+                for t in traces:
+                    trace_waypoints.append(t.waypoints)
+                    default_normals.append(t.default_normals)
 
                 preview_traces(checker, trace_waypoints)
                 if manual_flag:
@@ -141,4 +160,5 @@ class Pathfinding(Stage):
         
                              
     def fallback(self):
+        """Not implemented, just raises an error."""
         raise NotImplementedError("Pathfinding is not implemented yet.")

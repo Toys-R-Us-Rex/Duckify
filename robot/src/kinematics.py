@@ -325,19 +325,67 @@ def select_closest_ik(solutions, qnear, joint_limits=None):
 
 
 def get_fk(joints, tcp_offset=None):
+    """
+    Get the TCP pose from a set of joint angles using forward kinematics.
+
+    Takes the joint angles, runs FK to get the flange frame, then applies
+    the tcp offset to get the actual tool position.
+
+    Parameters
+    ----------
+    joints : Joint6D or list
+        The 6 joint angles in radians.
+    tcp_offset : ndarray, shape (4, 4), optional
+        Tool offset as a 4x4 matrix. If None, identity is used (no offset).
+
+    Returns
+    -------
+    TCP6D
+        The resulting TCP pose in meters and radians.
+    """
     if tcp_offset is None:
         tcp_offset = np.eye(4)
-    joint_list = joints.toList() if hasattr(joints, 'toList') else list(joints)
+    if hasattr(joints, 'toList'):
+        joint_list = joints.toList()
+    else:
+        joint_list = list(joints)
     T_flange = forward_kinematics_matrix(joint_list)
     T_tcp = T_flange @ tcp_offset
     return matrix_to_tcp6d(T_tcp)
 
 
 def get_inverse_kin(pose, qnear, tcp_offset=None, fixed_theta6=None):
+    """
+    Find the best IK solution for a given TCP pose, closest to qnear.
+
+    Runs analytical IK on the flange frame (after removing the tcp offset),
+    filters out solutions that don't match the target position, then picks
+    the one closest to qnear. Also does a final FK check to make sure
+    the result is actually correct.
+
+    Parameters
+    ----------
+    pose : TCP6D
+        Desired TCP pose.
+    qnear : Joint6D or list
+        Reference joint config used to pick the closest solution.
+    tcp_offset : ndarray, shape (4, 4), optional
+        Tool offset matrix. Identity if None.
+    fixed_theta6 : float, optional
+        If set, locks the last joint to this value during IK.
+
+    Returns
+    -------
+    Joint6D or None
+        The best joint config, or None if nothing valid was found.
+    """
     if tcp_offset is None:
         tcp_offset = np.eye(4)
 
-    q0 = np.array(qnear.toList() if hasattr(qnear, 'toList') else list(qnear))
+    if hasattr(qnear, 'toList'):
+        q0 = np.array(qnear.toList())
+    else:
+        q0 = np.array(list(qnear))
 
     T_desired = pose_to_matrix(pose)
     T_flange = T_desired @ np.linalg.inv(tcp_offset)
@@ -355,7 +403,10 @@ def get_inverse_kin(pose, qnear, tcp_offset=None, fixed_theta6=None):
         if err_pos < 0.001:
             valid.append(sol)
 
-    best = select_closest_ik(valid if valid else solutions, q0)
+    if valid:
+        best = select_closest_ik(valid, q0)
+    else:
+        best = select_closest_ik(solutions, q0)
     if best is None:
         return None
 
@@ -369,6 +420,27 @@ def get_inverse_kin(pose, qnear, tcp_offset=None, fixed_theta6=None):
 
 
 def get_all_ik_solutions(pose, tcp_offset=None, fixed_theta6=None):
+    """
+    Get all valid IK solutions for a TCP pose.
+
+    Similar to get_inverse_kin but returns every solution that passes the
+    FK position check, not just the closest one. Used when we want to
+    explore all possible joint configs for a given target.
+
+    Parameters
+    ----------
+    pose : TCP6D
+        Desired TCP pose.
+    tcp_offset : ndarray, shape (4, 4), optional
+        Tool offset matrix. Identity if None.
+    fixed_theta6 : float, optional
+        If set, locks the last joint to this value during IK.
+
+    Returns
+    -------
+    list of Joint6D
+        All joint configs that reach the target within tolerance.
+    """
     if tcp_offset is None:
         tcp_offset = np.eye(4)
 

@@ -64,6 +64,7 @@ MIN_HEIGHT_ACCEPTANCE = 10
 
 # Default home position
 HOMEJ = Joint6D.createFromRadians(1.8859, -1.4452, 1.2389, -1.3639, -1.5693, -0.3849)
+DRAWING_HOME = Joint6D.createFromDegrees(52.17, -57.14, 70.94, -22.94, -38.17, np.degrees(HOMEJ[5]))
 FIXED_THETA6 = None
 FIRST_SIMULATION_PEN_SUPPORT = TCP6D.createFromMetersRadians(-0.31030073427776544, -0.12772318658605364, 0.1691221791937419, -3.123526746656135, 0.06494033931935389, 0.0007571664234476744)
 SECOND_SIMULATION_PENSUPPORT = TCP6D.createFromMetersRadians(-0.37030073427776544, -0.12772318658605364, 0.1691221791937419, -3.123526746656135, 0.06494033931935389, 0.0007571664234476744)
@@ -87,9 +88,9 @@ TCP_Y_MAX        = 0.0      # TCP must stay at Y ≤ 0
 TCP_Z_MIN        = 0.0      # TCP must stay at Z ≥ 0
 TCP_Z_MAX        = 0.5      # TCP must stay at Z ≤ 0.5
 LINK_Z_MIN       = {
-    2: 0.10,                 # elbow must stay above 10 cm
-    3: 0.10,                 # upper_arm_link must stay above 10 cm
-    4: 0.10,                 # forearm_link must stay above 10 cm
+    2: 0.09,                 # elbow must stay above 10 cm
+    3: 0.12,                 # upper_arm_link must stay above 10 cm
+    4: 0.12,                 # forearm_link must stay above 10 cm
 }
 UR3E_MAX_REACH   = None      # disabled — IK solver handles reachability
 FREE_TRAVEL_STEP = 0.005    # meters — interpolation density for path validation

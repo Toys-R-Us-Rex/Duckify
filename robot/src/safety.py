@@ -14,6 +14,25 @@ from src.kinematics import get_all_ik_solutions
 
 
 def snap_joints_to_qnear(candidates, previous_joints):
+    """
+    Shift joint candidates by +/- 2*pi so they stay close to previous_joints.
+
+    For each joint of each candidate, adds or subtracts 2*pi until the
+    difference to the previous value is within [-pi, pi].
+
+    Parameters
+    ----------
+    candidates : list of Joint6D
+        The IK solutions to snap.
+    previous_joints : ndarray or None
+        The previous joint values to snap towards. If None, returns
+        candidates unchanged.
+
+    Returns
+    -------
+    list of Joint6D
+        The snapped candidates.
+    """
     if previous_joints is None:
         return candidates
     snapped = []
@@ -29,14 +48,42 @@ def snap_joints_to_qnear(candidates, previous_joints):
 
 
 def wrapped_joint_distance(joints_a, joints_b):
+    """
+    Compute the squared distance between two joint configs, wrapping angles.
+
+    The difference on each joint is wrapped to [-pi, pi] before squaring
+    and summing, so it handles the 2*pi wrap-around correctly.
+
+    Parameters
+    ----------
+    joints_a : ndarray
+        First joint config (6 values in radians).
+    joints_b : ndarray
+        Second joint config.
+
+    Returns
+    -------
+    float
+        Sum of squared wrapped differences.
+    """
     diff = joints_a - joints_b
     diff = (diff + np.pi) % (2 * np.pi) - np.pi
     return np.sum(diff ** 2)
 
 class CollisionChecker:
+    """
+    Pybullet-based collision checker for the UR3e robot.
+
+    Loads the robot URDF and obstacle meshes into a pybullet simulation,
+    then provides methods to check for self-collisions, obstacle collisions,
+    workspace bounds, and to validate TCP targets with IK + safety checks.
+    """
 
     def __init__(self, obstacle_stls=None, gui=False):
-        self.cid = p.connect(p.GUI if gui else p.DIRECT)
+        if gui:
+            self.cid = p.connect(p.GUI)
+        else:
+            self.cid = p.connect(p.DIRECT)
 
         # Load robot (pi rotation around Z to match real-robot frame )
         self.robot_id = p.loadURDF(
@@ -56,9 +103,9 @@ class CollisionChecker:
                 self.joint_indices.append(i)
         self.link_indices = list(range(num_joints))
 
-        self.self_pairs = [
-            (self.robot_id, a, self.robot_id, b) for a, b in SELF_COLLISION_PAIRS
-        ]
+        self.self_pairs = []
+        for a, b in SELF_COLLISION_PAIRS:
+            self.self_pairs.append((self.robot_id, a, self.robot_id, b))
 
         # Load obstacles
         self.obstacle_ids = []
@@ -98,9 +145,8 @@ class CollisionChecker:
                 if link not in excluded:
                     self.obstacle_pairs.append((self.robot_id, link, oid, -1))
 
-    # -------------------------------------------------------------------------
-
     def flip_obstacles_z(self, exclude_ids=None):
+        """Rotate all obstacles 180 degrees around Z, except the excluded ones."""
         rz_180 = [0, 0, 1, 0]
         for oid in self.obstacle_ids:
             if exclude_ids and oid in exclude_ids:
@@ -110,23 +156,27 @@ class CollisionChecker:
             p.resetBasePositionAndOrientation(oid, pos, new_orn, physicsClientId=self.cid)
 
     def set_joint_angles(self, q):
+        """Set the robot joint angles in the pybullet simulation."""
         for idx, angle in zip(self.joint_indices, q):
             p.resetJointState(self.robot_id, idx, float(angle), physicsClientId=self.cid)
 
 
     def in_self_collision(self, margin=SELF_COLLISION_MARGIN):
+        """Check if any of the robot's link pairs are in self-collision."""
         for b1, l1, b2, l2 in self.self_pairs:
             if pairwise_link_collision(b1, l1, b2, l2, max_distance=margin):
                 return True
         return False
 
     def in_obstacle_collision(self, margin=COLLISION_MARGIN):
+        """Check if any robot link is colliding with an obstacle."""
         for b1, l1, b2, l2 in self.obstacle_pairs:
             if pairwise_link_collision(b1, l1, b2, l2, max_distance=margin):
                 return True
         return False
 
     def check_workspace_bounds(self, tcp):
+        """Check if a TCP pose is within the allowed workspace limits."""
         x, y, z = tcp.x, tcp.y, tcp.z
         if y > TCP_Y_MAX:
             return False, f"TCP Y={y:.4f} > {TCP_Y_MAX}"
@@ -138,9 +188,12 @@ class CollisionChecker:
             return False, f"TCP reach > {UR3E_MAX_REACH}"
         return True, ""
 
-    # not being used at the mment
     def check_joint_limits(self, q):
-        q_list = q.toList() if hasattr(q, 'toList') else list(q)
+        """Check if joint angles are within the configured limits."""
+        if hasattr(q, 'toList'):
+            q_list = q.toList()
+        else:
+            q_list = list(q)
         for i, (angle, limit) in enumerate(zip(q_list, JOINT_LIMITS)):
             if limit is None:
                 continue
@@ -149,9 +202,15 @@ class CollisionChecker:
                 return False, f"Joint {i} = {angle:.4f} outside [{lo}, {hi}]"
         return True, ""
 
-    # -------------------------------------------------------------------------
 
     def _is_safe(self, q, margin, check_obstacle):
+        """
+        Run all safety checks on a joint config.
+
+        Checks joint limits, sets the joint angles in pybullet, then checks
+        link Z limits, self-collision, and optionally obstacle collision.
+        Returns (True, "") if everything passes, or (False, reason) on failure.
+        """
         ok, reason = self.check_joint_limits(q)
         if not ok:
             return False, reason
@@ -198,12 +257,29 @@ class CollisionChecker:
                      tilt_step=math.radians(CONE_TILT_STEP),
                      azimuth_step=math.radians(CONE_AZIMUTH_STEP),
                      search_mode=0, check_joint_jump=False, min_rings=0):
+        """
+        Try to find a valid joint config for a TCP target.
+
+        First checks workspace bounds, then tries IK. If orientation_search
+        is enabled and the direct IK fails, it searches through tilted
+        orientations in a cone around the original normal.
+
+        search_mode controls the cone search strategy:
+          0 = fast (stop at first valid hit)
+          1 = ring by ring (stop after first ring with a valid solution)
+          2 = exhaustive (try all orientations, pick the best overall)
+
+        Returns (ok, joint, reason, tcp_used, solutions_by_step).
+        """
         ok, reason = self.check_workspace_bounds(tcp)
         if not ok:
             return False, None, reason, tcp, []
 
         if search_mode in (1, 2) and orientation_search:
-            early_stop = (search_mode == 1)
+            if search_mode == 1:
+                early_stop = True
+            else:
+                early_stop = False
             best_joint, best_tcp, all_solutions_by_step = self._find_all_valid(
                 tcp_offset, tcp, qnear, margin, check_obstacle, max_cone_angle,
                 tilt_step, azimuth_step, early_stop=early_stop,
@@ -235,6 +311,10 @@ class CollisionChecker:
         return False, None, reason, tcp, [valid]
 
     def _try_ik_and_collision(self, tcp_offset, tcp, qnear, margin, check_obstacle, check_joint_jump=False):
+        """
+        Get IK solutions for a TCP, sort them by distance to qnear, and
+        return the first one that passes all safety checks.
+        """
         candidates = get_all_ik_solutions(tcp, tcp_offset, fixed_theta6=FIXED_THETA6)
 
         all_with_reasons = []
@@ -244,10 +324,14 @@ class CollisionChecker:
 
         if qnear is not None:
             previous_joints = np.array(qnear.toList())
-            distances = []
-            for c in candidates:
-                distances.append(wrapped_joint_distance(np.array(c.toList()), previous_joints))
-            candidates = [c for unused, c in sorted(zip(distances, candidates), key=lambda t: t[0])]
+
+            # Sort candidates by distance to previous joints (closest first)
+            for i in range(len(candidates)):
+                for j in range(i + 1, len(candidates)):
+                    dist_i = wrapped_joint_distance(np.array(candidates[i].toList()), previous_joints)
+                    dist_j = wrapped_joint_distance(np.array(candidates[j].toList()), previous_joints)
+                    if dist_j < dist_i:
+                        candidates[i], candidates[j] = candidates[j], candidates[i]
 
         best_joint = None
         first_reason = None
@@ -276,10 +360,23 @@ class CollisionChecker:
         if best_joint is not None:
             return True, best_joint, "", all_with_reasons
 
-        return False, None, first_reason or "IK has no solution", all_with_reasons
+        if first_reason is not None:
+            return False, None, first_reason, all_with_reasons
+        return False, None, "IK has no solution", all_with_reasons
 
     def _find_all_valid(self, tcp_offset, tcp, qnear, margin, check_obstacle, max_cone_angle, tilt_step, azimuth_step, early_stop=False, check_joint_jump=False, min_rings=0):
-        previous_joints = np.array(qnear.toList()) if qnear is not None else None
+        """
+        Search the full cone of orientations and collect valid IK solutions.
+
+        Tries the original orientation first, then ring by ring through the
+        cone. For each orientation, picks the best safe IK solution. Keeps
+        track of the overall best across all orientations based on joint
+        distance to qnear.
+        """
+        if qnear is not None:
+            previous_joints = np.array(qnear.toList())
+        else:
+            previous_joints = None
         all_solutions_by_step = []
 
         candidates = get_all_ik_solutions(tcp, tcp_offset, fixed_theta6=FIXED_THETA6)
@@ -292,7 +389,10 @@ class CollisionChecker:
 
         if best is not None:
             overall_best = best
-            overall_best_cost = wrapped_joint_distance(np.array(best.toList()), previous_joints) if previous_joints is not None else 0.0
+            if previous_joints is not None:
+                overall_best_cost = wrapped_joint_distance(np.array(best.toList()), previous_joints)
+            else:
+                overall_best_cost = 0.0
             overall_best_tcp = tcp
             if early_stop and min_rings <= 0:
                 return overall_best, overall_best_tcp, all_solutions_by_step
@@ -322,7 +422,10 @@ class CollisionChecker:
                 all_solutions_by_step.append(all_with_reasons)
 
                 if azimuth_best is not None:
-                    cost = wrapped_joint_distance(np.array(azimuth_best.toList()), previous_joints) if previous_joints is not None else 0.0
+                    if previous_joints is not None:
+                        cost = wrapped_joint_distance(np.array(azimuth_best.toList()), previous_joints)
+                    else:
+                        cost = 0.0
                     if cost < ring_best_cost:
                         ring_best_cost = cost
                         ring_best_joint = azimuth_best
@@ -341,6 +444,10 @@ class CollisionChecker:
         return overall_best, overall_best_tcp, all_solutions_by_step
 
     def _pick_best_safe(self, candidates, previous_joints, margin, check_obstacle, check_joint_jump=False):
+        """
+        From a list of IK candidates, find the one closest to previous_joints
+        that passes all safety checks.
+        """
         if not candidates:
             return None, []
 
@@ -362,18 +469,25 @@ class CollisionChecker:
             if not ok:
                 continue
 
-            cost = wrapped_joint_distance(np.array(joint.toList()), previous_joints) if previous_joints is not None else 0.0
+            if previous_joints is not None:
+                cost = wrapped_joint_distance(np.array(joint.toList()), previous_joints)
+            else:
+                cost = 0.0
             if cost < best_cost:
                 best_cost = cost
                 best = joint
 
         return best, all_with_reasons
 
-    # -------------------------------------------------------------------------
-
 
     def validate_path(self, tcp_offset, waypoints_tcp, margin=COLLISION_MARGIN,
                       qnear=None, check_obstacle=True, orientation_search=False):
+        """
+        Validate a whole path of TCP waypoints, chaining qnear along the way.
+
+        Stops at the first waypoint that fails and returns the partial
+        trajectory up to that point.
+        """
         joint_trajectory = []
 
         for i, tcp in enumerate(waypoints_tcp):
@@ -392,6 +506,29 @@ class CollisionChecker:
 
 
 def setup_checker(obstacle_stls, obj_position=None, obj_orientation=None, gui=True):
+    """
+    Create a CollisionChecker with obstacles placed at the object position.
+
+    For obstacles that don't have their own position set, uses the given
+    obj_position and obj_orientation. Prints info about each obstacle
+    after loading.
+
+    Parameters
+    ----------
+    obstacle_stls : list of dict
+        Obstacle definitions with path, scale, and optional position.
+    obj_position : list of float, optional
+        Default position for obstacles without one.
+    obj_orientation : list of float, optional
+        Default orientation quaternion.
+    gui : bool, optional
+        Whether to open the pybullet GUI window. Default True.
+
+    Returns
+    -------
+    CollisionChecker
+        Ready to use checker with all obstacles loaded.
+    """
     for obs in (obstacle_stls or []):
         if 'position' not in obs and obj_position is not None:
             obs['position'] = obj_position
@@ -409,8 +546,14 @@ def setup_checker(obstacle_stls, obj_position=None, obj_orientation=None, gui=Tr
         print(f"\nObstacle {oid}:")
         print(f"  Position:    {pos_ob}")
         print(f"  Orientation: {orn}")
-        print(f"  AABB min:    {[f'{v:.4f}' for v in aabb_min]}")
-        print(f"  AABB max:    {[f'{v:.4f}' for v in aabb_max]}")
+        aabb_min_str = []
+        for v in aabb_min:
+            aabb_min_str.append(f'{v:.4f}')
+        aabb_max_str = []
+        for v in aabb_max:
+            aabb_max_str.append(f'{v:.4f}')
+        print(f"  AABB min:    {aabb_min_str}")
+        print(f"  AABB max:    {aabb_max_str}")
         size = (aabb_max[0]-aabb_min[0], aabb_max[1]-aabb_min[1], aabb_max[2]-aabb_min[2])
         print(f"  Size (m):    ({size[0]:.4f}, {size[1]:.4f}, {size[2]:.4f})")
 

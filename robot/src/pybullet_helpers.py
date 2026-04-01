@@ -39,6 +39,13 @@ SEGMENT_COLORS = {
 
 
 def display_transformation_points(checker, obj2robot, ds, json_socle_path):
+    """
+    Show the calibration points in pybullet as colored spheres.
+
+    Green spheres are the computed transformation points from the
+    calibration file, red spheres are the measured TCP positions
+    from the datastore (if they exist).
+    """
     import json
     import numpy as np
     cid = checker.cid
@@ -60,6 +67,7 @@ def display_transformation_points(checker, obj2robot, ds, json_socle_path):
 
 
 def draw_sphere(cid, position, color, radius=0.0008):
+    """Draw a small colored sphere in pybullet at the given position."""
     vis = pb.createVisualShape(pb.GEOM_SPHERE, radius=radius, rgbaColor=[*color, 1],
                                physicsClientId=cid)
     return pb.createMultiBody(baseMass=0, baseVisualShapeIndex=vis, basePosition=position,
@@ -67,15 +75,19 @@ def draw_sphere(cid, position, color, radius=0.0008):
 
 
 def draw_tcp_marker(cid, tcp, color, radius=0.0004):
+    """Draw a sphere with a short line showing the tool direction."""
     pos = [tcp.x, tcp.y, tcp.z]
     bid = draw_sphere(cid, pos, color, radius=radius)
     rotvec = [tcp.rx, tcp.ry, tcp.rz]
     z_axis = -Rotation.from_rotvec(rotvec).as_matrix()[:, 2]
-    end = [pos[k] + z_axis[k] * 3 * radius for k in range(3)]
+    end = []
+    for k in range(3):
+        end.append(pos[k] + z_axis[k] * 3 * radius)
     pb.addUserDebugLine(pos, end, color, lineWidth=1, physicsClientId=cid)
     return bid
 
 def clear_bodies(cid, body_ids):
+    """Remove a list of pybullet bodies from the scene."""
     pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0, physicsClientId=cid)
     for bid in body_ids:
         pb.removeBody(bid, physicsClientId=cid)
@@ -83,6 +95,7 @@ def clear_bodies(cid, body_ids):
 
 
 def preview_traces(checker, surface_tcps_per_trace):
+    """Draw all traces as rainbow-colored lines in pybullet for visual check."""
     cid = checker.cid
     n_traces = len(surface_tcps_per_trace)
     for trace_i, surface_pts in enumerate(surface_tcps_per_trace):
@@ -100,6 +113,12 @@ def preview_traces(checker, surface_tcps_per_trace):
     # pb.removeAllUserDebugItems(physicsClientId=cid)
 
 def validate_surface_points(checker, tcp_offset, surface_tcps_per_trace, home):
+    """
+    Validate all surface points across all traces and print the results.
+
+    Calls _validate_surface_points for each trace and prints which points
+    were skipped and why.
+    """
     valid_masks_per_trace = []
     surface_joints_per_trace = []
 
@@ -113,31 +132,47 @@ def validate_surface_points(checker, tcp_offset, surface_tcps_per_trace, home):
         valid_masks_per_trace.append(valid_mask)
         surface_joints_per_trace.append(surface_joints)
 
-        ok_count = sum(valid_mask)
+        ok_count = 0
+        for v in valid_mask:
+            if v:
+                ok_count += 1
         fail_count = n_pts - ok_count
-        for i, (ok, reason) in enumerate(zip(valid_mask, reasons)):
-            if not ok:
-                print(f"\n    pt {i} SKIP ({reason})", end="", flush=True)
+        for i in range(len(valid_mask)):
+            if not valid_mask[i]:
+                print(f"\n    pt {i} SKIP ({reasons[i]})", end="", flush=True)
         print(f"\n    => {ok_count} OK, {fail_count} skipped")
 
     return valid_masks_per_trace, surface_joints_per_trace
 
 
 def visualize_validation(checker, surface_tcps_per_trace, valid_masks_per_trace):
+    """
+    Show validation results in pybullet. Yellow markers for valid points,
+    red markers for invalid ones.
+    """
     cid = checker.cid
     sphere_ids = []
 
-    for trace_i, (surface_pts, valid_mask) in enumerate(zip(surface_tcps_per_trace, valid_masks_per_trace)):
+    for trace_i in range(len(surface_tcps_per_trace)):
+        surface_pts = surface_tcps_per_trace[trace_i]
+        valid_mask = valid_masks_per_trace[trace_i]
         pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 0, physicsClientId=cid)
-        for wp, ok in zip(surface_pts, valid_mask):
-            color = [1, 1, 0] if ok else [1, 0, 0]
-            bid = draw_tcp_marker(cid, wp, color)
+        for i in range(len(surface_pts)):
+            if valid_mask[i]:
+                color = [1, 1, 0]
+            else:
+                color = [1, 0, 0]
+            bid = draw_tcp_marker(cid, surface_pts[i], color)
             sphere_ids.append(bid)
         pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1, physicsClientId=cid)
 
     return sphere_ids
 
 def split_into_runs(valid_masks_per_trace):
+    """
+    Split each trace's validation mask into runs of consecutive valid points.
+    Prints a summary for each trace showing the runs and gaps.
+    """
     runs_per_trace = []
 
     for trace_i, valid_mask in enumerate(valid_masks_per_trace):
@@ -150,13 +185,20 @@ def split_into_runs(valid_masks_per_trace):
             gaps = []
             for j in range(len(runs) - 1):
                 gaps.append(f"{runs[j][1]+1}-{runs[j+1][0]-1}")
-            gap_str = f", gaps at [{', '.join(gaps)}]" if gaps else ""
-            print(f"  Trace {trace_i}: {len(runs)} run(s) - {[f'{s}-{e}' for s, e in runs]}{gap_str}")
+            run_strs = []
+            for s, e in runs:
+                run_strs.append(f"{s}-{e}")
+            if gaps:
+                gap_str = f", gaps at [{', '.join(gaps)}]"
+            else:
+                gap_str = ""
+            print(f"  Trace {trace_i}: {len(runs)} run(s) - {run_strs}{gap_str}")
 
     return runs_per_trace
 
 
 def visualize_runs(checker, surface_tcps_per_trace, runs_per_trace):
+    """Draw each run as colored markers and lines in pybullet, one color per run."""
     cid = checker.cid
     sphere_ids = []
     global_run_idx = 0
@@ -183,14 +225,22 @@ def visualize_runs(checker, surface_tcps_per_trace, runs_per_trace):
 
     return sphere_ids
 
-# For each run search a non colliding hover point, if not , trim the run
 def find_hovers(checker, tcp_offset, surface_tcps_per_trace, runs_per_trace, surface_joints_per_trace, home=None):
+    """
+    For each run, find collision-free hover points at the entry and exit.
+
+    Tries to find a valid hover above the first and last points of each
+    run. If the hover collides, trims points from that end until it works.
+    Runs where no hover can be found are discarded entirely.
+    """
     cid = checker.cid
     validated_runs = []
     hover_run_idx = 0
     prev_q = home
 
-    for trace_i, (surface_pts, runs) in enumerate(zip(surface_tcps_per_trace, runs_per_trace)):
+    for trace_i in range(len(surface_tcps_per_trace)):
+        surface_pts = surface_tcps_per_trace[trace_i]
+        runs = runs_per_trace[trace_i]
         trace_joints = surface_joints_per_trace[trace_i]
         for run_start, run_end in runs:
             run_color = RUN_COLORS[hover_run_idx % len(RUN_COLORS)]
@@ -244,6 +294,11 @@ def find_hovers(checker, tcp_offset, surface_tcps_per_trace, runs_per_trace, sur
 
 
 def visualize_plan(checker, tcp_offset, segments, debug=True):
+    """
+    Draw the full segment plan in pybullet with colored lines and markers.
+
+    Blue for TRAVEL, orange for APPROACH, green for DRAW.
+    """
     cid = checker.cid
 
     print("\nVisualizing final plan step by step...")
@@ -253,9 +308,14 @@ def visualize_plan(checker, tcp_offset, segments, debug=True):
 
     for i, seg in enumerate(segments):
         color = SEGMENT_COLORS[seg.motion_type]
-        width = 3 if seg.motion_type == MotionType.DRAW else 2
+        if seg.motion_type == MotionType.DRAW:
+            width = 3
+        else:
+            width = 2
         label = seg.motion_type.name
-        tcp_wps = [get_fk(q, tcp_offset) for q in seg.waypoints]
+        tcp_wps = []
+        for q in seg.waypoints:
+            tcp_wps.append(get_fk(q, tcp_offset))
         print(f"  Segment {i}: {label} ({len(tcp_wps)} wps)  "
               f"{fmt_tcp(tcp_wps[0])} -> {fmt_tcp(tcp_wps[-1])}")
 
@@ -272,17 +332,29 @@ def visualize_plan(checker, tcp_offset, segments, debug=True):
 
 
 def animate_plan(checker, segments, delay=0.02):
+    """
+    Animate the robot moving through all segments in pybullet.
+
+    Sets the joint angles for each waypoint with a small delay between
+    them so you can see the arm moving.
+    """
     cid = checker.cid
     input("\nPress ENTER to start arm animation...")
     print("\nAnimating arm through all segments...")
 
     for i, seg in enumerate(segments):
         label = seg.motion_type.name
-        n = len(seg.waypoints) if seg.waypoints else 0
+        if seg.waypoints:
+            n = len(seg.waypoints)
+        else:
+            n = 0
         print(f"  Segment {i}: {label} ({n} joint waypoints)")
         if seg.waypoints:
             for jw in seg.waypoints:
-                q = jw.toList() if hasattr(jw, 'toList') else list(jw)
+                if hasattr(jw, 'toList'):
+                    q = jw.toList()
+                else:
+                    q = list(jw)
                 checker.set_joint_angles(q)
                 if delay > 0:
                     time.sleep(delay)
