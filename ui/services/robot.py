@@ -12,11 +12,12 @@ from URBasic.waypoint6d import TCP6D, Joint6D, Joint6DDescriptor, TCP6DDescripto
 
 from robot.src.calibration import get_tcp_offset
 from robot.src.computation import (
+    add_angle_continuity,
     assemble_segments,
     hotfix_j6_correction,
     plan_travels,
     plot_joint_plan,
-    plot_normal_diff,
+    plot_smoothing_comparison,
     smoothing,
 )
 from robot.src.config import DRAW_A, DRAW_V
@@ -277,20 +278,21 @@ class RobotService:
                     default_normals,
                 )
 
-                smoothing(tcp_offset_mat, checker, segments, self.homej)
+                before_waypoints = smoothing(tcp_offset_mat, checker, segments, self.homej)
 
-                normal_plot_index = 0
+                smoothing_plot_index = 0
                 while (
-                    self.ds.data_path / f"normal_diff_{normal_plot_index}.png"
+                    self.ds.data_path / f"smoothing_{smoothing_plot_index}.png"
                 ).exists():
-                    normal_plot_index += 1
-                plot_normal_diff(
+                    smoothing_plot_index += 1
+                plot_smoothing_comparison(
                     segments,
-                    self.ds.data_path / f"normal_diff_{normal_plot_index}.png",
-                    tcp_offset=tcp_offset_mat,
+                    before_waypoints,
+                    self.ds.data_path / f"smoothing_{smoothing_plot_index}.png",
                 )
 
                 plan_travels(checker, segments)
+                add_angle_continuity(segments)
 
                 segments = hotfix_j6_correction(segments)
 
