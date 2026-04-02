@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="steps">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tabGenAI">
        <attribute name="title">
@@ -553,7 +553,7 @@
              <property name="geometry">
               <rect>
                <x>0</x>
-               <y>-287</y>
+               <y>0</y>
                <width>520</width>
                <height>739</height>
               </rect>
