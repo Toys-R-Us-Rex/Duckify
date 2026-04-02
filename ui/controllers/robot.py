@@ -105,6 +105,8 @@ class RobotController(QObject):
 
         self.ui.robotRun.clicked.connect(self.robot_run)
 
+        self.ui.robotRunAll.clicked.connect(self.run_all)
+
         self.connect_change()
 
     def on_settings_changed(self, settings: Settings):
@@ -267,6 +269,11 @@ class RobotController(QObject):
         tcp_offset = self.get_tcp_calibration()
         joint_segments: dict = self.service.ds.load_joint_segments(self.workspace.joint_segments_path)  # type: ignore
         self.service.show_plan_animation(obj2robot, tcp_offset, joint_segments)
+
+    def run_all(self):
+        self.load_traces()
+        self.run_pathfind()
+        self.show_plan_animation()
 
     def robot_run(self):
         joint_segments: dict = self.service.ds.load_joint_segments(self.workspace.joint_segments_path)  # type: ignore
