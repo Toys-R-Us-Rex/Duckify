@@ -39,11 +39,11 @@ Course:     HES-SO Valais-Wallis, Engineering Track 304
 
 import numpy as np
 
-from src.stage import Stage
-from src.utils import *
-from src.config import *
-from src.logger import DataStore
-from src.pen import PenState
+from robot.src.stage import Stage
+from robot.src.utils import *
+from robot.src.config import *
+from robot.src.logger import DataStore
+from robot.src.pen import PenState
 
 from URBasic.waypoint6d import TCP6D
 from URBasic.urScript import UrScript

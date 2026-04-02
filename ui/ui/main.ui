@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="steps">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tabGenAI">
        <attribute name="title">
@@ -554,8 +554,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>518</width>
-               <height>628</height>
+               <width>520</width>
+               <height>739</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -581,25 +581,25 @@
                     </widget>
                    </item>
                    <item>
-                    <spacer name="horizontalSpacer_2">
-                     <property name="orientation">
-                      <enum>Qt::Horizontal</enum>
-                     </property>
-                     <property name="sizeHint" stdset="0">
-                      <size>
-                       <width>40</width>
-                       <height>20</height>
-                      </size>
-                     </property>
-                    </spacer>
-                   </item>
-                   <item>
                     <widget class="QComboBox" name="robotTCPCalibration">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
                      <item>
                       <property name="text">
                        <string>Default</string>
                       </property>
                      </item>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="robotLoadTCPCalibration">
+                     <property name="text">
+                      <string>Load</string>
+                     </property>
                     </widget>
                    </item>
                    <item>
@@ -627,25 +627,25 @@
                     </widget>
                    </item>
                    <item>
-                    <spacer name="horizontalSpacer_3">
-                     <property name="orientation">
-                      <enum>Qt::Horizontal</enum>
-                     </property>
-                     <property name="sizeHint" stdset="0">
-                      <size>
-                       <width>40</width>
-                       <height>20</height>
-                      </size>
-                     </property>
-                    </spacer>
-                   </item>
-                   <item>
                     <widget class="QComboBox" name="robotTransformation">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
                      <item>
                       <property name="text">
-                       <string>Default</string>
+                       <string>Test</string>
                       </property>
                      </item>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="robotLoadTransformation">
+                     <property name="text">
+                      <string>Load</string>
+                     </property>
                     </widget>
                    </item>
                    <item>
@@ -700,6 +700,31 @@
                    </item>
                   </layout>
                  </item>
+                 <item>
+                  <layout class="QHBoxLayout" name="horizontalLayout_19">
+                   <item>
+                    <widget class="QLabel" name="label_13">
+                     <property name="text">
+                      <string>Orientation</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QComboBox" name="robotFilter">
+                     <item>
+                      <property name="text">
+                       <string>Draw right side</string>
+                      </property>
+                     </item>
+                     <item>
+                      <property name="text">
+                       <string>Draw left side</string>
+                      </property>
+                     </item>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
                 </layout>
                </widget>
               </item>
@@ -726,36 +751,6 @@
                    </item>
                    <item>
                     <widget class="QComboBox" name="robotTrace"/>
-                   </item>
-                  </layout>
-                 </item>
-                 <item>
-                  <layout class="QHBoxLayout" name="horizontalLayout_19">
-                   <item>
-                    <widget class="QLabel" name="label_13">
-                     <property name="text">
-                      <string>Filter</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QComboBox" name="robotFilter">
-                     <item>
-                      <property name="text">
-                       <string>All traces</string>
-                      </property>
-                     </item>
-                     <item>
-                      <property name="text">
-                       <string>Only left (Y+)</string>
-                      </property>
-                     </item>
-                     <item>
-                      <property name="text">
-                       <string>Only right (Y-)</string>
-                      </property>
-                     </item>
-                    </widget>
                    </item>
                   </layout>
                  </item>
@@ -799,8 +794,21 @@
                 <layout class="QVBoxLayout" name="verticalLayout_24">
                  <item>
                   <widget class="QPushButton" name="robotRunGazebo">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="toolTip">
+                    <string>Not implemented yet</string>
+                   </property>
                    <property name="text">
                     <string>Run Gazebo simulation</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="robotShowPlanAnim">
+                   <property name="text">
+                    <string>Show animation</string>
                    </property>
                   </widget>
                  </item>
@@ -833,14 +841,21 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QProgressBar" name="progressBar">
+                  <widget class="QProgressBar" name="robotProgress">
                    <property name="value">
                     <number>0</number>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QListWidget" name="robotLogs"/>
+                  <widget class="QListWidget" name="robotLogs">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>150</height>
+                    </size>
+                   </property>
+                  </widget>
                  </item>
                 </layout>
                </widget>
@@ -975,8 +990,8 @@
     <property name="title">
      <string>&amp;Assets</string>
     </property>
-    <addaction name="actionReload_from_disk"/>
-    <addaction name="actionOpen_directory"/>
+    <addaction name="actionReloadAssets"/>
+    <addaction name="actionOpenAssets"/>
    </widget>
    <addaction name="menuSettings"/>
    <addaction name="menuAssets"/>
@@ -995,12 +1010,12 @@
     <string>Ctrl+Q</string>
    </property>
   </action>
-  <action name="actionReload_from_disk">
+  <action name="actionReloadAssets">
    <property name="text">
     <string>&amp;Reload from disk</string>
    </property>
   </action>
-  <action name="actionOpen_directory">
+  <action name="actionOpenAssets">
    <property name="text">
     <string>Open directory</string>
    </property>

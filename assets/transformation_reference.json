@@ -15,6 +15,66 @@
         {
             "label": "Corner 2",
             "pos": [-47.50, -47.50, -152.0]
+        },
+        {
+            "label": "Top of head",
+            "pos": [14.811, 0, 103.83]
+        },
+        {
+            "label": "Left eye (center)",
+            "pos": [27.46, 11.742, 89.855]
+        },
+        {
+            "label": "Right eye (center)",
+            "pos": [27.46, -11.742, 89.855]
+        },
+        {
+            "label": "Mouth corner (left)",
+            "pos": [30.021, 16.905, 76.364]
+        },
+        {
+            "label": "Mouth corner (right)",
+            "pos": [30.021, -16.905, 76.364]
+        },
+        {
+            "label": "Bill extremity (front)",
+            "pos": [49.11, 0, 86.848]
+        },
+        {
+            "label": "Tail extremity",
+            "pos": [-43.408, 0, 60.581]
+        },
+        {
+            "label": "Support top (X+)",
+            "pos": [40, 0, 0]
+        },
+        {
+            "label": "Support top (X-)",
+            "pos": [-40, 0, 0]
+        },
+        {
+            "label": "Support top (Y+)",
+            "pos": [30, 0, 0]
+        },
+        {
+            "label": "Support top (Y-)",
+            "pos": [-30, 0, 0]
+        },
+        {
+            "label": "Support base (corner X+/Y+)",
+            "pos": [55, 55, -150]
+        },
+        {
+            "label": "Support base (corner X+/Y-)",
+            "pos": [55, -55, -150]
+        },
+        {
+            "label": "Support base (corner X-/Y+)",
+            "pos": [-55, 55, -150]
+        },
+        {
+            "label": "Support base (corner X-/Y-)",
+            "pos": [-55, -55, -150]
         }
     ]
 }

@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QFileDialog
 
-from tracing.color import Color
 from tracing.stats import TracingStats
 from ui.assets import AssetRegistry
 from ui.mesh_visualizer import MeshVisualizer
@@ -44,6 +43,27 @@ class TracingController(QObject):
         self.setup()
 
     def setup(self):
+        self.ui.actionReloadAssets.triggered.connect(self.populate_comboboxes)
+        self.populate_comboboxes()
+
+        self.ui.tracingTrace.clicked.connect(self.start_tracing)
+
+        self.visualizer: MeshVisualizer = MeshVisualizer(self.ui)
+        self.ui.tracingVisual.parentWidget().layout().replaceWidget(self.ui.tracingVisual, self.visualizer)  # type: ignore
+        self.ui.tracingVisual.deleteLater()
+        self.ui.tracingVisual = self.visualizer
+        self.ui.tracingVisualAltitude.valueChanged.connect(self.visualizer.set_altitude)
+        self.ui.tracingVisualAzimuth.valueChanged.connect(self.visualizer.set_azimuth)
+        self.ui.tracingVisualLayerMesh.toggled.connect(self.update_visual_layer)
+        self.ui.tracingVisualLayerTexture.toggled.connect(self.update_visual_layer)
+        self.ui.tracingVisualLayerPalettized.toggled.connect(self.update_visual_layer)
+
+        self.ui.tracingSaveAs.clicked.connect(self.prompt_save)
+
+    def populate_comboboxes(self):
+        self.ui.tracingModel.clear()
+        self.ui.tracingMask.clear()
+        self.ui.tracingTexture.clear()
         populate_combobox(
             self.ui.tracingModel,
             self.assets.list_models("obj"),
@@ -59,20 +79,6 @@ class TracingController(QObject):
             self.assets.list_textures(),
             self.assets.textures_dir,
         )
-
-        self.ui.tracingTrace.clicked.connect(self.start_tracing)
-
-        self.visualizer: MeshVisualizer = MeshVisualizer(self.ui)
-        self.ui.tracingVisual.parentWidget().layout().replaceWidget(self.ui.tracingVisual, self.visualizer)  # type: ignore
-        self.ui.tracingVisual.deleteLater()
-        self.ui.tracingVisual = self.visualizer
-        self.ui.tracingVisualAltitude.valueChanged.connect(self.visualizer.set_altitude)
-        self.ui.tracingVisualAzimuth.valueChanged.connect(self.visualizer.set_azimuth)
-        self.ui.tracingVisualLayerMesh.toggled.connect(self.update_visual_layer)
-        self.ui.tracingVisualLayerTexture.toggled.connect(self.update_visual_layer)
-        self.ui.tracingVisualLayerPalettized.toggled.connect(self.update_visual_layer)
-
-        self.ui.tracingSaveAs.clicked.connect(self.prompt_save)
 
     def start_tracing(self):
         print("Starting tracing")

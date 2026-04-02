@@ -9,8 +9,8 @@ from URBasic import TCP6D
 
 from URBasic import Joint6D
 
-from src.config import *
-from src.kinematics import get_all_ik_solutions
+from robot.src.config import *
+from robot.src.kinematics import get_all_ik_solutions
 
 
 def snap_joints_to_qnear(candidates, previous_joints):
