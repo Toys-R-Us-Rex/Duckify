@@ -34,6 +34,8 @@ Co-Author:  Savioz Pierre-Yves, with assistance from Claude AI (Anthropic)
 Course:     HES-SO Valais-Wallis, Engineering Track 304
 """
 
+from pathlib import Path
+
 import numpy as np
 from URBasic import TCP6D
 
@@ -282,7 +284,29 @@ def ask_yes_no(prompt: str) -> bool:
         True if the user answers "y", False otherwise.
     """
     return input(prompt).strip().lower() == "y"
-    
+
+def rotation_matrix_z(deg: float) -> np.ndarray:
+    """
+    Creates a rotation matrix for rotation around the Z-axis.
+
+    Parameters
+    ----------
+    deg : float
+        The rotation angle in degrees.
+
+    Returns
+    -------
+    np.ndarray
+        The rotation matrix for rotation around the Z-axis.
+    """
+    theta = np.radians(deg)
+    R = np.array([
+        [np.cos(theta), -np.sin(theta), 0],
+        [np.sin(theta),  np.cos(theta), 0],
+        [0,              0,             1]
+    ])
+    return R
+
 class AtoB:
     """
     A similarity transform that maps points from one coordinate system to another.
@@ -331,3 +355,19 @@ class AtoB:
         r_new = normal_to_rotvec(n_new)
 
         return [*p_new[:3], *r_new]
+
+    def transform_with_normal(self, p):
+        p = np.asarray(p)
+        point = p[:3]
+        normal = p[3:]
+
+        p_h = np.array([*point, 1.0])
+        p_new = self.T_position @ p_h
+
+        n_h = np.array([*normal, 1.0])
+        n_new = (self.T_orientation @ n_h)[:3]
+        n_new /= np.linalg.norm(n_new)
+
+        r_new = normal_to_rotvec(n_new)
+
+        return [*p_new[:3], *r_new], n_new.tolist()

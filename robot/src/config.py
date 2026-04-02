@@ -7,26 +7,72 @@ Copyright (c) 2026 HES-SO Valais-Wallis, Engineering Track 304
 from pathlib import Path
 import numpy as np
 
-from urbasic.URBasic.waypoint6d import Joint6D
+from URBasic.waypoint6d import TCP6D, Joint6D
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 ASSETS_DIR = PROJECT_DIR / "assets"
 OUTPUT_DIR = PROJECT_DIR / "output"
-DEFAULT_CALIBRATION_PATH = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_default.pkl"
-DEFAULT_TRANSFORMATION_PATH = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "transformation_test.pkl"
+DEFAULT_CALIBRATION_PATH =  PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_default.pkl"
+TEST_PEN_CALIBRATION_PATH = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "pen_calibration_test.pkl"
+TEST_TRANSFORMATION_PATH =  PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "transformation_test.pkl"
 DEFAULT_FORCE_PATH = OUTPUT_DIR / "force_log.csv"
 DEFAULT_DATA_DIR = OUTPUT_DIR / "data"
 
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_1_triangle-trace.json"
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_14_full_body_line-trace.json"
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-test_11_long_line-trace.json"
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-test_4_triangle_on_bill-trace.json"
+# DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv_v2-army-trace.json"
+DEFAULT_JSON_OBJECT = ASSETS_DIR / "tests" / "duck_uv-ISC_infinity.json"
+
+
+DEFAULT_JSON_SOCLE = PROJECT_DIR / "robot" / "duckify_simulation" / "defaults" / "calibration_transformation.json"
+
+URDF_PATH = Path(__file__).resolve().parents[1] / 'duckify_simulation' / 'urdf' / 'ur3e.urdf'
+
+# Link indices for the flattened UR3e URDF:
+#   1=base_link_inertia, 2=shoulder, 3=upper_arm, 4=forearm,
+#   5=wrist_1, 6=wrist_2, 7=wrist_3, 8=flange, 9=tool0,
+#   10=wrist_cam, 11=hande_base, 12=left_finger, 13=right_finger, 14=pen
+SELF_COLLISION_PAIRS = [
+    (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9),
+    (1, 10), (1, 11), (1, 12), (1, 13), (1, 14),
+    (2, 5), (2, 6), (2, 7), (2, 8), (2, 9),
+    (2, 10), (2, 11), (2, 12), (2, 13), (2, 14),
+    (3, 6), (3, 7), (3, 8), (3, 9),
+    (3, 10), (3, 11), (3, 12), (3, 13), (3, 14),
+    (4, 7), (4, 8), (4, 9),
+    (4, 10), (4, 11), (4, 12), (4, 13), (4, 14),
+]
+
 VERBOSE = True
+FORCE_ENABLE = False
+
+# Create a new ISCoin object
+# UR3e1 IP (closest to window): 10.30.5.158
+# UR3e2 IP: 10.30.5.159
+ROBOT_IP = "10.30.5.159"
 
 # Collision margins
 COLLISION_MARGIN = 0            # margin for obstacle collision checks
-SELF_COLLISION_MARGIN = 0.01   # margin for self-collision checks (5mm safety buffer)
+SELF_COLLISION_MARGIN = 0.012  # margin for self-collision checks
+MAX_JOINT_JUMP = 1         # max allowed single-joint difference from qnear in radians
+MAX_JOINT_RANGE = 4.5      # max allowed absolute joint angle in radians
+MIN_HEIGHT_NORMAL_CORRECTION_MM = 25
+MIN_HEIGHT_ACCEPTANCE = 10
 
 # Default home position
 HOMEJ = Joint6D.createFromRadians(1.8859, -1.4452, 1.2389, -1.3639, -1.5693, -0.3849)
+FIXED_THETA6 = None
+FIRST_SIMULATION_PEN_SUPPORT = TCP6D.createFromMetersRadians(-0.31030073427776544, -0.12772318658605364, 0.1691221791937419, -3.123526746656135, 0.06494033931935389, 0.0007571664234476744)
+SECOND_SIMULATION_PENSUPPORT = TCP6D.createFromMetersRadians(-0.37030073427776544, -0.12772318658605364, 0.1691221791937419, -3.123526746656135, 0.06494033931935389, 0.0007571664234476744)
 
-MINIMAL_DISTANCE = 0.164
+
+# MINIMAL_DISTANCE = 0.164
+OFFSET_Z = 1.4
+MINIMAL_DISTANCE = 0.018
+
 LEGNTH_BETWEEN_PENS = 0.05 # This distance comes from the design of the wood support for pen.
 FACING_DOWN = (np.pi, 0, 0) # To maintain the gripper facing down
 SECURITY_APPROACH = 0.075
@@ -35,18 +81,13 @@ GRIPPER_LENGTH = 0.101
 PEN_LENGTH = 0.128
 # PEN_POS_0 =  [-0.3, -0.172, MINIMAL_DISTANCE] # Position of pen at index 0
 
-# Pathfinding parameters
-SAFE_MARGIN = 0.005
-PUSH_STEP   = 0.005    # midpoint push increment
-MAX_DEPTH   = 10
-MAX_PUSH    = 0.05
-SURFACE_MARGIN = 0.01  # above mesh surface
 
 # Free-space travel constraints
 TCP_Y_MAX        = 0.0      # TCP must stay at Y ≤ 0
 TCP_Z_MIN        = 0.0      # TCP must stay at Z ≥ 0
 TCP_Z_MAX        = 0.5      # TCP must stay at Z ≤ 0.5
 LINK_Z_MIN       = {
+    2: 0.08,                 # elbow must stay above 10 cm
     3: 0.10,                 # upper_arm_link must stay above 10 cm
     4: 0.10,                 # forearm_link must stay above 10 cm
 }
@@ -97,16 +138,19 @@ TCPS_20 = [
 ]
 
 # Default object-to-robot transform parameters
-OBJ2ROBOT_RZ_DEG       = 180.0
+OBJ2ROBOT_RZ_DEG       = 0.0
 OBJ2ROBOT_TRANSLATION  = (0.32, -0.4, 0.155)
 OBJ2ROBOT_SCALE        = 0.001          # mm → meters
+
+OFFSET_Z_HOTFIX = 0.0 # temporary hotfix for the double tape
 
 TEST_TRANSFORMATION = [0, 0, 2, 0, 0, -1]  # x, y, z, n1, n2, n3
 
 # Scene for pybullet collision testing
 OBSTACLE_STLS = [
     {
-        'path': ASSETS_DIR / 'models/duck_uv.stl',
+        # 'path': ASSETS_DIR / 'models/duck_uv.stl',
+        'path': ASSETS_DIR / 'models/duck_uv_low_poly.stl',
         'scale': [0.001, 0.001, 0.001],
     },
     {
@@ -123,3 +167,8 @@ OBSTACLE_STLS = [
 ]
 
 DRAWING_ANGLE = 25
+
+CONE_TILT_STEP = 2.5
+CONE_AZIMUTH_STEP = 2.5
+
+CONE_SEARCH_MODE = 2  # 0 = fast, 1 = ring by ring, 2 = all

@@ -29,12 +29,14 @@ Author:     Mariéthoz Cédric, with assistance from Copilot AI (Microsoft)
 Course:     HES-SO Valais-Wallis, Engineering Track 304
 """
 
-from urbasic.URBasic.waypoint6d import TCP6D
+from pathlib import Path
+
+from URBasic.waypoint6d import TCP6D
 
 from src.logger import DataStore
 from src.stage import Stage
 from src.utils import ask_yes_no
-from src.segment import TCPSegment, MotionType
+from src.segment import SideType, TCPSegment, MotionType
 from src.config import DRAW_A, DRAW_V
 
 
@@ -42,7 +44,7 @@ class Conversion(Stage):
     """
     A stage for converting trace segments to TCP segments.
     """
-    def __init__(self, datastore: DataStore):
+    def __init__(self, datastore: DataStore, json_path: Path = None):
         """
         Initialize the Conversion stage.
 
@@ -50,42 +52,71 @@ class Conversion(Stage):
         ----------
         datastore : DataStore
             The data store instance.
+        json_path : Path
+            The path to the JSON object file.
         """
         super().__init__(name="Conversion", datastore=datastore)
+        self.json_path = json_path
 
-    def run(self):
+    def run(self, manual_flag: bool=True):
         """
         Run the conversion stage.
-        """
-        if ask_yes_no("Do you have a conversion already saved? y/n\n"):
-            segments = self.ds.load_tcp_segments()
-            self.ds.log_tcp_segment(segments)
-            return
 
-        if not ask_yes_no("Do you want to  convert the traces? y/n \n"):
-            raise RuntimeError("You chose not to convert the traces")
+        Parameters
+        ----------
+        manual_flag : bool
+            Whether to run the stage in manual mode.
+        """
+        if manual_flag:
+            if ask_yes_no("Do you have a conversion already saved? y/n\n"):
+                segments = self.ds.load_tcp_segments()
+                return
+
+            if not ask_yes_no("Do you want to  convert the traces? y/n \n"):
+                self.ds.log("You chose not to convert the traces")
+                if not self.ds.check_tcp_segments():
+                    raise RuntimeError("You don't have any converted TCP segments.")
+        else:
+            self.ds.log("Run in automatic mode.")
+            if self.ds.check_tcp_segments():
+                if self.json_path.exists():
+                    self.ds.log("Existing converted TCP segments overridden.")
+                else:
+                    self.ds.log("Using existing converted TCP segments.")
+                    return
+            elif not self.ds.check_trace_segments():
+                raise RuntimeError("No existing trace segments found.")
+
 
         objtorobot = self.ds.load_transformation()
-        traces = self.ds.load_trace_segments()
-        segments = []
-        for t in traces:
-            color = t.color
-            side = t.side
-            waypoints = t.waypoints
-            segments.append(
-                TCPSegment(
-                    color=color,
-                    side=side,
-                    
-                    waypoints=[TCP6D.createFromMetersRadians( *objtorobot(p)) for p in waypoints],
-                    motion_type=MotionType.DRAW,
-                    v=DRAW_V,
-                    a=DRAW_A
-                )
-            )
+        data = self.ds.load_trace_segments()
+        conversion = {}
+        for s, d in data.items():
+            conversion[s] = {}
+            for c, trace in d.items():
+                segments = []
+                for t in trace:
+                    tcp_data = []
+                    normals = []
+                    for p in t.waypoints:
+                        pose, normal = objtorobot.transform_with_normal(p)
+                        tcp_data.append(TCP6D.createFromMetersRadians(*pose))
+                        normals.append(normal)
+
+                    segments.append(
+                        TCPSegment(
+                            color=t.color,
+                            side=t.side,
+                            waypoints=tcp_data,
+                            default_normals=normals,
+                            motion_type=MotionType.DRAW,
+                            v=DRAW_V,
+                            a=DRAW_A
+                        )
+                    )
+                conversion[s][c] = segments
         
-        self.ds.save_tcp_segments(segments)
-        self.ds.log_tcp_segment(segments)
+        self.ds.save_tcp_segments(conversion)
     
     
     def fallback(self):

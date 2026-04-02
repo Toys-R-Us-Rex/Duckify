@@ -4,82 +4,23 @@ MIT License
 Copyright (c) 2026 HES-SO Valais-Wallis, Engineering Track 304
 '''
 
+import json
 import logging
 
+import matplotlib.pyplot as plt
 import numpy as np
+from pybullet_planning import plan_joint_motion
+from URBasic import TCP6D, Joint6D
 
-from src.segment import JointSegment, MotionType, SideType, TCPSegment
-from src.config import (
-    DRAW_V, DRAW_A, APPROACH_V, APPROACH_A, TRAVEL_V, TRAVEL_A,
-    HOVER_OFFSET,
-)
+from src.segment import JointSegment, MotionType, SideType
+from src.config import *
 from src.utils import *
+from src.kinematics import get_fk
+from src.safety import wrapped_joint_distance
 
 log = logging.getLogger(__name__)
 
-def compute_draw_motion(trace, obj2robot, hover_offset=None, max_pts=None):
-    from URBasic import TCP6D
-
-    if hover_offset is None:
-        hover_offset = HOVER_OFFSET
-
-    path = trace["path"]
-    if max_pts is not None:
-        path = path[:max_pts]
-    points = np.array([entry[0] for entry in path])
-    normals = np.array([entry[1] for entry in path])
-    return points, normals
-
-
-def points_to_tcps(points_robot, normals_robot):
-    from URBasic import TCP6D
-
-    tcps = []
-    for pt, n in zip(points_robot, normals_robot):
-        rv = normal_to_rotvec(n)
-        tcps.append(TCP6D.createFromMetersRadians(pt[0], pt[1], pt[2], rv[0], rv[1], rv[2]))
-    return tcps
-
-def trace_to_tcp(trace, obj2robot, max_pts=None):
-    from URBasic import TCP6D
-
-    path = trace["path"]
-    if max_pts is not None:
-        path = path[:max_pts]
-
-    surface_tcps = []
-    for entry in path:
-        position_obj, normal_obj = entry[0], entry[1]
-        robot_pose = obj2robot((*np.array(position_obj), *np.array(normal_obj)))
-        x, y, z, rx, ry, rz = robot_pose
-        surface_tcps.append(TCP6D.createFromMetersRadians(x, y, z, rx, ry, rz))
-
-    return surface_tcps
-
-def compute_positioning_motion(robot, checker, start_tcp, end_tcp):
-    from src.pathfinding import find_path
-
-    waypoints = find_path(robot, checker, start_tcp, end_tcp)
-
-    ok, fail_idx, reason, _joint_traj = checker.validate_path(
-        robot, waypoints, orientation_search=True,
-    )
-    if not ok:
-        raise RuntimeError(
-            f"compute_positioning_motion: path validation failed at sample "
-            f"{fail_idx}: {reason}"
-        )
-
-    return waypoints, _joint_traj
-
-
-# ---------------------------------------------------------------------------
-# Helpers for drawing pipeline
-# ---------------------------------------------------------------------------
-
 def _hover_tcp(surface_tcp, hover_offset=None):
-    from URBasic import TCP6D
-
     if hover_offset is None:
         hover_offset = HOVER_OFFSET
 
@@ -91,21 +32,21 @@ def _hover_tcp(surface_tcp, hover_offset=None):
     )
 
 
-def _validate_surface_points(checker, robot, surface_tcps, qnear=None):
+def _validate_surface_points(checker, tcp_offset, surface_tcps, previous_joint=None):
     valid_checklist = []
     reasons = []
     joint_solutions = []
 
     for tcp in surface_tcps:
-        ok, q, reason, _ = checker.validate_tcp(
-            robot, tcp, qnear=qnear, check_obstacle=False,
+        ok, joint, reason, used_tcp, solutions = checker.validate_tcp(
+            tcp_offset, tcp, qnear=previous_joint, check_obstacle=False,
             orientation_search=True,
         )
         valid_checklist.append(ok)
         reasons.append(reason)
-        joint_solutions.append(q)
+        joint_solutions.append(joint)
         if ok:
-            qnear = q
+            previous_joint = joint
 
     return valid_checklist, reasons, joint_solutions
 
@@ -113,10 +54,10 @@ def _validate_surface_points(checker, robot, surface_tcps, qnear=None):
 def _split_into_runs(valid_checklist):
     runs = []
     start = None
-    for i, v in enumerate(valid_checklist):
-        if v and start is None:
+    for i, is_valid in enumerate(valid_checklist):
+        if is_valid and start is None:
             start = i
-        elif not v and start is not None:
+        elif not is_valid and start is not None:
             runs.append((start, i - 1))
             start = None
     if start is not None:
@@ -124,176 +65,21 @@ def _split_into_runs(valid_checklist):
     return runs
 
 
-def _find_valid_hover(checker, robot, run_surface, surface_joints,
-                      from_end, hover_offset=None):
+def _find_valid_hover(checker, tcp_offset, run_surface, surface_joints,
+                      from_end, hover_offset=None, previous_joint_override=None):
     n = len(run_surface)
     indices = range(n - 1, -1, -1) if from_end else range(n)
 
     for trim, i in enumerate(indices):
-        h_tcp = _hover_tcp(run_surface[i], hover_offset)
-        qnear = surface_joints[i] if surface_joints is not None else None
-        ok, q, reason, h_used = checker.validate_tcp(
-            robot, h_tcp, qnear=qnear,
+        hover_tcp = _hover_tcp(run_surface[i], hover_offset)
+        previous_joint = previous_joint_override if previous_joint_override is not None else (surface_joints[i] if surface_joints is not None else None)
+        ok, joint, reason, used_tcp, solutions = checker.validate_tcp(
+            tcp_offset, hover_tcp, qnear=previous_joint,
             check_obstacle=True, orientation_search=True,
         )
         if ok:
-            return h_used, q, trim
+            return used_tcp, joint, trim
     return None, None, n
-
-
-def plan_drawing(robot, checker, traces, obj2robot,
-                       start_tcp=None, home_joints=None,
-                       hover_offset=None, max_pts=None):
-
-    segments = []
-    skip_report = []
-    current_tcp = start_tcp
-
-    if current_tcp is None and home_joints is not None:
-        current_tcp = robot.get_fk(home_joints)
-
-    for trace_idx, trace in enumerate(traces):
-        surface_pts = trace_to_tcp(
-            trace, obj2robot, max_pts=max_pts,
-        )
-        if not surface_pts:
-            continue
-
-        # Per-point validation (no obstacle collision for surface points)
-        valid_checklist, reasons, surface_joints = _validate_surface_points(
-            checker, robot, surface_pts,
-        )
-
-        # Build skip report for this trace
-        skipped_indices = [i for i, ok in enumerate(valid_checklist) if not ok]
-        skipped_reasons = [reasons[i] for i in skipped_indices]
-        report = {
-            "trace": trace_idx,
-            "skipped_indices": skipped_indices,
-            "reasons": skipped_reasons,
-            "original_count": len(surface_pts),
-            "drawn_count": sum(valid_checklist),
-        }
-        skip_report.append(report)
-
-        if skipped_indices:
-            log.warning(
-                "Trace %d: skipping %d/%d points: %s",
-                trace_idx, len(skipped_indices), len(surface_pts),
-                skipped_reasons,
-            )
-
-        # Split into consecutive valid runs
-        runs = _split_into_runs(valid_checklist)
-        if not runs:
-            log.warning("Trace %d: no valid points, skipping entire trace",
-                        trace_idx)
-            continue
-
-        for run_start, run_end in runs:
-            run_surface = surface_pts[run_start:run_end + 1]
-            run_joints = surface_joints[run_start:run_end + 1]
-
-            # Trim inward to find valid hover entry
-            h_entry, _, entry_trim = _find_valid_hover(
-                checker, robot, run_surface, run_joints,
-                from_end=False, hover_offset=hover_offset,
-            )
-            if h_entry is None:
-                log.warning(
-                    "Trace %d run (%d-%d): no valid hover entry after "
-                    "trimming all %d pts, discarding run",
-                    trace_idx, run_start, run_end, len(run_surface),
-                )
-                continue
-
-            # Trim inward to find valid hover exit
-            h_exit, _, exit_trim = _find_valid_hover(
-                checker, robot, run_surface, run_joints,
-                from_end=True, hover_offset=hover_offset,
-            )
-            if h_exit is None:
-                log.warning(
-                    "Trace %d run (%d-%d): no valid hover exit after "
-                    "trimming all %d pts, discarding run",
-                    trace_idx, run_start, run_end, len(run_surface),
-                )
-                continue
-
-            # Apply trimming
-            trimmed = run_surface[entry_trim:len(run_surface) - exit_trim]
-            if not trimmed:
-                log.warning(
-                    "Trace %d run (%d-%d): entry/exit trims overlap "
-                    "(%d+%d >= %d), discarding run",
-                    trace_idx, run_start, run_end,
-                    entry_trim, exit_trim, len(run_surface),
-                )
-                continue
-
-            if entry_trim or exit_trim:
-                log.info(
-                    "Trace %d run (%d-%d): trimmed %d entry + %d exit pts, "
-                    "%d pts remain",
-                    trace_idx, run_start, run_end,
-                    entry_trim, exit_trim, len(trimmed),
-                )
-
-            run_surface = trimmed
-
-            # TRAVEL to hover entry
-            if current_tcp is not None:
-                travel_wps, _ = compute_positioning_motion(
-                    robot, checker, current_tcp, h_entry,
-                )
-                segments.append(TCPSegment(
-                    motion_type=MotionType.TRAVEL,
-                    waypoints=travel_wps,
-                    v=TRAVEL_V,
-                    a=TRAVEL_A,
-                ))
-
-            # APPROACH pen-down
-            segments.append(TCPSegment(
-                motion_type=MotionType.APPROACH,
-                waypoints=[h_entry, run_surface[0]],
-                v=APPROACH_V,
-                a=APPROACH_A,
-            ))
-
-            # DRAW on surface
-            segments.append(TCPSegment(
-                motion_type=MotionType.DRAW,
-                waypoints=run_surface,
-                v=DRAW_V,
-                a=DRAW_A,
-            ))
-
-            # APPROACH pen-up
-            segments.append(TCPSegment(
-                motion_type=MotionType.APPROACH,
-                waypoints=[run_surface[-1], h_exit],
-                v=APPROACH_V,
-                a=APPROACH_A,
-            ))
-
-            current_tcp = h_exit
-
-    # Final TRAVEL back home
-    if home_joints is not None and current_tcp is not None:
-        home_tcp = robot.get_fk(home_joints)
-        travel_wps, _ = compute_positioning_motion(
-            robot, checker, current_tcp, home_tcp,
-        )
-        segments.append(TCPSegment(
-            motion_type=MotionType.TRAVEL,
-            waypoints=travel_wps,
-            v=TRAVEL_V,
-            a=TRAVEL_A,
-        ))
-
-    return segments, skip_report
-
 
 def load_traces(json_path):
     """Load trace JSON and normalize v1 → v2 format.
@@ -301,8 +87,6 @@ def load_traces(json_path):
     Returns (traces, data) where traces is the normalized list
     and data is the full parsed dict
     """
-    import json
-
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -316,126 +100,87 @@ def load_traces(json_path):
     return traces, data
 
 
-def load_and_convert_to_tcp(json_path, obj2robot, max_pts=None):
-    traces, data = load_traces(json_path)
-    surface_tcps_per_trace = []
-    for t in traces:
-        surface_tcps_per_trace.append(trace_to_tcp(t, obj2robot, max_pts=max_pts))
-    return surface_tcps_per_trace, traces, data
-
-
-def load_and_plan(robot, checker, json_path, obj2robot,
-                  start_tcp=None, home_joints=None,
-                  hover_offset=None, max_pts=None):
-    """Load trace JSON and build drawing plan.
-
-    Returns (segments, skip_report).
-    """
-    traces, _ = load_traces(json_path)
-
-    return plan_drawing(
-        robot, checker, traces, obj2robot,
-        start_tcp=start_tcp, home_joints=home_joints,
-        hover_offset=hover_offset, max_pts=max_pts,
+def _make_travel(from_joints, to_joints, from_tcp, to_tcp):
+    return JointSegment(
+        motion_type=MotionType.TRAVEL,
+        color=1, side=SideType.LEFT,
+        v=TRAVEL_V, a=TRAVEL_A,
+        waypoints=[from_joints, to_joints],
+        tcp_waypoints=[from_tcp, to_tcp],
     )
 
 
-def assemble_segments(robot, checker, validated_runs, surface_joints_per_trace, home,
-                      surface_tcps_per_trace=None):
-    from src.utils import fmt_tcp
+def _make_approach_down(hover_joint, surface_joint, hover_tcp=None, surface_tcp=None):
+    tcp_waypoints = [hover_tcp, surface_tcp] if hover_tcp is not None else None
+    return JointSegment(
+        motion_type=MotionType.APPROACH,
+        color=1, side=SideType.LEFT,
+        v=APPROACH_V, a=APPROACH_A,
+        waypoints=[hover_joint, surface_joint],
+        tcp_waypoints=tcp_waypoints,
+    )
 
-    logging.getLogger("src.pathfinding").setLevel(logging.INFO)
-    print("\nAssembling segments and computing travel paths...")
+
+def _make_draw(surface_joints, surface_tcps=None, normals=None):
+    return JointSegment(
+        motion_type=MotionType.DRAW,
+        color=1, side=SideType.LEFT,
+        v=DRAW_V, a=DRAW_A,
+        waypoints=surface_joints,
+        tcp_waypoints=surface_tcps,
+        default_normals=normals,
+    )
+
+
+def _make_approach_up(surface_joint, hover_joint, surface_tcp=None, hover_tcp=None):
+    tcp_waypoints = [surface_tcp, hover_tcp] if surface_tcp is not None else None
+    return JointSegment(
+        motion_type=MotionType.APPROACH,
+        color=1, side=SideType.LEFT,
+        v=APPROACH_V, a=APPROACH_A,
+        waypoints=[surface_joint, hover_joint],
+        tcp_waypoints=tcp_waypoints,
+    )
+
+
+def assemble_segments(tcp_offset, checker, validated_runs, surface_joints_per_trace, home,
+                      surface_tcps_per_trace=None, default_normals_per_trace=None):
+    print("\nAssembling segments...")
 
     segments = []
-    current_tcp = robot.get_fk(home)
-    current_label = "HOME"
+    current_joints = home
+    home_tcp = get_fk(home, tcp_offset)
+    previous_hover_tcp = home_tcp
 
-    for run_i, (trace_i, run_start, run_end, h_entry, h_exit, run_surface, q_entry, q_exit) in enumerate(validated_runs):
-        entry_label = f"Run{run_i} hover-entry"
-        exit_label = f"Run{run_i} hover-exit"
-        trace_surface_joints = surface_joints_per_trace[trace_i]
+    for run_i, (trace_i, run_start, run_end, hover_entry, hover_exit, run_surface, entry_joint, exit_joint) in enumerate(validated_runs):
+        trace_joints = surface_joints_per_trace[trace_i]
+        trace_tcps = surface_tcps_per_trace[trace_i] if surface_tcps_per_trace else None
+        trace_normals = default_normals_per_trace[trace_i] if default_normals_per_trace else None
 
-        print(f"\n  [{current_label}] -> [{entry_label}]")
-        print(f"    from {fmt_tcp(current_tcp)}  to {fmt_tcp(h_entry)}")
-        # Resolve surface TCPs for this trace (if available)
-        trace_surface_tcps = surface_tcps_per_trace[trace_i] if surface_tcps_per_trace else None
+        segments.append(_make_travel(current_joints, entry_joint, previous_hover_tcp, hover_entry))
 
-        try:
-            travel_wps, travel_joints = compute_positioning_motion(robot, checker, current_tcp, h_entry)
-            segments.append(JointSegment(
-                motion_type=MotionType.TRAVEL,
-                color=1,
-                side=SideType.LEFT,
-                v=TRAVEL_V, a=TRAVEL_A,
-                waypoints=travel_joints,
-                tcp_waypoints=travel_wps,
-            ))
-            print(f"    TRAVEL OK ({len(travel_wps)} wps)")
-        except RuntimeError as e:
-            print(f"    TRAVEL FAILED: {e}")
-            print(f"    Skipping run {run_i}.")
-            continue
-
-        print(f"  [{entry_label}] -> [Run{run_i} surface[0]]")
-        approach_down_tcps = None
-        if trace_surface_tcps is not None:
-            approach_down_tcps = [h_entry, trace_surface_tcps[run_start]]
-        segments.append(JointSegment(
-            motion_type=MotionType.APPROACH,
-            color=1,
-            side=SideType.LEFT,
-            waypoints=[q_entry, trace_surface_joints[run_start]],
-            v=APPROACH_V, a=APPROACH_A,
-            tcp_waypoints=approach_down_tcps,
+        segments.append(_make_approach_down(
+            entry_joint, trace_joints[run_start],
+            hover_entry, trace_tcps[run_start] if trace_tcps else None,
         ))
-        print(f"    APPROACH down OK")
 
-        print(f"  [Run{run_i} surface[0]] -> [Run{run_i} surface[{len(run_surface)-1}]]")
-        draw_tcps = trace_surface_tcps[run_start:run_end + 1] if trace_surface_tcps else None
-        segments.append(JointSegment(
-            motion_type=MotionType.DRAW,
-            color=1,
-            side=SideType.LEFT,
-            waypoints=trace_surface_joints[run_start:run_end + 1],
-            v=DRAW_V, a=DRAW_A,
-            tcp_waypoints=draw_tcps,
+        draw_start = run_start + 1 if run_end - run_start >= 2 else run_start
+        draw_end = run_end - 1 if run_end - run_start >= 2 else run_end
+        segments.append(_make_draw(
+            trace_joints[draw_start:draw_end + 1],
+            trace_tcps[draw_start:draw_end + 1] if trace_tcps else None,
+            trace_normals[draw_start:draw_end + 1] if trace_normals else None,
         ))
-        print(f"    DRAW OK ({len(run_surface)} pts)")
 
-        print(f"  [Run{run_i} surface[{len(run_surface)-1}]] -> [{exit_label}]")
-        approach_up_tcps = None
-        if trace_surface_tcps is not None:
-            approach_up_tcps = [trace_surface_tcps[run_end], h_exit]
-        segments.append(JointSegment(
-            motion_type=MotionType.APPROACH,
-            color=1,
-            side=SideType.LEFT,
-            waypoints=[trace_surface_joints[run_end], q_exit],
-            v=APPROACH_V, a=APPROACH_A,
-            tcp_waypoints=approach_up_tcps,
+        segments.append(_make_approach_up(
+            trace_joints[run_end], exit_joint,
+            trace_tcps[run_end] if trace_tcps else None, hover_exit,
         ))
-        print(f"    APPROACH up OK")
 
-        current_tcp = h_exit
-        current_label = exit_label
+        current_joints = exit_joint
+        previous_hover_tcp = hover_exit
 
-    home_tcp = robot.get_fk(home)
-    print(f"\n  [{current_label}] -> [HOME]")
-    print(f"    from {fmt_tcp(current_tcp)}  to {fmt_tcp(home_tcp)}")
-    try:
-        travel_wps, travel_joints = compute_positioning_motion(robot, checker, current_tcp, home_tcp)
-        segments.append(JointSegment(
-            motion_type=MotionType.TRAVEL,
-            color=1,
-            side=SideType.LEFT,
-            waypoints=travel_joints,
-            v=TRAVEL_V, a=TRAVEL_A,
-            tcp_waypoints=travel_wps,
-        ))
-        print(f"    TRAVEL OK ({len(travel_wps)} wps)")
-    except RuntimeError as e:
-        print(f"    TRAVEL FAILED: {e}")
+    segments.append(_make_travel(current_joints, home, previous_hover_tcp, home_tcp))
 
     print_segment_summary(segments)
     return segments
@@ -450,69 +195,337 @@ def print_segment_summary(segments):
           f"{draw_count} DRAW), {total_wps} total waypoints")
 
     print(f"\nJoint plan:")
-    for i, seg in enumerate(segments):
-        n_joints = len(seg.waypoints) if seg.waypoints else 0
-        print(f"  Segment {i}: {seg.motion_type.name:8s} - {n_joints:3d} joint waypoints")
+    for i, segment in enumerate(segments):
+        n_joints = len(segment.waypoints) if segment.waypoints else 0
+        print(f"  Segment {i}: {segment.motion_type.name:8s} - {n_joints:3d} joint waypoints")
 
 
-# going through the segments and recalculate each IK for each waypoint based on the previous pos
-def smoothing(robot, checker, segments, home):
+def plan_travels(checker, segments):
+    print("\nPlanning TRAVEL segments...")
 
-    qnear = home
-    total_updated = 0
-    total_failed = 0
-
-    for seg_i, seg in enumerate(segments):
-        if seg.tcp_waypoints is None:
-            # No TCP data, keep existing joints, advance qnear to last waypoint
-            if seg.waypoints:
-                qnear = seg.waypoints[-1]
+    for segment_i, segment in enumerate(segments):
+        if segment.motion_type != MotionType.TRAVEL:
             continue
 
-        seg_failed = 0
+        start_conf = segment.waypoints[0].toList()
+        end_conf = segment.waypoints[-1].toList()
+
+        checker.set_joint_angles(start_conf)
+        path = plan_joint_motion(
+            checker.robot_id, checker.joint_indices, end_conf,
+            obstacles=checker.obstacle_ids,
+            self_collisions=True,
+            resolutions=[0.02, 0.02, 0.02, 0.02, 0.02, 0.02],
+            # weights=[0.5, 0.5, 0.5, 1, 0.1, 0.1]
+        )
+
+        if path is not None:
+            path = simplify_path(path)
+            segment.waypoints = [Joint6D.createFromRadians(*conf) for conf in path]
+            print(f"  Segment {segment_i}: TRAVEL planned ({len(segment.waypoints)} wps)")
+        else:
+            print(f"  Segment {segment_i}: TRAVEL FAILED (keeping placeholder)")
+
+
+def simplify_path(path, tolerance=0.05):
+    if len(path) <= 2:
+        return path
+
+    keep = [0]
+
+    for i in range(1, len(path) - 1):
+        a = np.array(path[keep[-1]])
+        b = np.array(path[i])
+        c = np.array(path[i + 1])
+
+        t = np.dot(b - a, c - a) / max(np.dot(c - a, c - a), 1e-10)
+        t = np.clip(t, 0, 1)
+        projected = a + t * (c - a)
+
+        if np.linalg.norm(b - projected) > tolerance:
+            keep.append(i)
+
+    keep.append(len(path) - 1)
+    return [path[i] for i in keep]
+
+
+def smoothing(tcp_offset, checker, segments, home):
+
+    previous_joint = home
+    total_updated = 0
+    total_failed = 0
+    before_waypoints = []
+    for segment in segments:
+        if segment.waypoints:
+            before_waypoints.append(list(segment.waypoints))
+        else:
+            before_waypoints.append([])
+
+    for segment_i, segment in enumerate(segments):
+        if segment.tcp_waypoints is None or segment.motion_type == MotionType.TRAVEL:
+            if segment.waypoints:
+                previous_joint = segment.waypoints[-1]
+            continue
+
+        segment_failed = 0
         new_waypoints = []
-        for wp_i, tcp in enumerate(seg.tcp_waypoints):
-            check_obs = seg.motion_type == MotionType.TRAVEL
-            ok, q, reason, _ = checker.validate_tcp(
-                robot, tcp, qnear=qnear, orientation_search=True,
-                check_obstacle=check_obs,
+        segment.ik_solutions = []
+        for waypoint_i, tcp in enumerate(segment.tcp_waypoints):
+            check_obs = segment.motion_type == MotionType.TRAVEL
+            check_jump = segment.motion_type in (MotionType.DRAW, MotionType.APPROACH)
+            rings = 1 if segment.motion_type == MotionType.APPROACH else 0
+            ok, joint, reason, used_tcp, solutions_by_step = checker.validate_tcp(
+                tcp_offset, tcp, qnear=previous_joint, orientation_search=True,
+                check_obstacle=check_obs, search_mode=CONE_SEARCH_MODE,
+                check_joint_jump=check_jump, min_rings=rings,
             )
+            segment.ik_solutions.append(solutions_by_step)
             if ok:
-                new_waypoints.append(q)
-                qnear = q
+                if previous_joint is not None:
+                    candidate_joints = np.array(joint.toList())
+                    original_joints = candidate_joints.copy()
+                    previous_joints = np.array(previous_joint.toList())
+                    for j in range(6):
+                        while candidate_joints[j] - previous_joints[j] > np.pi:
+                            candidate_joints[j] -= 2 * np.pi
+                        while candidate_joints[j] - previous_joints[j] < -np.pi:
+                            candidate_joints[j] += 2 * np.pi
+                        if abs(candidate_joints[j]) > MAX_JOINT_RANGE:
+                            candidate_joints[j] = original_joints[j]
+                    joint = Joint6D.createFromRadians(*candidate_joints.tolist())
+                new_waypoints.append(joint)
+                previous_joint = joint
                 total_updated += 1
             else:
-                # Keep original joint if re-solve fails
-                if seg.waypoints and wp_i < len(seg.waypoints):
-                    original_q = seg.waypoints[wp_i]
-                    new_waypoints.append(original_q)
-                    # Check what's wrong with the original too
-                    checker.set_joint_angles(original_q.toList())
-                    orig_self = checker.in_self_collision()
-                    orig_obs = checker.in_obstacle_collision()
-                    qnear_list = [f"{v:+.4f}" for v in qnear.toList()]
-                    orig_list = [f"{v:+.4f}" for v in original_q.toList()]
-                    print(f"  Smoothing FAIL: seg {seg_i} ({seg.motion_type.name}) wp {wp_i}/{len(seg.tcp_waypoints)}")
-                    print(f"    TCP:    ({tcp.x:.4f}, {tcp.y:.4f}, {tcp.z:.4f})")
+                fallback = None
+                fallback_cost = float('inf')
+                previous_arr = np.array(previous_joint.toList()) if previous_joint is not None else None
+                for step in solutions_by_step:
+                    for stored_joint, stored_reason in step:
+                        if stored_reason != "":
+                            continue
+                        candidate_joints = np.array(stored_joint.toList())
+                        if previous_arr is not None:
+                            original_joints = candidate_joints.copy()
+                            for j in range(6):
+                                while candidate_joints[j] - previous_arr[j] > np.pi:
+                                    candidate_joints[j] -= 2 * np.pi
+                                while candidate_joints[j] - previous_arr[j] < -np.pi:
+                                    candidate_joints[j] += 2 * np.pi
+                                if abs(candidate_joints[j]) > MAX_JOINT_RANGE:
+                                    candidate_joints[j] = original_joints[j]
+                            cost = np.sum((candidate_joints - previous_arr) ** 2)
+                        else:
+                            cost = 0.0
+                        if cost < fallback_cost:
+                            fallback_cost = cost
+                            fallback = Joint6D.createFromRadians(*candidate_joints.tolist())
+
+                if fallback is not None:
+                    print(f"  Smoothing FALLBACK: segment {segment_i} wp {waypoint_i} (closest valid, no jump check)")
+                    new_waypoints.append(fallback)
+                    previous_joint = fallback
+                    total_updated += 1
+                    continue
+
+                if segment.waypoints and waypoint_i < len(segment.waypoints):
+                    original_joint = segment.waypoints[waypoint_i]
+                    new_waypoints.append(original_joint)
+                    print(f"  Smoothing FAIL: segment {segment_i} ({segment.motion_type.name}) waypoint {waypoint_i}/{len(segment.tcp_waypoints)}")
                     print(f"    Reason: {reason}")
-                    print(f"    qnear:  [{', '.join(qnear_list)}]")
-                    print(f"    orig_q: [{', '.join(orig_list)}]")
-                    print(f"    orig self-col: {orig_self}, orig obs-col: {orig_obs}")
-                    qnear = original_q
+                    previous_joint = original_joint
                 total_failed += 1
-                seg_failed += 1
+                segment_failed += 1
 
-        seg.waypoints = new_waypoints
-        if seg_failed:
-            print(f"  Segment {seg_i} ({seg.motion_type.name}): {seg_failed}/{len(seg.tcp_waypoints)} failed")
-
-        seg.waypoints = new_waypoints
+        segment.waypoints = new_waypoints
+        if segment_failed:
+            print(f"  Segment {segment_i} ({segment.motion_type.name}): {segment_failed}/{len(segment.tcp_waypoints)} failed")
 
     print(f"\nSmoothing done: {total_updated} updated, {total_failed} kept original")
+    return before_waypoints
 
-def collect_joint_waypoints(segments):
-    all_joint_waypoints = []
-    for seg in segments:
-        for jw in seg.waypoints:
-            all_joint_waypoints.append(jw)
-    return all_joint_waypoints
+def plot_joint_plan(segments, save_path):
+    COLORS = {
+        MotionType.TRAVEL: "blue",
+        MotionType.APPROACH: "orange",
+        MotionType.DRAW: "green",
+    }
+
+    fig, axes = plt.subplots(6, 1, figsize=(14, 10), sharex=True)
+    fig.suptitle("Joint Plan")
+
+    global_min = float("inf")
+    global_max = float("-inf")
+
+    for segment in segments:
+        for waypoint in segment.waypoints:
+            vals = waypoint.toList()
+            for v in vals:
+                if v < global_min:
+                    global_min = v
+                if v > global_max:
+                    global_max = v
+
+    padding = (global_max - global_min) * 0.05
+
+    legend_added = set()
+    waypoint_index = 0
+    prev_waypoint = None
+
+    for segment in segments:
+        n = len(segment.waypoints)
+        if n == 0:
+            continue
+
+        x = list(range(waypoint_index, waypoint_index + n))
+        joints = [waypoint.toList() for waypoint in segment.waypoints]
+
+        if prev_waypoint is not None:
+            x = [waypoint_index - 1] + x
+            joints = [prev_waypoint] + joints
+
+        color = COLORS[segment.motion_type]
+        label = segment.motion_type.name if segment.motion_type not in legend_added else None
+        legend_added.add(segment.motion_type)
+
+        for j in range(6):
+            values = [joints[k][j] for k in range(len(joints))]
+            axes[j].plot(x, values, color=color, label=label if j == 0 else None, linewidth=1)
+
+        prev_waypoint = segment.waypoints[-1].toList()
+        waypoint_index += n
+
+    for j in range(6):
+        axes[j].set_ylabel(f"J{j+1} (rad)")
+        axes[j].set_ylim(global_min - padding, global_max + padding)
+        axes[j].grid(True, alpha=0.3)
+
+    axes[5].set_xlabel("Waypoint index")
+    axes[0].legend(loc="upper right", fontsize=8)
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150)
+    plt.show()
+    plt.close()
+    print(f"Joint plan plot saved to {save_path}")
+
+def plot_smoothing_comparison(segments, before_waypoints, save_path):
+    SEGMENT_COLORS = {
+        MotionType.TRAVEL: "blue",
+        MotionType.APPROACH: "orange",
+        MotionType.DRAW: "green",
+    }
+
+    fig, axes = plt.subplots(6, 1, figsize=(14, 12), sharex=True)
+    fig.suptitle("Smoothing comparison (before vs after)")
+
+    before_x = []
+    before_joints = [[] for unused in range(6)]
+    after_x = []
+    after_joints = [[] for unused in range(6)]
+    segment_ranges = []
+
+    wp_index = 0
+    for segment_i, segment in enumerate(segments):
+        if not segment.waypoints:
+            continue
+
+        n = len(segment.waypoints)
+        seg_start = wp_index
+        before_wps = before_waypoints[segment_i]
+
+        for i in range(n):
+            if i < len(before_wps):
+                before_x.append(wp_index + i)
+                vals = before_wps[i].toList() if hasattr(before_wps[i], 'toList') else list(before_wps[i])
+                for j in range(6):
+                    before_joints[j].append(vals[j])
+
+            after_x.append(wp_index + i)
+            vals = segment.waypoints[i].toList() if hasattr(segment.waypoints[i], 'toList') else list(segment.waypoints[i])
+            for j in range(6):
+                after_joints[j].append(vals[j])
+
+        segment_ranges.append((seg_start, wp_index + n - 1, segment.motion_type))
+        wp_index += n
+
+    for j in range(6):
+        ax = axes[j]
+        ax.plot(before_x, before_joints[j], color="red", linewidth=1, alpha=0.7, label="Before" if j == 0 else None)
+        ax.plot(after_x, after_joints[j], color="black", linewidth=1, label="After" if j == 0 else None)
+
+        for seg_start, seg_end, mtype in segment_ranges:
+            color = SEGMENT_COLORS[mtype]
+            ax.axvspan(seg_start, seg_end, alpha=0.05, color=color)
+
+        ax.set_ylabel(f"J{j+1} (rad)")
+        ax.grid(True, alpha=0.3)
+
+    legend_added = set()
+    for seg_start, seg_end, mtype in segment_ranges:
+        if mtype not in legend_added:
+            axes[0].plot([], [], color=SEGMENT_COLORS[mtype], linewidth=4, alpha=0.3, label=mtype.name)
+            legend_added.add(mtype)
+
+    axes[0].legend(loc="upper right", fontsize=7)
+    axes[5].set_xlabel("Waypoint index")
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150)
+    plt.show()
+    plt.close()
+    print(f"Smoothing comparison plot saved to {save_path}")
+
+
+def correct_bottom_values(waypoints):
+
+    for waypoint in waypoints:
+
+        if waypoint[2] > MIN_HEIGHT_NORMAL_CORRECTION_MM:
+            continue
+        normal = np.array([waypoint[3], waypoint[4], waypoint[5]])
+        vertical = np.array([0,0,1])
+
+        if np.acos(np.dot(normal, vertical) / ( np.linalg.norm(normal) * np.linalg.norm(vertical)) > np.pi / 2):
+            waypoint[5] = 0.0
+
+    return waypoints
+
+def hotfix_j6_correction(segments):
+
+    for segment in segments:
+        for waypoint in segment.waypoints:
+            waypoint[5] = HOMEJ[5]
+
+    return segments
+
+def add_angle_continuity(segments):
+    prev_waypoint = None
+
+    for segment in segments:
+        if not segment.waypoints:
+            continue
+        for waypoint in segment.waypoints:
+            if prev_waypoint is not None:
+                for j in range(6):
+                    original = waypoint[j]
+                    while waypoint[j] - prev_waypoint[j] > np.pi:
+                        waypoint[j] -= 2 * np.pi
+                    while waypoint[j] - prev_waypoint[j] < -np.pi:
+                        waypoint[j] += 2 * np.pi
+                    if abs(waypoint[j]) > MAX_JOINT_RANGE:
+                        waypoint[j] = original
+            prev_waypoint = waypoint
+
+    return segments
+
+def filterout_bottom_values(waypoints):
+
+    filtered_waypoints = []
+
+    for waypoint in waypoints:
+
+        if waypoint[2] > MIN_HEIGHT_ACCEPTANCE:
+            filtered_waypoints.append(waypoint)
+
+    return filtered_waypoints

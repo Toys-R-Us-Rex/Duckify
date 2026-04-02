@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from URBasic import TCP6D, Joint6D
+from URBasic.waypoint6d import TCP6D, Joint6D
 
 class MotionType(Enum):
     TRAVEL = auto()      # free-space collision-avoidant move
@@ -32,7 +32,8 @@ class TCPSegment(Segment):
     v: float             # velocity m/s
     a: float             # acceleration m/s²
     r: float = 0.0       # blend radius
-    waypoints: list[TCP6D] = None  # pre-computed TCP6D list
+    waypoints: list[TCP6D] = None
+    default_normals: list[list] = None
 
 @dataclass
 class JointSegment(Segment):
@@ -40,5 +41,7 @@ class JointSegment(Segment):
     v: float             # velocity m/s
     a: float             # acceleration m/s²
     r: float = 0.0       # blend radius
-    waypoints: list[Joint6D] = None  # optional pre-computed Joint6D list
-    tcp_waypoints: list[TCP6D] = None  # corresponding TCP6D poses
+    waypoints: list[Joint6D] = None
+    tcp_waypoints: list[TCP6D] = None
+    default_normals: list[list] = None
+    ik_solutions: list[list] = None

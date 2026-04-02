@@ -39,6 +39,7 @@ Course:     HES-SO Valais-Wallis, Engineering Track 304
 
 import json
 import numpy as np
+from jupyter_console.ptshell import ask_yes_no
 from scipy.spatial.transform import Rotation as Rot
 
 from src.config import *
@@ -46,12 +47,12 @@ from src.stage import Stage
 from src.utils import *
 from src.logger import DataStore
 
-from urbasic.URBasic.iscoin import ISCoin
-from urbasic.URBasic.urScript import UrScript
+from URBasic.iscoin import ISCoin
+from URBasic.urScript import UrScript
 from duckify_simulation.duckify_sim.duckify_sim import DuckifySim
 from duckify_simulation.duckify_sim.robot_control import SimRobotControl
 
-def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list[float]]) -> list[list[float]]:
+def collect_data_transformation(robot_arm: UrScript | SimRobotControl, world_measure: dict) -> dict:
     """
     Collect TCP transformation data for the specified world measurement points.
 
@@ -59,8 +60,8 @@ def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list
     ----------
     robot_arm : UrScript
         Interface to the robot controller.
-    world_measure : list of list[float]
-        List of world coordinate points for measurement.
+    world_measure : dict
+        Dictionary of world coordinate points for measurement.
 
     Returns
     -------
@@ -71,14 +72,15 @@ def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list
         print("Minimum 3 measure points.")
         raise ValueError("You don't provide enough world measure")
 
-    num_measure = len(world_measure)
     
-    tcps = []
+    tcps = {}
 
-    k = 0
-    while k < num_measure:
+    for k, p in world_measure.items():
         robot_arm.freedrive_mode()
-        i = input(f"Move robot to {world_measure[k]}, then press ENTER to capture. (or q to quit)")
+        i = input(f"Move robot to {k}, then press ENTER to capture. (s to skip)(or q to quit)")
+        if i == "s":
+            continue
+
         if i == "q":
             if k < 3:
                 print("You should collect min 3 world points.")
@@ -92,17 +94,19 @@ def collect_data(robot_arm: UrScript | SimRobotControl, world_measure: list[list
             # Return robot positions
             tcp = robot_arm.get_actual_tcp_pose().toList()
 
-            tcps.append(tcp)
-            k += 1
+            tcps[k] = tcp
             print("Captured measure ", k)
 
         if i == "exit":
             robot_arm.end_freedrive_mode()
             raise Exception("Wrong calibration; exit")
 
+    robot_arm.freedrive_mode()
+    while not ask_yes_no("Are you done collecting measurements? (Robot close to home position) y/n \n"):
+        pass
     robot_arm.end_freedrive_mode()
 
-    return np.array(tcps)
+    return tcps
 
 def create_transformation(A: np.ndarray, B: np.ndarray) -> AtoB:
     """
@@ -218,16 +222,11 @@ def extract_pybullet_pose(obj2robot: AtoB) -> tuple[list[float], list[float], fl
     tuple[list[float], list[float], float]
         A tuple containing the position (x, y, z), quaternion (x, y, z, w), and scale.
     """
-    from scipy.spatial.transform import Rotation as Rot
     T = obj2robot.T_position
     pos = T[:3, 3].tolist()
     R = T[:3, :3]
     scale = np.linalg.norm(R[:, 0])
-    U, _, Vt = np.linalg.svd(R)
-    R_pure = U @ Vt
-    if np.linalg.det(R_pure) < 0:
-        U[:, -1] *= -1
-        R_pure = U @ Vt
+    R_pure = R / scale
     quat = Rot.from_matrix(R_pure).as_quat().tolist()
     return pos, quat, scale
 
@@ -248,7 +247,7 @@ def load_obj2robot(record: DataStore, rz_deg: float = OBJ2ROBOT_RZ_DEG):
     AtoB
         The loaded transformation matrix.
     """
-    a = record.load_transformation(DEFAULT_TRANSFORMATION_PATH)
+    a = record.load_transformation(TEST_TRANSFORMATION_PATH)
     T_loaded = a.T_position
     if T_loaded is not None:
         translation = tuple(T_loaded[:3, 3])
@@ -260,7 +259,27 @@ def load_obj2robot(record: DataStore, rz_deg: float = OBJ2ROBOT_RZ_DEG):
     return build_manual_transform(rz_deg=rz_deg, translation=translation)
 
 
-def launch_transformation(robot_ip: str, file_path: str, ds: DataStore) -> AtoB:
+def transformation_measure_with_pressure(robot_ip, json_socle, ds):
+    pass
+
+def collect_data_transformation_mock(world_measure: dict) -> dict:
+    """
+    Mock function to collect transformation data for testing purposes.
+
+    Parameters
+    ----------
+    world_measure : dict
+        The world measurement data.
+
+    Returns
+    -------
+    dict
+        The collected transformation data.
+    """
+    return {k: p for k, p in world_measure.items()}
+
+
+def launch_transformation(robot_ip: str, file_path: str, ds: DataStore, z_rotation: float = 0) -> AtoB:
     """
     Launches the transformation process.
 
@@ -272,6 +291,8 @@ def launch_transformation(robot_ip: str, file_path: str, ds: DataStore) -> AtoB:
         The path to the JSON file containing calibration data.
     ds : DataStore
         The data store for managing transformation data.
+    z_rotation : float
+        Additional rotation angle around the Z-axis in degrees.
 
     Returns
     -------
@@ -283,24 +304,34 @@ def launch_transformation(robot_ip: str, file_path: str, ds: DataStore) -> AtoB:
             data = json.load(f)
         
         iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
-        _, tcp_offset = ds.load_calibration()
+        tcp_offset = ds.return_tcp_offset()
         iscoin.robot_control.set_tcp(tcp_offset)
+        
 
-        p_world = np.array(data["calibration"])
-        p_tcps = collect_data(iscoin.robot_control, p_world)
+        p_world = data["calibration"]
+        #p_tcps = collect_data_transformation_mock(p_world)
+        p_tcps = collect_data_transformation(iscoin.robot_control, p_world)
 
-        ds.save_worldtcp(p_world, p_tcps)
-        ds.log_worldtcp(p_world,p_tcps)
+        p_transformation_world = []
+        p_transformation_tcps = []
+        for k, p in p_tcps.items():
+            p_transformation_world.append(p_world[k])
+            p_transformation_tcps.append(p)
 
-        obj2robot = create_transformation(p_world, p_tcps)
+
+        ds.save_worldtcp(p_transformation_world, p_transformation_tcps)
+        ds.log_worldtcp(p_transformation_world, p_transformation_tcps)
+
+        obj2robot = create_transformation(p_transformation_world, p_transformation_tcps)
+        if z_rotation != 0:
+            obj2robot = apply_z_rotation(obj2robot, z_rotation)
 
         ds.save_transformation(obj2robot)
         ds.log_transformation(obj2robot)
-        return obj2robot
 
     except Exception as e:
         ds.log(f"Transforamtion skiped: {e}")
-        raise
+        raise e
 
 def test_transformation(ds: DataStore, obj2robot: AtoB, robot_ip: str, test: list = TEST_TRANSFORMATION):
     """
@@ -320,12 +351,15 @@ def test_transformation(ds: DataStore, obj2robot: AtoB, robot_ip: str, test: lis
     tcp = TCP6D.createFromMetersRadians( *obj2robot(test))
     ds.log(f"Conversion test; {test} give {tcp}")
     print(f"Conversion test; {test} give {tcp}")
+    print("We suggest using the pathfinding module visual to confirm transformation.")
     if not ask_yes_no("Do you want to test on Gazebo? y/n \n"):
         return
+
+    tcp_offset = ds.return_tcp_offset()
     
     duckify_sim = DuckifySim()
     robot_sim = duckify_sim.robot_control
-    _, tcp_offset = ds.load_calibration()
+
     robot_sim.set_tcp(tcp_offset)
     robot_sim.movej(HOMEJ)
     robot_sim.movel(tcp)
@@ -333,6 +367,8 @@ def test_transformation(ds: DataStore, obj2robot: AtoB, robot_ip: str, test: lis
     
     if not ask_yes_no("Do you want to test on robot? y/n \n"):
         return
+    print("Testing on robot, would be too dangerous in is current state.")
+    return
 
     iscoin = ISCoin(host=robot_ip, opened_gripper_size_mm=40)
     robot = iscoin.robot_control
@@ -342,12 +378,60 @@ def test_transformation(ds: DataStore, obj2robot: AtoB, robot_ip: str, test: lis
     robot.movel(tcp)
     robot.movej(HOMEJ)
 
+def generate_custom_transforamtion(custom_transformation: tuple) -> AtoB:
+    """
+    Generates a custom transformation matrix based on the provided parameters.
+
+    Parameters
+    ----------
+    custom_transformation : tuple
+        A tuple containing the custom transformation parameters (X, Y, Z, Z_rot).
+
+    Returns
+    -------
+    AtoB
+        The resulting transformation matrix.
+    """
+    t = custom_transformation[:3]
+    R = rotation_matrix_z(custom_transformation[3])
+    T = np.eye(4) * 0.001
+    T[:3, :3] = R * 0.001
+    T[:3, 3] = t
+
+    R_normal = np.linalg.inv(R).T
+    T_normal = np.eye(4)
+    T_normal[:3, :3] = R_normal
+
+    return AtoB(T_position=T, T_orientation=T_normal)
+
+def apply_z_rotation(transformation: AtoB, angle: float) -> AtoB:
+    """
+    Applies a rotation around the Z-axis to a transformation class.
+
+    Parameters
+    ----------
+    transformation : AtoB
+        The transformation class to rotate.
+    angle : float
+        The angle of rotation in degrees around the Z-axis.
+
+    Returns
+    -------
+    AtoB
+        The rotated transformation class.
+    """
+    R = rotation_matrix_z(angle)
+    T_position = transformation.T_position
+    T_position[:3, :3] = R @ T_position[:3, :3]
+    T_orientation = transformation.T_orientation
+    T_orientation[:3, :3] = R @ T_orientation[:3, :3]
+    return AtoB(T_position=T_position, T_orientation=T_orientation)
 
 class Transformation(Stage):
     """
     A stage for performing coordinate transformations between object and robot frames.
     """
-    def __init__(self, datastore: DataStore, robot_ip: str, json_calibration: str):
+    def __init__(self, datastore: DataStore, robot_ip: str, json_socle: Path, custom_transformation: list = None):
         """
         Initialize the Transformation stage.
 
@@ -357,17 +441,57 @@ class Transformation(Stage):
             The data store instance.
         robot_ip : str
             The IP address of the robot.
-        json_calibration : str
-            The path to the JSON file containing calibration data.
+        json_socle : Path
+            The path to the JSON file containing socle data.
+        json_transformation : Path, optional
+            The path to the JSON file containing transformation data.
+        custom_transformation : list, optional
+            (X, Y, Z, Z_rot)
+            Unities: X,Y,Z are in meters, Z_rot in degree.
+            A custom transformation parameters to apply during transformation.
+            If all (X,Y,Z,Z_rot) are provided the custom transformation will be used.
         """
         super().__init__(name="Transformation", datastore=datastore)
         self.robot_ip = robot_ip
-        self.json_calibration = json_calibration
+        self.json_socle = json_socle
+        if all(i is not None for i in custom_transformation):
+            self.custom_transformation = custom_transformation
+            self.z_rotation = 0
+        else:
+            self.custom_transformation = None
+            if custom_transformation[-1] and custom_transformation[-1] is not None and len(custom_transformation) == 4:
+                self.z_rotation = custom_transformation[-1]
+            else:
+                self.z_rotation = 0
 
-    def run(self):
+    def run(self, manual_flag: bool=True):
         """
         Run the transformation stage.
+
+        Parameters
+        ----------
+        manual_flag : bool, optional
+            If True, allows manual calibration. Default is True.
         """
+        if not manual_flag:
+            self.ds.log("Run in automatic mode.")
+            if self.custom_transformation is not None and any(v != 0.0 for v in self.custom_transformation):
+                obj2robot = generate_custom_transforamtion(self.custom_transformation)
+                self.ds.save_transformation(obj2robot)
+                self.ds.log_transformation(obj2robot)
+                return
+            if self.ds.check_transformation():
+                obj2robot = self.ds.load_transformation()
+                self.ds.log_transformation(obj2robot)
+                return
+            raise RuntimeError("No existing transformation found.")
+
+        if self.custom_transformation is not None:
+            obj2robot = generate_custom_transforamtion(self.custom_transformation)
+            self.ds.save_transformation(obj2robot)
+            self.ds.log_transformation(obj2robot)
+            return
+
         while True:
             if ask_yes_no("Do you have the transformation already saved? y/n \n"):
                 obj2robot = self.ds.load_transformation()
@@ -376,10 +500,20 @@ class Transformation(Stage):
                 return
 
             if ask_yes_no("Do you want to run a robot transformation? y/n \n"):
-                obj2robot = launch_transformation(self.robot_ip, self.json_calibration, self.ds)
+                launch_transformation(self.robot_ip, self.json_socle, self.ds, z_rotation=self.z_rotation)
                 if ask_yes_no("Do you want to test transformation? y/n \n"):
                     test_transformation(self.ds, obj2robot, self.robot_ip)
                 return
+
+            if ask_yes_no("Do you want to apply a z rotation? y/n \n"):
+                obj_to_robot = self.ds.load_transformation()
+                if self.z_rotation != 0:
+                    obj_to_robot = apply_z_rotation(obj_to_robot, self.z_rotation)
+                    self.ds.log(f"Applying z-rotation to transformation: {self.z_rotation}")
+                    self.ds.save_transformation(obj_to_robot)
+                    self.ds.log_transformation(obj_to_robot)
+                return
+
 
             if ask_yes_no("You don't have a transformation or can't run one? y/n \n"):
                 self.ds.log("No transformation available.")
@@ -395,7 +529,9 @@ class Transformation(Stage):
 
         if ask_yes_no("Use default transformation (test only)? y/n \n"):
             self.ds.log("WARNING: Loading default transformation (test only).")
-            obj_to_robot = self.ds.load_transformation(DEFAULT_TRANSFORMATION_PATH)
+            obj_to_robot = self.ds.load_transformation(TEST_TRANSFORMATION_PATH)
+            if self.z_rotation != 0:
+                obj_to_robot = apply_z_rotation(obj_to_robot, self.z_rotation)
             self.ds.save_transformation(obj_to_robot)
             self.ds.log_transformation(obj_to_robot)
             return

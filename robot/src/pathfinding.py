@@ -1,88 +1,144 @@
-'''
-MIT License
-
-Copyright (c) 2026 HES-SO Valais-Wallis, Engineering Track 304
-'''
-
-import logging
-
 import numpy as np
-from scipy.spatial.transform import Rotation as Rot, Slerp
+import pybullet as pb
 
-from src.config import PUSH_STEP, MAX_DEPTH, MAX_PUSH
+from src.stage import Stage
+from src.logger import DataStore
+from src.utils import *
+from src.config import *
+from src.kinematics import pose_to_matrix
 
-log = logging.getLogger(__name__)
+from src.safety import setup_checker
+from src.transformation import extract_pybullet_pose
+from src.pybullet_helpers import clear_bodies, display_transformation_points, find_hovers, preview_traces, split_into_runs, validate_surface_points, visualize_validation, visualize_runs, visualize_plan, animate_plan
+from src.computation import assemble_segments, plan_travels, smoothing, plot_joint_plan, plot_smoothing_comparison, hotfix_j6_correction, add_angle_continuity
 
+class Pathfinding(Stage):
+    def __init__(self, datastore: DataStore, default_calibration: Path = None, obstacles: list = OBSTACLE_STLS, verbose: bool = True):
+        """
+        Initialize the pathfinding stage.
 
-# Using D&C to rcursiverly split in the middle
-def find_path(robot, checker, A_tcp, B_tcp, depth=0, qnear=None):
+        Parameters
+        ----------
+        datastore : DataStore
+            The data store to use.
+        default_calibration : Path, optional
+            The path to the default calibration file.
+        obstacles : list, optional
+            List of obstacle STL files to load.
+        side : SideType, optional
+            The side for which to find paths.
+        verbose : bool, optional
+            Whether to display verbose output.
+        """
+        super().__init__(name="Pathfinding", datastore=datastore)
+        self.default_calibration = default_calibration
+        self.obstacles = obstacles
+        self.verbose = verbose
+    
+    def run(self, manual_flag: bool=True):
+        if not ask_yes_no("Do you want to launch a pathfinding? y/n \n"):
+            if not self.ds.check_joint_segments():
+                raise ValueError("No joint segments found.")
+            return
+        
+        obj2robot = self.ds.load_transformation()
+        data = self.ds.load_tcp_segments()
+        
+        tcp_offset = self.ds.return_tcp_offset(self.default_calibration)
+        tcp_offset_mat = pose_to_matrix(tcp_offset)
 
-    if qnear is None:
-        q = robot.get_inverse_kin(A_tcp)
-        if q is not None:
-            qnear = q
+        position, quat, scale = extract_pybullet_pose(obj2robot)
+        checker = setup_checker(self.obstacles, obj_position=position, obj_orientation=quat, gui=self.verbose)
+        checker.set_joint_angles(HOMEJ.toList())
 
-    # Try the direct segment
-    ok, _fail_idx, _reason, _traj = checker.validate_path(
-        robot, [A_tcp, B_tcp], qnear=qnear,
-        orientation_search=True,
-    )
-    if ok:
-        return [A_tcp, B_tcp]
+        display_transformation_points(checker, obj2robot, self.ds, DEFAULT_JSON_SOCLE)
 
-    log.info("find_path depth=%d: direct A(%.4f,%.4f,%.4f)->B(%.4f,%.4f,%.4f) "
-             "failed at sample %d: %s",
-             depth, A_tcp.x, A_tcp.y, A_tcp.z,
-             B_tcp.x, B_tcp.y, B_tcp.z, _fail_idx, _reason)
+        joint_data = {}
+        is_flipped = False
 
-    if depth >= MAX_DEPTH:
-        raise RuntimeError(
-            f"find_path: max depth {MAX_DEPTH} reached, cannot find safe path"
-        )
+        for side, colors in data.items():
+            if manual_flag and not ask_yes_no(f"Draw on side {side}? y/n \n"):
+                continue
 
-    # Lift the midpoint until it validates
-    mid_tcp = lift_midpoint(robot, checker, A_tcp, B_tcp, qnear=qnear)
+            pb.removeAllUserDebugItems(physicsClientId=checker.cid)
 
-    left = find_path(robot, checker, A_tcp, mid_tcp, depth + 1, qnear=qnear)
-    right = find_path(robot, checker, mid_tcp, B_tcp, depth + 1, qnear=qnear)
+            workspace_id = checker.obstacle_ids[1] if len(checker.obstacle_ids) > 1 else None
+            exclude = {workspace_id} if workspace_id else None
+            if side == 'right' and not is_flipped:
+                checker.flip_obstacles_z(exclude_ids=exclude)
+                is_flipped = True
+            elif side == 'left' and is_flipped:
+                checker.flip_obstacles_z(exclude_ids=exclude)
+                is_flipped = False
 
-    # left ends with mid, right starts with mid — skip duplicate
-    return left + right[1:]
+            joint_data[side] = {}
+            for color, traces in colors.items():
+                print(f"Processing {side} - {color}")
 
+                self.ds.log(f"Processing {side} - {color}")
+                trace_waypoints = [t.waypoints for t in traces]
+                default_normals = [t.default_normals for t in traces]
 
-def lift_midpoint(robot, checker, A_tcp, B_tcp, qnear=None):
+                preview_traces(checker, trace_waypoints)
+                if manual_flag:
+                    if not ask_yes_no("Are the traces correctly placed ? y/n \n"):
+                        if pb.isConnected(checker.cid):
+                            pb.disconnect(checker.cid)
+                        raise RuntimeError("The trace are not correctly placed")
+                pb.removeAllUserDebugItems(physicsClientId=checker.cid)
 
-    from URBasic import TCP6D
+                valid_masks, surface_joints = validate_surface_points(
+                    checker, tcp_offset_mat, trace_waypoints, HOMEJ,
+                )
+                validation_spheres = visualize_validation(checker, trace_waypoints, valid_masks)
 
-    a_pos = np.array([A_tcp.x, A_tcp.y, A_tcp.z])
-    b_pos = np.array([B_tcp.x, B_tcp.y, B_tcp.z])
-    mid_pos = (a_pos + b_pos) / 2.0
+                if manual_flag:
+                    if not ask_yes_no("Judge and tell if the traces valid ? y/n \n"):
+                        if pb.isConnected(checker.cid):
+                            pb.disconnect(checker.cid)
+                        raise RuntimeError("The trace are not correct.")
 
-    # SPherical interpolation to find intermediate points on a rotation
-    a_rotvec = np.array([A_tcp.rx, A_tcp.ry, A_tcp.rz])
-    b_rotvec = np.array([B_tcp.rx, B_tcp.ry, B_tcp.rz])
-    rots = Rot.from_rotvec([a_rotvec, b_rotvec])
-    slerp = Slerp([0, 1], rots)
-    mid_rotvec = slerp(0.5).as_rotvec()
+                clear_bodies(checker.cid, validation_spheres)
 
-    # pushing upward if there was collision
-    total_push = 0.0
-    last_reason = ""
-    while total_push < MAX_PUSH:
-        tcp = TCP6D.createFromMetersRadians(
-            float(mid_pos[0]), float(mid_pos[1]), float(mid_pos[2]),
-            float(mid_rotvec[0]), float(mid_rotvec[1]), float(mid_rotvec[2]),
-        )
-        ok, _q, last_reason, _ = checker.validate_tcp(
-            robot, tcp, qnear=qnear, orientation_search=True,
-        )
-        if ok:
-            return tcp
-        log.debug("lift z=%.4f failed: %s", mid_pos[2], last_reason)
-        mid_pos[2] += PUSH_STEP
-        total_push += PUSH_STEP
+                runs_per_trace = split_into_runs(valid_masks)
+                run_spheres = visualize_runs(checker, trace_waypoints, runs_per_trace)
+                validated_runs = find_hovers(checker, tcp_offset_mat, trace_waypoints, runs_per_trace, surface_joints, home=HOMEJ)
 
-    raise RuntimeError(
-        f"lift_midpoint: could not find valid midpoint after "
-        f"pushing {MAX_PUSH}m upward (last reason: {last_reason})"
-    )
+                segments = assemble_segments(tcp_offset_mat, checker, validated_runs, surface_joints, HOMEJ, trace_waypoints, default_normals)
+
+                before_waypoints = smoothing(tcp_offset_mat, checker, segments, HOMEJ)
+
+                smoothing_plot_index = 0
+                while (self.ds.data_path / f"smoothing_{smoothing_plot_index}.png").exists():
+                    smoothing_plot_index += 1
+                plot_smoothing_comparison(segments, before_waypoints, self.ds.data_path / f"smoothing_{smoothing_plot_index}.png")
+
+                plan_travels(checker, segments)
+                add_angle_continuity(segments)
+
+                segments = hotfix_j6_correction(segments)
+
+                if manual_flag:
+                    input("Press Enter to see visualization...")
+                    clear_bodies(checker.cid, run_spheres)
+                    pb.removeAllUserDebugItems(physicsClientId=checker.cid)
+                    visualize_plan(checker, tcp_offset_mat, segments, debug=True)
+
+                    # animate_plan(checker, segments, delay=0.1)
+                    input("Press Enter to continue after visualization...")
+
+                joint_data[side][color] = segments
+                plot_index = 0
+                while (self.ds.data_path / f"joint_plan_{plot_index}.png").exists():
+                    plot_index += 1
+                plot_joint_plan(segments, self.ds.data_path / f"joint_plan_{plot_index}.png")
+
+        if pb.isConnected(checker.cid):
+            pb.disconnect(checker.cid)
+            print("PyBullet disconnected")
+
+        self.ds.save_joint_segments(joint_data)
+        
+                             
+    def fallback(self):
+        raise NotImplementedError("Pathfinding is not implemented yet.")
