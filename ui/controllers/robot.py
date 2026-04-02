@@ -160,7 +160,7 @@ class RobotController(QObject):
         box: QComboBox = self.ui.robotTCPCalibration
         idx: int = box.findText("Loaded")
         if idx == -1:
-            add_and_select_item(box, "Loaded", path_str)
+            add_and_select_item(box, "Loaded", path)
             self.loaded_tcp_calibration = True
         else:
             box.setItemData(idx, path)
@@ -179,7 +179,7 @@ class RobotController(QObject):
         box: QComboBox = self.ui.robotTransformation
         idx: int = box.findText("Loaded")
         if idx == -1:
-            add_and_select_item(box, "Loaded", path_str)
+            add_and_select_item(box, "Loaded", path)
             self.loaded_transformation = True
         else:
             box.setItemData(idx, path)
